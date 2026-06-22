@@ -23,6 +23,10 @@ __pycache__/
 # Graph cache (generated at wiki run time)
 graph-data.json
 
+# Agent working files (not for public distribution)
+MASTER_PROMPT.md
+skill/references/opencode-tutorial.md
+
 # IDE
 .vscode/
 .idea/

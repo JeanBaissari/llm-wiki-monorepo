@@ -15,6 +15,10 @@
         <span class="brand"><span class="brand-dot"></span>LLM Wiki</span>
         <span id="wiki-title"></span>
       </div>
+      <div class="topbar-search">
+        <input type="text" id="search-input" placeholder="Search wiki..." />
+        <button id="search-btn" class="btn btn-ghost" type="button">Search</button>
+      </div>
       <div class="topbar-right">
         <button id="btn-graph" class="btn" type="button" title="Knowledge graph (G)">
           <span>⬡</span> Graph
@@ -25,9 +29,21 @@
 
     <aside id="sidebar-left" class="glass">
       <header>
-        <h1>Navigation</h1>
+        <div class="tab-bar">
+          <button class="tab active" data-tab="pages">Pages</button>
+          <button class="tab" data-tab="search">Search</button>
+          <button class="tab" data-tab="graph">Graph</button>
+        </div>
       </header>
-      <nav id="tree"><p class="loading">Loading tree</p></nav>
+      <div class="tab-content tab-pages active">
+        <nav id="tree"><p class="loading">Loading tree</p></nav>
+      </div>
+      <div class="tab-content tab-search">
+        <div id="search-results"><p class="muted" style="padding: 14px;">Search for pages above</p></div>
+      </div>
+      <div class="tab-content tab-graph">
+        <div id="graph-insights"><p class="muted" style="padding: 14px;">Loading graph insights...</p></div>
+      </div>
     </aside>
 
     <main>

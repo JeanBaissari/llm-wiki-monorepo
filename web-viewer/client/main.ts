@@ -13,6 +13,34 @@ interface PageResponse {
   frontmatter: Record<string, unknown> | null;
 }
 
+interface SearchResult {
+  title: string;
+  path: string;
+  snippet: string;
+  score: number;
+}
+
+interface SurprisingConnection {
+  source: { id: string; label: string; type: string; path: string; linkCount: number; community: number };
+  target: { id: string; label: string; type: string; path: string; linkCount: number; community: number };
+  score: number;
+  reasons: string[];
+  key: string;
+}
+
+interface KnowledgeGap {
+  type: string;
+  title: string;
+  description: string;
+  nodeIds: string[];
+  suggestion: string;
+}
+
+interface GraphInsights {
+  surprisingConnections: SurprisingConnection[];
+  knowledgeGaps: KnowledgeGap[];
+}
+
 const state = {
   currentPath: "wiki/index.md" as string,
   rawMarkdown: "" as string,
@@ -174,6 +202,131 @@ async function main() {
       await loadAudits(state.currentPath);
     },
   });
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  const tabs = document.querySelectorAll<HTMLButtonElement>(".tab-bar .tab");
+  const tabContents = document.querySelectorAll<HTMLElement>(".tab-content");
+  let currentTab = "pages";
+
+  tabs.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-tab") ?? "pages";
+      if (tab === currentTab) return;
+      currentTab = tab;
+      tabs.forEach((b) => b.classList.toggle("active", b === btn));
+      tabContents.forEach((c) => c.classList.toggle("active", c.classList.contains(`tab-${tab}`)));
+      if (tab === "graph") void loadGraphInsights();
+    });
+  });
+
+  // ── Search ──────────────────────────────────────────────────────────────────
+  const searchInput = document.getElementById("search-input") as HTMLInputElement;
+  const searchBtn = document.getElementById("search-btn") as HTMLButtonElement;
+
+  const doSearch = async () => {
+    const q = searchInput.value.trim();
+    if (!q) return;
+    // Switch to search tab
+    document.querySelector<HTMLButtonElement>('.tab-bar .tab[data-tab="search"]')?.click();
+    const el = document.getElementById("search-results")!;
+    el.innerHTML = '<p class="loading">Searching</p>';
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const data: { results: SearchResult[] } = await res.json();
+      if (data.results.length === 0) {
+        el.innerHTML = '<p class="muted" style="padding: 14px;">No results found</p>';
+        return;
+      }
+      el.innerHTML = data.results
+        .map(
+          (r) => `
+        <div class="search-result" data-path="${cssEscape(r.path)}">
+          <a href="/?page=${encodeURIComponent(r.path)}" class="search-title">${escapeHtml(r.title)}</a>
+          <p class="search-snippet">${escapeHtml(r.snippet)}</p>
+          <span class="search-score">score: ${r.score.toFixed(1)}</span>
+        </div>`,
+        )
+        .join("");
+      el.querySelectorAll(".search-result").forEach((div) => {
+        div.addEventListener("click", () => {
+          const p = div.getAttribute("data-path")!;
+          void loadPage(p);
+          history.pushState({ page: p }, "", `/?page=${encodeURIComponent(p)}`);
+        });
+      });
+    } catch {
+      el.innerHTML = '<p class="muted" style="padding: 14px;">Search failed</p>';
+    }
+  };
+
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") void doSearch();
+  });
+  searchBtn.addEventListener("click", () => void doSearch());
+}
+
+async function loadGraphInsights(): Promise<void> {
+  const el = document.getElementById("graph-insights")!;
+  el.innerHTML = '<p class="loading">Loading insights</p>';
+  try {
+    const res = await fetch("/api/graph-insights");
+    if (!res.ok) {
+      el.innerHTML = `<p class="muted" style="padding: 14px;">Failed to load insights (${res.status})</p>`;
+      return;
+    }
+    const data: GraphInsights = await res.json();
+    const sc = data.surprisingConnections ?? [];
+    const kg = data.knowledgeGaps ?? [];
+
+    el.innerHTML = `
+      <div class="insight-section">
+        <h4>Graph Metrics</h4>
+        <div class="metrics-grid">
+          <div class="metric">
+            <span class="metric-value">${sc.length + kg.length}</span>
+            <span class="metric-label">Insights</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">${sc.length}</span>
+            <span class="metric-label">Surprising Connections</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">${kg.length}</span>
+            <span class="metric-label">Knowledge Gaps</span>
+          </div>
+        </div>
+      </div>
+      ${sc.length > 0 ? `
+      <div class="insight-section">
+        <h4>Surprising Connections</h4>
+        ${sc
+          .map(
+            (c) => `
+          <div class="insight-item insight-connection">
+            <div class="insight-title">${escapeHtml(c.source.label)} ↔ ${escapeHtml(c.target.label)}</div>
+            <div class="insight-meta">score: ${c.score} · ${c.reasons.join(", ")}</div>
+          </div>`,
+          )
+          .join("")}
+      </div>` : ""}
+      ${kg.length > 0 ? `
+      <div class="insight-section">
+        <h4>Knowledge Gaps</h4>
+        ${kg
+          .map(
+            (g) => `
+          <div class="insight-item insight-gap gap-${g.type}">
+            <div class="insight-title">${escapeHtml(g.title)}</div>
+            <p class="insight-desc">${escapeHtml(g.description)}</p>
+            <p class="insight-suggest">💡 ${escapeHtml(g.suggestion)}</p>
+          </div>`,
+          )
+          .join("")}
+      </div>` : ""}
+    `;
+  } catch {
+    el.innerHTML = '<p class="muted" style="padding: 14px;">Failed to load graph insights</p>';
+  }
 }
 
 function isEditableFocused(): boolean {

@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import url from "node:url";
+import { execSync } from "node:child_process";
 import type { Request, Response } from "express";
 import type { ServerConfig } from "../config.js";
 
@@ -118,5 +120,59 @@ function extractTitle(text: string): string | null {
 export function handleGraph(cfg: ServerConfig) {
   return (_req: Request, res: Response) => {
     res.json(buildGraph(cfg.wikiRoot));
+  };
+}
+
+// ── Graph Insights (via graph-engine CLI) ──────────────────────────────────
+
+interface InsightsCache {
+  data: unknown;
+  timestamp: number;
+}
+
+let insightsCache: InsightsCache | null = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+export function handleGraphInsights(cfg: ServerConfig) {
+  return (_req: Request, res: Response) => {
+    if (insightsCache && Date.now() - insightsCache.timestamp < CACHE_TTL) {
+      res.json(insightsCache.data);
+      return;
+    }
+
+    try {
+      const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+      const repoRoot = path.resolve(__dirname, "../../..");
+      const enginePath = path.resolve(repoRoot, "graph-engine", "dist", "index.js");
+
+      if (!fs.existsSync(enginePath)) {
+        res.status(500).json({
+          error: "graph-engine not built",
+          detail: `Run 'cd graph-engine && npm install && npx tsc' first.`,
+        });
+        return;
+      }
+
+      const dataPath = path.join(cfg.wikiRoot, "graph-data.json");
+      if (!fs.existsSync(dataPath)) {
+        execSync(`node "${enginePath}" --wiki "${cfg.wikiRoot}" --action build`, {
+          stdio: "pipe",
+          timeout: 30000,
+          encoding: "utf-8",
+        });
+      }
+
+      const stdout = execSync(
+        `node "${enginePath}" --wiki "${cfg.wikiRoot}" --action insights`,
+        { encoding: "utf-8", stdio: "pipe", timeout: 30000 },
+      );
+
+      const data = JSON.parse(stdout);
+      insightsCache = { data, timestamp: Date.now() };
+      res.json(data);
+    } catch (err) {
+      console.error("graph insights failed", err);
+      res.status(500).json({ error: "Failed to get graph insights", detail: String(err) });
+    }
   };
 }

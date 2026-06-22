@@ -1,6 +1,5 @@
 import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
-// @ts-expect-error - no types shipped
 import attrs from "markdown-it-attrs";
 // @ts-expect-error - no types shipped
 import texmath from "markdown-it-texmath";

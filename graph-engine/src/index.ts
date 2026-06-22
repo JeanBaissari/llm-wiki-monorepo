@@ -6,7 +6,7 @@
 // Programmatic usage:
 //   import { findSurprisingConnections, detectKnowledgeGaps, applyGraphSearch } from 'graph-engine';
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // ---------------------------------------------------------------------------
@@ -110,7 +110,13 @@ async function main(): Promise<void> {
         if (!buildMod || typeof (buildMod as any).buildWikiGraph !== 'function') {
           throw new Error('Build action not available — graph-engine build module missing.');
         }
-        result = await (buildMod as any).buildWikiGraph(wiki);
+        // Resolve wiki path: if the passed path contains a wiki/ subdir, use it
+        const wikiSubdir = join(wiki, 'wiki');
+        const wikiPath = existsSync(wikiSubdir) ? wikiSubdir : wiki;
+        result = await (buildMod as any).buildWikiGraph(wikiPath);
+        // Persist graph-data.json in the original wiki root directory
+        const outputPath = join(wiki, 'graph-data.json');
+        writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf-8');
         break;
       }
 

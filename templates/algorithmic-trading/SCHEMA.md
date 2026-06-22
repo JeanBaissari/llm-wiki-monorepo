@@ -3,6 +3,19 @@
 Extends the base schema with algorithmic trading-specific page types,
 directories, and frontmatter conventions.
 
+## Inherited Base Types
+
+All base page types from `_shared/base-schema.md` are available:
+
+| Type | Directory | Purpose |
+|------|-----------|---------|
+| `entity` | `wiki/entities/` | Named things — people, tools, organizations, papers, datasets |
+| `concept` | `wiki/concepts/` | Ideas, techniques, phenomena, frameworks |
+| `source` | `wiki/sources/` | Papers, articles, talks, books |
+| `comparison` | `wiki/comparisons/` | Side-by-side analysis of related entities |
+| `synthesis` | `wiki/synthesis/` | Cross-cutting summaries and conclusions |
+| `overview` | `wiki/` | High-level project summary |
+
 ## Extra Directories
 
 | Directory | Purpose |

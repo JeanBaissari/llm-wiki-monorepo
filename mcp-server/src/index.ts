@@ -356,7 +356,7 @@ async function handleGraph(args: {
       buildGraph: (wp: string) => Promise<{ nodes: { id: string; label: string }[]; edges: { source: string; target: string }[] }>;
       getInsights: (wp: string) => Promise<string[]>;
       searchGraph: (wp: string, q: string) => Promise<
-        { nodes: { node: string; label: string; score: number }[]; edges: any[]; matchedNodeIds: string[] }
+        { nodes: { id: string; label: string; type: string; path: string; linkCount: number; community: number }[]; edges: any[]; matchedNodeIds: string[] }
       >;
     }>("./graph.js");
 
@@ -416,7 +416,7 @@ async function handleGraph(args: {
           "",
         ];
         for (const r of graphResult.nodes) {
-          lines.push(`- **${r.label}** (\`${r.node}\`) — score: ${r.score.toFixed(4)}`);
+          lines.push(`- **${r.label}** (\`${r.id}\`)`);
         }
         return textResult(lines.join("\n"));
       }

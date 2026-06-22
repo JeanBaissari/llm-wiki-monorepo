@@ -532,7 +532,14 @@ def lint(root: str) -> int:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(__doc__)
-        sys.exit(1)
-    sys.exit(lint(sys.argv[1]))
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Comprehensive health check for an LLM Wiki - 14 automated passes.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="Examples:\n  python3 lint_wiki.py ~/my-wiki\n  python3 lint_wiki.py ~/my-wiki --json",
+    )
+    parser.add_argument("wiki_path", help="Path to the wiki root directory")
+    parser.add_argument("--json", action="store_true", help="Output results as JSON instead of text")
+    args = parser.parse_args()
+    sys.exit(lint(args.wiki_path))

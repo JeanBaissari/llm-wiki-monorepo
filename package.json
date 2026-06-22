@@ -1,8 +1,21 @@
 {
   "name": "llm-wiki-monorepo",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
-  "description": "Complete LLM Wiki operating system — skill, MCP server, knowledge graph engine, templates, browser extension, web viewer, Obsidian plugin",
+  "description": "Production-grade knowledge base operating system. AI agents compile, maintain, and cross-link Markdown wikis from raw sources. Persistent knowledge that compounds over time.",
+  "keywords": [
+    "wiki",
+    "knowledge-base",
+    "llm",
+    "ai-agents",
+    "mcp",
+    "knowledge-graph",
+    "markdown",
+    "research-tool",
+    "second-brain",
+    "claude",
+    "hermes"
+  ],
   "workspaces": [
     "mcp-server",
     "graph-engine",
@@ -12,6 +25,7 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "install:all": "bash install.sh",
     "mcp": "node mcp-server/dist/index.js",
     "graph": "node graph-engine/dist/index.js",
     "web": "cd web-viewer && npm start",
@@ -19,9 +33,13 @@
     "scaffold": "python3 skill/scripts/scaffold.py",
     "ingest": "python3 skill/scripts/ingest.py",
     "deep-research": "python3 skill/scripts/deep_research.py",
-    "insights": "python3 skill/scripts/graph_insights.py"
+    "insights": "python3 skill/scripts/graph_insights.py",
+    "link-suggest": "python3 skill/scripts/link_suggest.py",
+    "backup": "python3 skill/scripts/backup.py",
+    "benchmark": "python3 skill/scripts/benchmark.py"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "python": ">=3.10"
   }
 }

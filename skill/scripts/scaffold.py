@@ -34,6 +34,9 @@ import shutil
 from pathlib import Path
 from datetime import date, datetime
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from discover import discover_layout, WikiLayout, format_json
+
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
 DEFAULT_TEMPLATE = "research"
@@ -72,7 +75,7 @@ def load_extra_dirs(template_path: Path) -> list[str]:
     return []
 
 
-def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force: bool = False) -> None:
+def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force: bool = False, page_dirs=None, no_raw=False, no_log=False, no_audit=False, no_outputs=False, verbose=False) -> None:
     today = date.today()
     today_iso = today.isoformat()
     today_compact = today.strftime("%Y%m%d")
@@ -98,22 +101,19 @@ def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force
         sys.exit(1)
 
     # ── Base directories ─────────────────────────────────────────────
-    base_dirs = [
-        "raw/articles",
-        "raw/papers",
-        "raw/notes",
-        "raw/refs",
-        "wiki/concepts",
-        "wiki/entities",
-        "wiki/summaries",
-        "wiki/comparisons",
-        "wiki/graphs",
-        "wiki/synthesis",
-        "outputs/queries",
-        "log",
-        "audit",
-        "audit/resolved",
-    ]
+    page_dirs_list = page_dirs or ["concepts", "entities", "summaries", "comparisons", "graphs", "synthesis"]
+
+    base_dirs = []
+    if not no_raw:
+        base_dirs.extend(["raw/articles", "raw/papers", "raw/notes", "raw/refs"])
+    for d in page_dirs_list:
+        base_dirs.append(f"wiki/{d}")
+    if not no_outputs:
+        base_dirs.append("outputs/queries")
+    if not no_log:
+        base_dirs.append("log")
+    if not no_audit:
+        base_dirs.extend(["audit", "audit/resolved"])
 
     # Add template-specific directories
     all_dirs = base_dirs + [f"wiki/{d}" for d in extra_dirs]
@@ -122,9 +122,9 @@ def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force
         os.makedirs(os.path.join(root, d), exist_ok=True)
     print(f"✓ Created directory tree under {root}/")
 
-    # .gitkeep for empty audit dirs
-    _write(root, "audit/.gitkeep", "")
-    _write(root, "audit/resolved/.gitkeep", "")
+    if not no_audit:
+        _write(root, "audit/.gitkeep", "")
+        _write(root, "audit/resolved/.gitkeep", "")
 
     # ── PURPOSE.md (from template) ────────────────────────────────────
     purpose_src = template_path / "PURPOSE.md"
@@ -197,6 +197,23 @@ def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force
 
 - <First research question>
 """
+    # Build frontmatter for discover.py compatibility + lint compliance
+    fm = f"""---
+title: {title}
+type: index
+created: {today_iso}
+updated: {today_iso}
+wiki_config:
+  schema: {template_name}
+  page_dirs: [{', '.join(page_dirs_list)}]
+  has_raw: {str(not no_raw).lower()}
+  has_log: {str(not no_log).lower()}
+  has_audit: {str(not no_audit).lower()}
+  has_outputs: {str(not no_outputs).lower()}
+---
+
+"""
+    index_md = fm + index_md
     _write(root, "wiki/index.md", index_md)
     print("✓ Created wiki/index.md")
 
@@ -229,6 +246,11 @@ Next steps:
   8. Process feedback:      python3 skill/scripts/audit_review.py {root} --open
   9. Deep research:          python3 skill/scripts/deep_research.py {root} "<topic>"
 """)
+
+    if verbose:
+        print("\n🔍 Auto-discovering new wiki layout...")
+        layout = discover_layout(root)
+        print(format_json(layout))
 
 
 def _default_claude_md(title: str) -> str:
@@ -315,6 +337,36 @@ if __name__ == "__main__":
         action="store_true",
         help="Overwrite existing wiki directory without confirmation",
     )
+    parser.add_argument(
+        "--page-dirs",
+        default="concepts,entities,summaries,comparisons,graphs,synthesis",
+        help="Comma-separated list of page type directories (default: concepts,entities,summaries,comparisons,graphs,synthesis)",
+    )
+    parser.add_argument(
+        "--no-raw",
+        action="store_true",
+        help="Skip creating raw/ directory",
+    )
+    parser.add_argument(
+        "--no-log",
+        action="store_true",
+        help="Skip creating log/ directory",
+    )
+    parser.add_argument(
+        "--no-audit",
+        action="store_true",
+        help="Skip creating audit/ directory",
+    )
+    parser.add_argument(
+        "--no-outputs",
+        action="store_true",
+        help="Skip creating outputs/ directory",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Run auto-discovery after scaffold and print results",
+    )
 
     args = parser.parse_args()
 
@@ -327,4 +379,7 @@ if __name__ == "__main__":
     if not args.wiki_root or not args.title:
         parser.error("wiki_root and title are required (unless using --list-templates)")
 
-    scaffold(args.wiki_root, args.title, args.template, force=args.force)
+    page_dirs_list = [d.strip() for d in args.page_dirs.split(",") if d.strip()]
+    scaffold(args.wiki_root, args.title, args.template, force=args.force,
+             page_dirs=page_dirs_list, no_raw=args.no_raw, no_log=args.no_log,
+             no_audit=args.no_audit, no_outputs=args.no_outputs, verbose=args.verbose)

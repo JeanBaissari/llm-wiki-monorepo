@@ -26,6 +26,10 @@ from datetime import datetime
 from pathlib import Path
 
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from discover import discover_layout
+
+
 def slugify(text: str) -> str:
     """Convert text to a kebab-case slug."""
     return re.sub(r'-+', '-', re.sub(r'[^a-z0-9]+', '-', text.lower().strip())).strip('-')
@@ -59,6 +63,7 @@ def main() -> int:
 
     args = parser.parse_args()
     root = Path(args.wiki_root)
+    layout = discover_layout(args.wiki_root)
     topic = args.topic
     topic_slug = slugify(topic)
     now = datetime.now()
@@ -89,9 +94,9 @@ def main() -> int:
         return 0
 
     # ── Phase 2: Source fetching instructions ──────────────────────────────
-    raw_dir = root / 'raw' / 'articles'
-    syn_dir = root / 'wiki' / 'synthesis'
-    log_dir = root / 'log'
+    raw_dir = Path(layout.raw_dir) / 'articles' if layout.raw_dir else root / 'raw' / 'articles'
+    syn_dir = Path(layout.pages_dir) / 'synthesis'
+    log_dir = Path(layout.log_dir) if layout.log_dir else root / 'log'
     for d in (raw_dir, syn_dir, log_dir):
         d.mkdir(parents=True, exist_ok=True)
 

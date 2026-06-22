@@ -8,6 +8,9 @@ import argparse, json, os, re, sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from discover import discover_layout
+
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 SKIP_STEMS = frozenset({"index", "log", "overview"})
@@ -30,6 +33,8 @@ def parse_fm(text: str) -> dict:
     return result
 
 def load_md(wiki_root: Path) -> list[Path]:
+    if not wiki_root.is_dir():
+        return []
     files = []
     for p in wiki_root.rglob("*.md"):
         if p.stem.lower() in SKIP_STEMS: continue
@@ -214,12 +219,19 @@ def main() -> int:
     parser.add_argument("--format", choices=["json", "markdown"], default="markdown",
                         help="Output format (default: markdown)")
     args = parser.parse_args()
-    wiki_root = Path(args.wiki_root).resolve()
+    layout = discover_layout(args.wiki_root)
+    wiki_root = Path(layout.pages_dir)
     if not wiki_root.is_dir():
-        print(f"Error: {wiki_root} is not a valid directory", file=sys.stderr); return 1
+        print(f"Error: pages directory not found at {layout.pages_dir}", file=sys.stderr); return 1
     files = load_md(wiki_root)
     if not files:
-        print("No markdown files found.", file=sys.stderr); return 1
+        empty = {"summary": {"nodeCount": 0, "edgeCount": 0, "communityCount": 0},
+                 "surprisingConnections": [], "knowledgeGaps": {}}
+        if args.format == "json":
+            print(json.dumps(empty, indent=2))
+        else:
+            print("# Wiki Graph Insights\n\n*No content pages found to analyze.*")
+        return 0
     nodes, edges = build_graph(files, wiki_root)
     adj = {nid: set() for nid in nodes}
     for s, t in edges: adj[s].add(t); adj[t].add(s)

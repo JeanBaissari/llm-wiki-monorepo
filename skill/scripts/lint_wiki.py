@@ -2,6 +2,8 @@
 """
 lint_wiki.py — Comprehensive health check for an LLM Wiki.
 
+Uses auto-discovered layout (via discover.py) instead of hardcoded paths.
+
 Usage:
     python3 lint_wiki.py <wiki-root>
 
@@ -11,18 +13,18 @@ Example:
 Checks:
   1. Dead wikilinks   — [[Target]] where Target.md doesn't exist
   2. Orphan pages     — wiki pages with no inbound links
-  3. Missing index    — wiki pages not listed in wiki/index.md
+  3. Missing index    — wiki pages not listed in index.md
   4. Unlinked concepts — terms mentioned 3+ times but lacking their own page
-  5. log/ shape       — every file matches YYYYMMDD.md and has the right H1
-  6. audit/ shape     — every audit/*.md parses as a valid AuditEntry
+  5. Log shape        — every file matches YYYYMMDD.md and has the right H1
+  6. Audit shape      — every audit file parses as a valid AuditEntry
   7. Audit targets    — every open audit's `target` file must exist
-  8. Frontmatter      — wiki pages missing title / created / type
+  8. Frontmatter      — wiki pages missing required frontmatter fields
   9. Stale pages      — wiki pages updated >90 days ago
  10. Confidence       — pages with confidence: low or medium
  11. Contradictions   — pages marked contested or with contradictions list
  12. Page size        — pages over 200 lines flagged for splitting
- 13. Log rotation     — total H2 entries across log/ > 500
- 14. Source drift     — SHA256 hash mismatches in raw/ frontmatter
+ 13. Log rotation     — total H2 entries across log > 500
+ 14. Source drift     — SHA256 hash mismatches in raw frontmatter
 
 Exit codes:
   0 — no issues found
@@ -37,6 +39,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from discover import discover_layout
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 LOG_FILENAME_RE = re.compile(r"^(\d{4})(\d{2})(\d{2})\.md$")
@@ -44,17 +48,14 @@ FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 H2_RE = re.compile(r"^##\s", re.MULTILINE)
 SHA256_RE = re.compile(r"^sha256:\s*([a-f0-9]{64})", re.MULTILINE)
 
-# Required audit frontmatter fields
-AUDIT_REQUIRED_FIELDS = {
+# Base required audit frontmatter fields (merged with discovered fields at runtime)
+AUDIT_REQUIRED_BASE = {
     "id", "target", "target_lines", "anchor_before", "anchor_text",
     "anchor_after", "severity", "author", "source", "created", "status",
 }
 VALID_SEVERITIES = {"info", "suggest", "warn", "error"}
 VALID_STATUSES = {"open", "resolved"}
 VALID_SOURCES = {"obsidian-plugin", "web-viewer", "manual"}
-
-# Files to skip for frontmatter / content checks
-SKIP_FILES = {"index.md", "log.md", "SCHEMA.md"}
 
 
 def load_pages(wiki_dir: Path) -> dict[str, Path]:
@@ -120,19 +121,24 @@ def parse_frontmatter(text: str) -> dict | None:
 
 
 def lint(root: str) -> int:
-    root_path = Path(root)
-    wiki_path = root_path / "wiki"
-    log_path = root_path / "log"
-    audit_path = root_path / "audit"
-    raw_path = root_path / "raw"
+    root_path = Path(root).resolve()
+    layout = discover_layout(root_path)
 
-    if not wiki_path.exists():
-        print(f"ERROR: wiki/ directory not found at {wiki_path}", file=sys.stderr)
+    pages_dir = Path(layout.pages_dir)
+    log_path = Path(layout.log_dir) if layout.log_dir else None
+    audit_path = Path(layout.audit_dir) if layout.audit_dir else None
+    raw_path = Path(layout.raw_dir) if layout.raw_dir else None
+
+    skip_files = {f"{stem}.md" for stem in layout.skip_stems}
+    audit_required_fields = AUDIT_REQUIRED_BASE | set(layout.frontmatter_required)
+
+    if not pages_dir.exists():
+        print(f"ERROR: pages directory not found at {pages_dir}", file=sys.stderr)
         return 1
 
-    pages = load_pages(wiki_path)
-    all_wiki_files = list(wiki_path.rglob("*.md"))
-    index_path = wiki_path / "index.md"
+    pages = load_pages(pages_dir)
+    all_wiki_files = list(pages_dir.rglob("*.md"))
+    index_path = pages_dir / "index.md"
 
     issues = 0
     inbound: dict[str, list[str]] = defaultdict(list)
@@ -171,7 +177,7 @@ def lint(root: str) -> int:
     orphans = [
         p for p in all_wiki_files
         if p.stem not in inbound and p.stem not in skip_orphan
-        and p.parent != wiki_path  # skip index.md at root
+        and p.parent != pages_dir  # skip index.md at root
     ]
     if orphans:
         print(f"\n🟡 Orphan pages ({len(orphans)}) — no inbound wikilinks:")
@@ -189,7 +195,7 @@ def lint(root: str) -> int:
             p for p in all_wiki_files
             if p != index_path
             and f"[[{p.stem}]]" not in index_text
-            and str(p.relative_to(wiki_path).with_suffix("")) not in index_text
+            and str(p.relative_to(pages_dir).with_suffix("")) not in index_text
         ]
         if not_in_index:
             print(f"\n🟡 Pages missing from index.md ({len(not_in_index)}):")
@@ -199,7 +205,7 @@ def lint(root: str) -> int:
         else:
             print("✅ All pages in index.md")
     else:
-        print("⚠️  wiki/index.md not found — skipping index check")
+        print("⚠️  index.md not found — skipping index check")
 
     # ── Pass 4: unlinked concepts ───────────────────────────────────────────
     all_text = " ".join(file_cache[p] for p in all_wiki_files)
@@ -221,7 +227,7 @@ def lint(root: str) -> int:
         print("✅ No frequently-linked missing pages")
 
     # ── Pass 5: log/ shape ───────────────────────────────────────────────────
-    if log_path.exists() and log_path.is_dir():
+    if log_path is not None and log_path.exists() and log_path.is_dir():
         log_issues: list[str] = []
         for p in sorted(log_path.iterdir()):
             if p.is_dir():
@@ -242,18 +248,18 @@ def lint(root: str) -> int:
                     f"   {p.relative_to(root_path)} — expected H1 '# {iso}'"
                 )
         if log_issues:
-            print(f"\n🟡 log/ shape issues ({len(log_issues)}):")
+            print(f"\n🟡 log shape issues ({len(log_issues)}):")
             for s in log_issues:
                 print(s)
             issues += len(log_issues)
         else:
-            print("✅ log/ shape OK")
+            print("✅ log shape OK")
     else:
-        print("⚠️  log/ directory not found — skipping log shape check")
+        print("⚠️  log directory not found — skipping log shape check")
 
     # ── Pass 6: audit/ shape ─────────────────────────────────────────────────
     audit_targets_to_check: list[tuple[str, str]] = []  # (audit_id, target)
-    if audit_path.exists() and audit_path.is_dir():
+    if audit_path is not None and audit_path.exists() and audit_path.is_dir():
         audit_files = [
             p for p in audit_path.rglob("*.md") if p.name != ".gitkeep"
         ]
@@ -265,7 +271,7 @@ def lint(root: str) -> int:
             if fm is None:
                 audit_issues.append(f"   {rel} — missing YAML frontmatter")
                 continue
-            missing = AUDIT_REQUIRED_FIELDS - set(fm.keys())
+            missing = audit_required_fields - set(fm.keys())
             if missing:
                 audit_issues.append(
                     f"   {rel} — missing fields: {', '.join(sorted(missing))}"
@@ -290,14 +296,14 @@ def lint(root: str) -> int:
                 audit_targets_to_check.append((fm["id"], fm["target"]))
 
         if audit_issues:
-            print(f"\n🔴 audit/ shape issues ({len(audit_issues)}):")
+            print(f"\n🔴 audit shape issues ({len(audit_issues)}):")
             for s in audit_issues:
                 print(s)
             issues += len(audit_issues)
         else:
-            print(f"✅ audit/ shape OK ({len(audit_files)} files)")
+            print(f"✅ audit shape OK ({len(audit_files)} files)")
     else:
-        print("⚠️  audit/ directory not found — skipping audit shape check")
+        print("⚠️  audit directory not found — skipping audit shape check")
 
     # ── Pass 7: audit targets exist ──────────────────────────────────────────
     missing_targets: list[tuple[str, str]] = []
@@ -306,7 +312,7 @@ def lint(root: str) -> int:
         # Audit target paths are relative to wiki-root but typically point
         # at files under wiki/. Check both locations.
         if not target_path.exists():
-            alt = wiki_path / target
+            alt = pages_dir / target
             if not alt.exists():
                 missing_targets.append((audit_id, target))
     if missing_targets:
@@ -325,18 +331,15 @@ def lint(root: str) -> int:
     fm_issues: list[str] = []
     for md_file in all_wiki_files:
         rel = md_file.relative_to(root_path)
-        if md_file.name in SKIP_FILES:
+        if md_file.name in skip_files:
             continue
         fm = fm_cache.get(md_file)
         if fm is None:
             fm_issues.append(f"{rel} — no YAML frontmatter")
             continue
-        if "title" not in fm:
-            fm_issues.append(f"{rel} — missing 'title' in frontmatter")
-        if "created" not in fm:
-            fm_issues.append(f"{rel} — missing 'created' in frontmatter")
-        if "type" not in fm:
-            fm_issues.append(f"{rel} — missing 'type' in frontmatter")
+        for field in layout.frontmatter_required:
+            if field not in fm:
+                fm_issues.append(f"{rel} — missing '{field}' in frontmatter")
 
     if fm_issues:
         print(f"\n🟡 Frontmatter validation issues ({len(fm_issues)}):")
@@ -351,7 +354,7 @@ def lint(root: str) -> int:
     now = datetime.now()
     cutoff = now - timedelta(days=90)
     for md_file in all_wiki_files:
-        if md_file.name in SKIP_FILES:
+        if md_file.name in skip_files:
             continue
         rel = md_file.relative_to(root_path)
         fm = fm_cache.get(md_file)
@@ -360,7 +363,7 @@ def lint(root: str) -> int:
         updated = fm.get("updated")
         if updated and isinstance(updated, str):
             try:
-                updated_date = datetime.strptime(updated, "%Y-%m-%d")
+                updated_date = datetime.strptime(updated, layout.date_format)
                 if updated_date < cutoff:
                     stale_pages.append(
                         f"{rel} — last updated {updated} (>90 days)"
@@ -379,7 +382,7 @@ def lint(root: str) -> int:
     # ── Pass 10: confidence signals ──────────────────────────────────────────
     confidence_issues: list[str] = []
     for md_file in all_wiki_files:
-        if md_file.name in SKIP_FILES:
+        if md_file.name in skip_files:
             continue
         rel = md_file.relative_to(root_path)
         fm = fm_cache.get(md_file)
@@ -400,7 +403,7 @@ def lint(root: str) -> int:
     # ── Pass 11: contradiction signals ────────────────────────────────────────
     contradiction_pages: list[str] = []
     for md_file in all_wiki_files:
-        if md_file.name in SKIP_FILES:
+        if md_file.name in skip_files:
             continue
         rel = md_file.relative_to(root_path)
         fm = fm_cache.get(md_file)
@@ -438,7 +441,7 @@ def lint(root: str) -> int:
     # ── Pass 12: page size (>200 lines) ───────────────────────────────────────
     size_issues: list[str] = []
     for md_file in all_wiki_files:
-        if md_file.name in SKIP_FILES:
+        if md_file.name in skip_files:
             continue
         rel = md_file.relative_to(root_path)
         text = file_cache.get(md_file, "")
@@ -457,7 +460,7 @@ def lint(root: str) -> int:
         print("✅ All pages under 200 lines")
 
     # ── Pass 13: log rotation check (total H2 entries across log/) ────────────
-    if log_path.exists() and log_path.is_dir():
+    if log_path is not None and log_path.exists() and log_path.is_dir():
         total_h2 = 0
         for p in sorted(log_path.iterdir()):
             if p.is_dir() or p.name == ".gitkeep":
@@ -467,20 +470,20 @@ def lint(root: str) -> int:
         if total_h2 > 500:
             print(
                 f"\n🟡 Log rotation needed — {total_h2} H2 entries "
-                f"across log/ (>500)"
+                f"across log (>500)"
             )
             issues += 1
         else:
             print(
-                f"✅ Log entries across log/ ({total_h2} H2 entries) — "
+                f"✅ Log entries across log ({total_h2} H2 entries) — "
                 f"well within limits"
             )
     else:
-        print("⚠️  log/ directory not found — skipping log rotation check")
+        print("⚠️  log directory not found — skipping log rotation check")
 
     # ── Pass 14: source drift (SHA256 in raw/ frontmatter) ────────────────────
     drift_issues: list[str] = []
-    if raw_path.exists() and raw_path.is_dir():
+    if raw_path is not None and raw_path.exists() and raw_path.is_dir():
         raw_files = list(raw_path.rglob("*.md"))
         for rp in raw_files:
             try:
@@ -510,13 +513,49 @@ def lint(root: str) -> int:
             issues += len(drift_issues)
         elif raw_files:
             print(
-                f"✅ All {len(raw_files)} raw/ files have matching "
+                f"✅ All {len(raw_files)} raw files have matching "
                 f"SHA256 hashes"
             )
         else:
-            print("⚠️  No raw/ files to check for SHA256 drift")
+            print("⚠️  No raw files to check for SHA256 drift")
     else:
-        print("⚠️  raw/ directory not found — skipping source drift check")
+        print("⚠️  raw directory not found — skipping source drift check")
+
+    # ── Pass 15: stale wiki pages from source drift ─────────────────────────
+    stale_source_pages: list[str] = []
+    if drift_issues:
+        drifted_slugs: set[str] = set()
+        for issue in drift_issues:
+            # "raw/articles/strategy.md: sha256 mismatch ..."
+            raw_path_str = issue.split(":")[0]
+            raw_file = Path(raw_path_str)
+            drifted_slugs.add(raw_file.stem.lower())
+
+        for md_file in all_wiki_files:
+            if md_file.name in skip_files:
+                continue
+            rel = md_file.relative_to(root_path)
+            fm = fm_cache.get(md_file)
+            if fm is None:
+                continue
+            sources = fm.get("sources", [])
+            if isinstance(sources, str):
+                sources = [sources]
+            if any(s.lower().strip() in drifted_slugs for s in sources):
+                stale_source_pages.append(
+                    f"{rel} — source file has changed since ingest"
+                )
+
+    if stale_source_pages:
+        print(
+            f"\n🔴 Stale wiki pages from source drift "
+            f"({len(stale_source_pages)}):"
+        )
+        for s in stale_source_pages:
+            print(f"   {s}")
+        issues += len(stale_source_pages)
+    else:
+        print("✅ No stale wiki pages from source drift")
 
     # ── Summary ─────────────────────────────────────────────────────────────
     print(f"\n{'─'*40}")
@@ -539,7 +578,7 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Examples:\n  python3 lint_wiki.py ~/my-wiki\n  python3 lint_wiki.py ~/my-wiki --json",
     )
-    parser.add_argument("wiki_path", help="Path to the wiki root directory")
+    parser.add_argument("wiki_root", help="Path to the wiki root directory")
     parser.add_argument("--json", action="store_true", help="Output results as JSON instead of text")
     args = parser.parse_args()
-    sys.exit(lint(args.wiki_path))
+    sys.exit(lint(args.wiki_root))

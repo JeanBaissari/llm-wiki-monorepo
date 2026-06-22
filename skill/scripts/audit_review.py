@@ -25,6 +25,10 @@ from collections import defaultdict
 from pathlib import Path
 
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from discover import discover_layout
+
+
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 
 
@@ -77,7 +81,11 @@ SEVERITY_ORDER = {"error": 0, "warn": 1, "suggest": 2, "info": 3}
 
 def main(root: str, mode: str) -> int:
     root_path = Path(root)
-    audit_dir = root_path / "audit"
+    layout = discover_layout(root)
+    if layout.audit_dir is None:
+        print("No audit directory found", file=sys.stderr)
+        return 1
+    audit_dir = Path(layout.audit_dir)
     if not audit_dir.exists():
         print(f"ERROR: audit/ not found at {audit_dir}", file=sys.stderr)
         return 1

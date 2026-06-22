@@ -12,6 +12,9 @@ import argparse, hashlib, json, os, re, sys, subprocess
 from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from discover import discover_layout
 
 CHUNK_SIZE = 55_000
 STAGE1_SYSTEM = "You are analyzing a source document for a knowledge base. Extract key entities, concepts, claims, relationships, and contradictions. Be thorough and structured."
@@ -61,7 +64,14 @@ def read_response() -> Optional[str]:
     rf = os.environ.get("LLM_WIKI_RESPONSE_FILE")
     return read_file(rf) if rf else None
 
-def read_orientation(wiki_root: str) -> dict:
+def read_orientation(wiki_root: str, layout=None) -> dict:
+    if layout:
+        path_map = {
+            "CLAUDE.md": layout.schema_file or os.path.join(wiki_root, "CLAUDE.md"),
+            "PURPOSE.md": layout.purpose_file or os.path.join(wiki_root, "PURPOSE.md"),
+            "wiki/index.md": layout.index_file or os.path.join(wiki_root, "wiki", "index.md"),
+        }
+        return {k: read_file(v) or f"({k} not found)" for k, v in path_map.items()}
     return {f: read_file(os.path.join(wiki_root, f)) or f"({f} not found)"
             for f in ("CLAUDE.md", "PURPOSE.md", "wiki/index.md")}
 
@@ -108,22 +118,34 @@ def parse_fm(text: str) -> dict:
     return {line.split(":", 1)[0].strip(): line.split(":", 1)[1].strip()
             for line in m.group(1).splitlines() if ":" in line and not line.strip().startswith("#")}
 
-def write_wiki(root: str, rpath: str, content: str) -> tuple:
-    fp = os.path.join(root, rpath)
+def write_wiki(root: str, rpath: str, content: str, pages_dir: str = None) -> tuple:
+    if pages_dir:
+        parts = rpath.split("/", 1)
+        if len(parts) == 2:
+            rpath = parts[1]
+        fp = os.path.join(pages_dir, rpath)
+    else:
+        fp = os.path.join(root, rpath)
     if os.path.exists(fp):
         if read_file(fp) and read_file(fp).strip() == content.strip(): return "skipped", True
         print(f"  \u26a0  Skipping {rpath} — exists (use --force to overwrite)", file=sys.stderr); return "skipped", True
     return ("created", True) if write_file(fp, content) else ("error", False)
 
-def write_review(root: str, rtype: str, body: str, slug: str) -> Optional[str]:
+def write_review(root: str, rtype: str, body: str, slug: str, audit_dir: str = None) -> Optional[str]:
     fm = parse_fm(body); ts = tslug(); fname = f"{ts}-{slug}-{rtype}.md"
     content = (f"---\nid: {ts}-{rtype}\ntarget: {fm.get('target','(unknown)')}\nseverity: suggest\nauthor: ingest-script\n"
                f"source: manual\ncreated: {datetime.now().isoformat()}\nstatus: open\ntype: {rtype}\nsource_slug: {slug}\n---\n\n"
                f"# {fm.get('title', rtype)}\n\n{fm.get('description','')}\n\n## Review body\n\n{body}\n")
-    return fname if write_file(os.path.join(root, "audit", fname), content) else None
+    target_dir = audit_dir or os.path.join(root, "audit")
+    return fname if write_file(os.path.join(target_dir, fname), content) else None
 
-def update_index(root: str, pages: list) -> int:
-    ip = os.path.join(root, "wiki", "index.md")
+def update_index(root: str, pages: list, layout=None) -> int:
+    if layout and layout.index_file:
+        ip = layout.index_file
+    elif layout:
+        ip = os.path.join(layout.pages_dir, "index.md")
+    else:
+        ip = os.path.join(root, "wiki", "index.md")
     if not os.path.exists(ip): return 0
     added = 0
     with open(ip, "a", encoding="utf-8") as f:
@@ -132,8 +154,12 @@ def update_index(root: str, pages: list) -> int:
             f.write(f"- [[{p[:-3]}|{display}]] — (auto-added by ingest)\n"); added += 1
     return added
 
-def append_log(root: str, slug: str, created: int, updated: int, reviews: int) -> None:
-    lp = os.path.join(root, "log", f"{tcomp()}.md"); os.makedirs(os.path.dirname(lp) or ".", exist_ok=True)
+def append_log(root: str, slug: str, created: int, updated: int, reviews: int, log_dir: str = None) -> None:
+    if log_dir:
+        lp = os.path.join(log_dir, f"{tcomp()}.md")
+    else:
+        lp = os.path.join(root, "log", f"{tcomp()}.md")
+    os.makedirs(os.path.dirname(lp) or ".", exist_ok=True)
     entry = f"\n## [{datetime.now().strftime('%H:%M')}] ingest | {slug}\n- Pages created: {created}, updated: {updated}, reviews: {reviews}\n- Timestamp: {ts()}\n"
     if os.path.exists(lp):
         with open(lp, "a", encoding="utf-8") as f: f.write(entry)
@@ -141,13 +167,15 @@ def append_log(root: str, slug: str, created: int, updated: int, reviews: int) -
         with open(lp, "w", encoding="utf-8") as f: f.write(f"# {tiso()}\n\n{entry}")
 
 def ingest(wiki_root: str, source_path: str, provider: str = "default", force: bool = False) -> int:
+    layout = discover_layout(wiki_root)
     if not os.path.isdir(wiki_root): print(f"ERROR: wiki root not found: {wiki_root}", file=sys.stderr); return 1
     source_text = read_file(source_path)
     if source_text is None: print(f"ERROR: source file not found: {source_path}", file=sys.stderr); return 1
     slug, s_hash = slugify(source_path), sha256_of(source_text)
     print(f"Ingesting: {source_path}  SHA256: {s_hash[:16]}... ({len(source_text)} chars)", file=sys.stderr)
-    orient = read_orientation(wiki_root)
-    cache_dir = os.path.join(wiki_root, "raw", ".cache"); os.makedirs(cache_dir, exist_ok=True)
+    orient = read_orientation(wiki_root, layout)
+    raw_base = layout.raw_dir or os.path.join(wiki_root, "raw")
+    cache_dir = os.path.join(raw_base, ".cache"); os.makedirs(cache_dir, exist_ok=True)
     cache_path = os.path.join(cache_dir, f"{s_hash}.json")
     
     # Stage 1: Analysis
@@ -194,20 +222,20 @@ def ingest(wiki_root: str, source_path: str, provider: str = "default", force: b
     print(f"  Parsed: {len(files)} FILE blocks, {len(reviews)} REVIEW blocks", file=sys.stderr)
     pages_created = pages_updated = 0; new_pages = []
     for p, c in files:
-        status, ok = write_wiki(wiki_root, p, c)
+        status, ok = write_wiki(wiki_root, p, c, layout.pages_dir)
         if ok:
             if status == "created": pages_created += 1; new_pages.append(p); print(f"  \u2713 Created: {p}", file=sys.stderr)
             elif status == "updated": pages_updated += 1; print(f"  \u2713 Updated: {p}", file=sys.stderr)
     
     reviews_written = 0
     for rt, body in reviews:
-        fn = write_review(wiki_root, rt, body, slug)
+        fn = write_review(wiki_root, rt, body, slug, layout.audit_dir)
         if fn: reviews_written += 1; print(f"  \u2713 Review: audit/{fn}", file=sys.stderr)
     
     if new_pages:
-        a = update_index(wiki_root, new_pages)
+        a = update_index(wiki_root, new_pages, layout)
         if a: print(f"  \u2713 Added {a} entries to wiki/index.md", file=sys.stderr)
-    append_log(wiki_root, slug, pages_created, pages_updated, reviews_written)
+    append_log(wiki_root, slug, pages_created, pages_updated, reviews_written, layout.log_dir)
     print(f"\n\u2705 Ingest complete: {slug}\n   Created: {pages_created}  Updated: {pages_updated}  Reviews: {reviews_written}", file=sys.stderr)
     return 0
 

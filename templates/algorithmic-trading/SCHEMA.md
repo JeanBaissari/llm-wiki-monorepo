@@ -19,7 +19,8 @@ directories, and frontmatter conventions.
 | `strategy` | `wiki/strategies/` | An algorithmic trading strategy | `type: trend \| mean_reversion \| arbitrage \| market_making \| ml_based \| hybrid`, `timeframe`, `instruments: []` |
 | `backtest` | `wiki/backtests/` | Results from a strategy backtest | `sharpe: float`, `max_dd: float`, `win_rate: float`, `trades: int`, `timeframe: string`, `period_start: YYYY-MM-DD`, `period_end: YYYY-MM-DD`, `strategy: []` |
 | `indicator` | `wiki/indicators/` | A technical indicator or signal generator | `type: trend \| momentum \| volatility \| volume \| custom`, `parameters: {}`, `inputs: []` |
-| `risk_model` | `wiki/risk/` | A risk management model or position sizing rule | `type: fixed_fraction \| kelly \| var \| cvar \| dynamic`, `parameters: {}`, `max_position_pct: float` |
+|| `risk_model` | `wiki/risk/` | A risk management model or position sizing rule | `type: fixed_fraction \\| kelly \\| var \\| cvar \\| dynamic`, `parameters: {}`, `max_position_pct: float` |
+|| `module` | `wiki/modules/` | A shared software module, library, or reusable component | `language`, `namespace`, `version`, `dependencies: []`, `exports: []` |
 
 ## Naming Conventions
 
@@ -27,6 +28,7 @@ directories, and frontmatter conventions.
 - **Backtests:** `strategy-name-YYYY-MM-DD.md` (e.g., `dual-ma-crossover-2024-01-01.md`)
 - **Indicators:** `indicator-name.md` (e.g., `rsi.md`, `bollinger-bands.md`)
 - **Risk models:** `risk-model-name.md` (e.g., `optimal-f.md`, `var-95.md`)
+- **Modules:** `namespace/module-name.md` (e.g., `core/logger.md`, `trading/order-ops.md`, `risk/risk-management.md`)
 
 ## Frontmatter Template
 

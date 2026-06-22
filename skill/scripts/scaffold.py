@@ -72,7 +72,7 @@ def load_extra_dirs(template_path: Path) -> list[str]:
     return []
 
 
-def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE) -> None:
+def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force: bool = False) -> None:
     today = date.today()
     today_iso = today.isoformat()
     today_compact = today.strftime("%Y%m%d")
@@ -80,6 +80,22 @@ def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE) -> No
 
     template_path = get_template(template_name)
     extra_dirs = load_extra_dirs(template_path)
+
+    # ── Overwrite protection ──────────────────────────────────────────
+    root_path = Path(root)
+    existing_markers = [
+        root_path / "CLAUDE.md",
+        root_path / "PURPOSE.md",
+        root_path / "wiki" / "index.md",
+        root_path / "log",
+    ]
+    existing = [m for m in existing_markers if m.exists()]
+    if existing and not force:
+        print(f"⚠️  Target directory already contains a wiki:")
+        for m in existing:
+            print(f"   - {m}")
+        print(f"\nUse --force to overwrite, or choose a different path.")
+        sys.exit(1)
 
     # ── Base directories ─────────────────────────────────────────────
     base_dirs = [
@@ -294,6 +310,11 @@ if __name__ == "__main__":
         action="store_true",
         help="List available templates and exit",
     )
+    parser.add_argument(
+        "--force", "-f",
+        action="store_true",
+        help="Overwrite existing wiki directory without confirmation",
+    )
 
     args = parser.parse_args()
 
@@ -306,4 +327,4 @@ if __name__ == "__main__":
     if not args.wiki_root or not args.title:
         parser.error("wiki_root and title are required (unless using --list-templates)")
 
-    scaffold(args.wiki_root, args.title, args.template)
+    scaffold(args.wiki_root, args.title, args.template, force=args.force)

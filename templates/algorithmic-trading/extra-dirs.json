@@ -1,1 +1,7 @@
-["strategies", "backtests", "indicators", "risk"]
+[
+  "strategies",
+  "backtests",
+  "indicators",
+  "risk",
+  "modules"
+]

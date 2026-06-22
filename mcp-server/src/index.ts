@@ -13,6 +13,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 import {
   listDirectory,
@@ -21,6 +22,9 @@ import {
   fileExists,
 } from "./wiki-fs.js";
 import { buildIndex, search } from "./search.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ─── CLI Argument Parsing ───────────────────────────────────────────────────
 
@@ -349,10 +353,10 @@ async function handleGraph(args: {
     const action = args.action ?? "build";
 
     const graphMod = await tryImport<{
-      buildGraph: (wp: string) => Promise<{ nodes: number; edges: number }>;
+      buildGraph: (wp: string) => Promise<{ nodes: { id: string; label: string }[]; edges: { source: string; target: string }[] }>;
       getInsights: (wp: string) => Promise<string[]>;
       searchGraph: (wp: string, q: string) => Promise<
-        { node: string; label: string; score: number }[]
+        { nodes: { node: string; label: string; score: number }[]; edges: any[]; matchedNodeIds: string[] }
       >;
     }>("./graph.js");
 
@@ -372,8 +376,8 @@ async function handleGraph(args: {
           [
             "# Graph Build Complete",
             "",
-            `**Nodes:** ${result.nodes}`,
-            `**Edges:** ${result.edges}`,
+            `**Nodes:** ${result.nodes.length}`,
+            `**Edges:** ${result.edges.length}`,
             "",
             "The knowledge graph has been rebuilt from the wiki content.",
           ].join("\n"),
@@ -403,15 +407,15 @@ async function handleGraph(args: {
         if (!graphMod.searchGraph) {
           return textResult("# Graph: search\n\n_searchGraph not available in graph module._");
         }
-        const results = await graphMod.searchGraph(wikiPath, query);
-        if (!results || results.length === 0) {
+        const graphResult = await graphMod.searchGraph(wikiPath, query);
+        if (!graphResult || !graphResult.nodes || graphResult.nodes.length === 0) {
           return textResult(`# Graph Search: "${query}"\n\nNo results found.`);
         }
         const lines: string[] = [
-          `# Graph Search Results for "${query}" (${results.length})`,
+          `# Graph Search Results for "${query}" (${graphResult.nodes.length})`,
           "",
         ];
-        for (const r of results) {
+        for (const r of graphResult.nodes) {
           lines.push(`- **${r.label}** (\`${r.node}\`) — score: ${r.score.toFixed(4)}`);
         }
         return textResult(lines.join("\n"));
@@ -434,7 +438,7 @@ async function handleLint(): Promise<ToolResult> {
   try {
     const lintMod = await tryImport<{
       runLint: (wp: string) => Promise<
-        { type: string; severity: string; page: string; detail: string }[]
+        { issues: { type: string; severity: string; page: string; detail: string }[]; exitCode: number }
       >;
     }>("./lint.js");
 
@@ -444,7 +448,8 @@ async function handleLint(): Promise<ToolResult> {
       );
     }
 
-    const issues = await lintMod.runLint(wikiPath);
+    const lintResult = await lintMod.runLint(wikiPath);
+    const issues = Array.isArray(lintResult) ? lintResult : lintResult.issues;
 
     if (!issues || issues.length === 0) {
       return textResult(
@@ -510,32 +515,19 @@ async function handleIngest(args: {
       return errorResult(`Source file not found: ${resolvedSource}`);
     }
 
-    // Find ingest script — try cwd-relative, then wiki-relative
-    const possibleScripts = [
-      path.join(process.cwd(), "skill", "scripts", "ingest.py"),
-      path.join(wikiPath, "..", "skill", "scripts", "ingest.py"),
-      path.join(path.dirname(wikiPath), "..", "skill", "scripts", "ingest.py"),
-    ];
+    // Find ingest script using __dirname (dist/ → monorepo root)
+    const scriptPath = path.resolve(__dirname, "../..", "skill", "scripts", "ingest.py");
 
-    let scriptPath: string | null = null;
-    for (const p of possibleScripts) {
-      if (await fileExists(p)) {
-        scriptPath = p;
-        break;
-      }
-    }
-
-    if (!scriptPath) {
+    if (!(await fileExists(scriptPath))) {
       return errorResult(
-        "Ingest script not found. Looked in:\n" +
-          possibleScripts.map((p) => `  - ${p}`).join("\n"),
+        `Ingest script not found at: ${scriptPath}`,
       );
     }
 
-    // Run python3 ingest.py
+    // Run python3 ingest.py with wiki root as first positional arg
     const { execSync } = await import("node:child_process");
     const output = execSync(
-      `python3 "${scriptPath}" "${resolvedSource}"`,
+      `python3 "${scriptPath}" "${wikiPath}" "${resolvedSource}"`,
       { encoding: "utf-8", timeout: 120_000, maxBuffer: 10 * 1024 * 1024 },
     );
 

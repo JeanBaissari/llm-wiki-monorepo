@@ -1,0 +1,27 @@
+{
+  "name": "llm-wiki-monorepo",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Complete LLM Wiki operating system — skill, MCP server, knowledge graph engine, templates, browser extension, web viewer, Obsidian plugin",
+  "workspaces": [
+    "mcp-server",
+    "graph-engine",
+    "web-viewer",
+    "audit-shared"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "mcp": "node mcp-server/dist/index.js",
+    "graph": "node graph-engine/dist/index.js",
+    "web": "cd web-viewer && npm start",
+    "lint:wiki": "python3 skill/scripts/lint_wiki.py",
+    "scaffold": "python3 skill/scripts/scaffold.py",
+    "ingest": "python3 skill/scripts/ingest.py",
+    "deep-research": "python3 skill/scripts/deep_research.py",
+    "insights": "python3 skill/scripts/graph_insights.py"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

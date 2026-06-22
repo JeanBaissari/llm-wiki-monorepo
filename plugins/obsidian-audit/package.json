@@ -1,0 +1,24 @@
+{
+  "name": "obsidian-audit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Obsidian plugin for the llm-wiki skill — select text → file an anchored audit comment.",
+  "scripts": {
+    "build": "node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs",
+    "link": "node ./scripts/link.mjs"
+  },
+  "dependencies": {
+    "audit-shared": "file:../../audit-shared",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.20.0",
+    "obsidian": "^1.5.0",
+    "typescript": "^5.4.0"
+  }
+}

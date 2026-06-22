@@ -1,0 +1,9 @@
+{
+  "directories": [
+    "formats",
+    "opcodes",
+    "tools",
+    "findings"
+  ],
+  "description": "Organizational dirs under `wiki/` for binary format specs, instruction set documentation, decompiler tools, and research findings."
+}

@@ -1,0 +1,185 @@
+/* ==========================================================================
+   LLM Wiki Audit — plugin modal styling
+   Uses Obsidian CSS variables for theme integration, with Catppuccin-ish
+   accents on top so it feels premium regardless of the active theme.
+   ========================================================================== */
+
+.llm-wiki-audit-modal .modal-content,
+.llm-wiki-audit-modal .modal-close-button {
+  /* reset — we own the layout below */
+}
+
+.llm-wiki-audit-modal {
+  --audit-accent: #cba6f7;
+  --audit-accent-soft: rgba(203, 166, 247, 0.16);
+  --audit-sev-info: #89dceb;
+  --audit-sev-suggest: #cba6f7;
+  --audit-sev-warn: #fab387;
+  --audit-sev-error: #f38ba8;
+}
+
+.llm-wiki-audit-modal.modal-container .modal {
+  border-radius: 16px;
+  border: 1px solid var(--background-modifier-border);
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.llm-wiki-audit-modal .modal-bg {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(17, 17, 27, 0.5);
+}
+
+.llm-wiki-audit-modal .audit-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.llm-wiki-audit-modal .audit-header .audit-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--audit-accent);
+  box-shadow: 0 0 14px var(--audit-accent);
+  flex-shrink: 0;
+}
+.llm-wiki-audit-modal .audit-header h3 {
+  margin: 0;
+  font-size: 1.05em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.llm-wiki-audit-modal .audit-field {
+  margin-bottom: 18px;
+}
+.llm-wiki-audit-modal .audit-field-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.llm-wiki-audit-modal .audit-preview {
+  padding: 12px 14px;
+  background: var(--background-secondary);
+  border-left: 3px solid var(--audit-accent);
+  font-family: var(--font-monospace);
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-height: 8em;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-normal);
+  border-radius: 0 10px 10px 0;
+  margin: 0;
+}
+
+/* Severity chips */
+.llm-wiki-audit-modal .audit-severity {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.llm-wiki-audit-modal .audit-severity label {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+}
+.llm-wiki-audit-modal .audit-severity input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.llm-wiki-audit-modal .audit-severity .audit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  transition: all 160ms ease;
+  user-select: none;
+}
+.llm-wiki-audit-modal .audit-severity .audit-chip::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  transition: box-shadow 160ms ease;
+}
+.llm-wiki-audit-modal .audit-severity label[data-sev="info"]    .audit-chip { color: var(--audit-sev-info); }
+.llm-wiki-audit-modal .audit-severity label[data-sev="suggest"] .audit-chip { color: var(--audit-sev-suggest); }
+.llm-wiki-audit-modal .audit-severity label[data-sev="warn"]    .audit-chip { color: var(--audit-sev-warn); }
+.llm-wiki-audit-modal .audit-severity label[data-sev="error"]   .audit-chip { color: var(--audit-sev-error); }
+.llm-wiki-audit-modal .audit-severity label:hover .audit-chip {
+  background: var(--background-secondary-alt);
+  border-color: currentColor;
+}
+.llm-wiki-audit-modal .audit-severity input:checked + .audit-chip {
+  background: color-mix(in oklab, currentColor 18%, transparent);
+  border-color: currentColor;
+  color: var(--text-normal);
+}
+.llm-wiki-audit-modal .audit-severity input:checked + .audit-chip::before {
+  box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+}
+
+/* Textarea */
+.llm-wiki-audit-modal textarea.audit-comment {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-normal);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  resize: vertical;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  font-family: var(--font-text);
+}
+.llm-wiki-audit-modal textarea.audit-comment:focus {
+  outline: none;
+  border-color: var(--audit-accent);
+  box-shadow: 0 0 0 4px var(--audit-accent-soft);
+}
+
+/* Buttons */
+.llm-wiki-audit-modal .audit-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+.llm-wiki-audit-modal .audit-buttons button {
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.llm-wiki-audit-modal .audit-buttons button.mod-cta {
+  background: var(--audit-accent);
+  color: #11111b;
+  border: 1px solid var(--audit-accent);
+}
+.llm-wiki-audit-modal .audit-buttons button.mod-cta:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(203, 166, 247, 0.35);
+  transform: translateY(-1px);
+}

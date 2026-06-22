@@ -1,0 +1,9 @@
+{
+  "directories": [
+    "metals",
+    "energy",
+    "agriculture",
+    "correlations"
+  ],
+  "description": "Organizational dirs under `wiki/` for grouping commodity pages by category and cross-cutting correlations. Each maps to the commodity `category` field in frontmatter except correlations, which is cross-commodity."
+}

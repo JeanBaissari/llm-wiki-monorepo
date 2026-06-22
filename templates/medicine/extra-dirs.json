@@ -1,0 +1,9 @@
+{
+  "directories": [
+    "conditions",
+    "treatments",
+    "studies",
+    "terminology"
+  ],
+  "description": "Organizational dirs under `wiki/` for medical conditions, treatments, clinical studies, and terminology definitions."
+}

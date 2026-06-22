@@ -1,0 +1,10 @@
+{
+  "id": "llm-wiki-audit",
+  "name": "LLM Wiki Audit",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Select text in any wiki page, leave a comment, and have it written as an anchored audit file — ready for the llm-wiki agent's `audit` op.",
+  "author": "Lewis Liu",
+  "authorUrl": "https://github.com/lewisliu",
+  "isDesktopOnly": false
+}

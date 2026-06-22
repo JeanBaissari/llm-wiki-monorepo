@@ -1,103 +1,107 @@
 # LLM Wiki Monorepo
 
-Complete LLM Wiki operating system — build, maintain, and query persistent AI-maintained knowledge bases. One `git clone`. Works with any AI agent. Pull anywhere.
+[![CI](https://github.com/JeanBaissari/llm-wiki-monorepo/actions/workflows/ci.yml/badge.svg)](https://github.com/JeanBaissari/llm-wiki-monorepo/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
+[![Node 18+](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org)
+[![License MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-## What is this?
+**A production-grade knowledge base operating system.** AI agents compile raw sources into persistent, cross-linked Markdown wikis. Knowledge compounds over time. No database. No API lock-in. Just files.
 
-Instead of RAG (re-retrieving raw docs on every query), the LLM **compiles** raw sources into a persistent, cross-linked Markdown wiki. Knowledge compounds over time. The wiki stays current because the LLM does all the maintenance.
+Instead of re-retrieving raw documents on every query (RAG), this system **compiles** sources into a living wiki that agents maintain automatically. Clone anywhere, run with any AI agent, pull on any machine.
 
-This monorepo provides the entire toolchain: agent skill, MCP server, knowledge graph engine, domain-specific templates, browser extension, web viewer, and Obsidian plugin.
+---
+
+## Features
+
+| Area | Capabilities |
+|------|-------------|
+| **Ingestion** | Two-stage chain-of-thought ingest with SHA256 caching. Multi-step agent loop. Batch processing. Deep research (web search → fetch → ingest → synthesize). |
+| **Quality** | 15-pass automated lint: dead links, orphans, frontmatter validation, contradictions, source drift, page size, log rotation. **New:** stale page detection when raw sources change. |
+| **Graph** | Knowledge graph engine (TypeScript): Louvain community detection, 4-signal relevance model, surprising connections, knowledge gaps. Pure Python fallback. |
+| **Backup** | Snapshot, restore, integrity verification, automatic pruning. One-command `--auto` for safe state. |
+| **Link Suggestions** | Entity extraction from frontmatter/headings/bold terms. 4-signal scoring. Automatic wikilink insertion (`--apply`). |
+| **Search** | BM25 full-text search (TypeScript, zero deps). Web viewer search bar with ranked results. Graph search. |
+| **MCP Server** | 8 stdio tools for programmatic access. **New:** serve multiple wikis from one server (`--projects`). Integrates with Claude Desktop, Codex, Cursor. |
+| **Templates** | 19 domain-specific wiki scaffolds with consistent schemas. Research, codebase, finance, ML, cybersecurity, medicine, and more. |
+| **Web Viewer** | Local preview with KaTeX, mermaid, wikilink resolution. **New:** search bar, graph insights panel. |
+| **Browser Extension** | Chrome web clipper with Readability + Turndown. **New:** auto-trigger ingest after clip. |
+| **CI/CD** | GitHub Actions: Python syntax checks, TypeScript builds, full integration test (scaffold → lint → graph build → insights). |
 
 ## Quick Start
 
 ```bash
+# One-command install
 git clone https://github.com/JeanBaissari/llm-wiki-monorepo.git
 cd llm-wiki-monorepo
+bash install.sh
 
 # Scaffold a wiki
-python3 skill/scripts/scaffold.py ~/my-wiki "My Topic" --template research
+python3 skill/scripts/scaffold.py ~/my-wiki "My Research" --template research
 
-# Ingest a source
-python3 skill/scripts/ingest.py ~/my-wiki raw/articles/my-article.md
+# Ingest a source (two-step agent loop)
+python3 skill/scripts/ingest.py ~/my-wiki raw/articles/my-source.md
 
-# Run lint (14 automated checks)
+# Check quality
 python3 skill/scripts/lint_wiki.py ~/my-wiki
 
-# Get graph insights
-python3 skill/scripts/graph_insights.py ~/my-wiki
-
-# Deep research
-python3 skill/scripts/deep_research.py ~/my-wiki "attention mechanisms"
+# Discover connections
+node graph-engine/dist/index.js --wiki ~/my-wiki --action insights
 
 # Start MCP server (for Claude Desktop, Codex, etc.)
-npm install
-npm run build
 node mcp-server/dist/index.js --wiki ~/my-wiki
+```
 
-# Install as Hermes agent skill
-ln -s $(pwd)/skill ~/.hermes/skills/research/llm-wiki
+## Architecture
+
+```
+wiki/ directory  ← shared state (Markdown files)
+     │
+      ├── Agent Skill + Python Scripts   → 12 scripts: scaffold, ingest, lint,
+      │                                     insights, backup, link-suggest,
+      │                                     deep-research, audit, benchmark,
+      │                                     migrate-log, test-e2e, test-blocks
+     ├── MCP Server (stdio)             → programmatic access, 8 tools,
+     │                                     single or multi-wiki mode
+     ├── Graph Engine (Node.js)         → relevance model, Louvain, insights
+     ├── Web Viewer + Obsidian Plugin   → human browsing + feedback
+     ├── Browser Extension              → web clipping + auto-ingest
+     └── templates/                     → 19 domain schemas
 ```
 
 ## Packages
 
 | Package | Language | Purpose |
 |---------|----------|---------|
-| `skill/` | Python + Markdown | Agent skill with 8 operations, 5 Python scripts, 10 reference docs |
-| `mcp-server/` | TypeScript | Standalone MCP server — 8 tools against any wiki directory |
-| `graph-engine/` | TypeScript | Knowledge graph — relevance model, Louvain communities, insights |
-| `templates/` | Markdown + JSON | 19 domain-specific project templates |
-| `web-viewer/` | TypeScript | Local Node.js preview server with mermaid + KaTeX |
-| `extension/` | JavaScript | Chrome browser extension — web clipper |
+| `skill/` | Python + Markdown | Agent skill (8 operations) + 12 Python scripts + 11 reference docs |
+| `mcp-server/` | TypeScript | MCP server — 8 tools, single or multi-wiki mode |
+| `graph-engine/` | TypeScript | Knowledge graph — relevance, Louvain communities, insights |
+| `templates/` | Markdown + JSON | 19 domain-specific project templates (audited, consistent) |
+| `web-viewer/` | TypeScript | Preview server with search + graph insights panel |
+| `extension/` | JavaScript | Chrome web clipper with auto-ingest |
 | `audit-shared/` | TypeScript | Shared audit file format library |
 | `plugins/obsidian-audit/` | TypeScript | Obsidian plugin — file feedback from vault |
-| `rust-backend/` | Rust | Optional: multi-format document parsing |
 
 ## Templates (19 domains)
 
 `research` `codebase` `finance` `algorithmic-trading` `cybersecurity` `machine-learning` `prompt-engineering` `copywriting` `marketing` `design-systems` `architecture` `crypto` `commodities` `decompilers` `medicine` `developer-tools` `personal-growth` `reading` `business`
 
-Each template provides: `PURPOSE.md` (project purpose), `SCHEMA.md` → `CLAUDE.md` (conventions), `extra-dirs.json` (domain directories).
-
-## Architecture
-
-```
-wiki/ directory  ← shared state (markdown files)
-     │
-     ├── Agent Skill + Python Scripts   → in-conversation workflows
-     ├── MCP Server (stdio)             → programmatic access, 8 tools
-     ├── Graph Engine (Node.js)         → relevance model, Louvain, insights
-     ├── Web Viewer + Obsidian Plugin   → human browsing + feedback
-     ├── Browser Extension              → web clipping
-     └── Rust Backend (optional)        → multi-format doc parsing
-```
-
-All components work standalone or interconnected through the wiki directory.
-
-## Key Features
-
-- **Two-step chain-of-thought ingest** — Stage 1 analysis → Stage 2 generation, with SHA256 caching
-- **14-pass automated lint** — dead links, orphans, frontmatter, staleness, confidence, contradictions, SHA256 drift, page size, log rotation
-- **4-signal relevance model** — direct links, source overlap, Adamic-Adar neighbors, type affinity
-- **Louvain community detection** — automatic topic clustering with cohesion scoring
-- **Graph insights** — surprising connections + knowledge gaps (isolated, sparse, bridge nodes)
-- **Bidirectional review system** — AI flags issues during ingest, human files feedback via Obsidian/web
-- **Deep research** — web search → source fetch → auto-ingest → synthesis
-- **BM25 full-text search** — pure TypeScript, no external dependencies
-- **19 domain templates** — scaffold a domain-specific wiki in one command
-- **Browser extension** — clip any webpage to your wiki with auto-frontmatter
+Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.md` (page types, conventions, frontmatter, cross-referencing, contradiction handling), `extra-dirs.json` (domain directories).
 
 ## Documentation
 
-- `README.md` — You are here
-- `INDEX.md` — Complete file tree with descriptions
-- `QUICKGUIDE.md` — Hands-on command reference with examples
-- `AGENTS.md` — Architecture and conventions for AI agents
-- `PURPOSE.md` — Why this system exists
-- `skill/references/` — 11 detailed reference guides
+| File | What it covers |
+|------|---------------|
+| `README.md` | You are here |
+| `QUICKGUIDE.md` | Every command with real examples |
+| `AGENTS.md` | Architecture, conventions, build/test commands |
+| `INDEX.md` | Complete file tree with descriptions |
+| `VERSIONING.md` | Semantic versioning policy and release process |
+| `PURPOSE.md` | Why this system exists |
+| `skill/references/` | 11 detailed reference guides |
 
 ## Requirements
 
-- **Python 3.10+** — for skill scripts
+- **Python 3.10+** — for all skill scripts
 - **Node.js 18+** — for MCP server, graph engine, web viewer
 - **npm** — for package management
 

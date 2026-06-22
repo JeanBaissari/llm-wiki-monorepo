@@ -28,7 +28,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 
 | Dir | Language | What it does | When to touch it |
 |-----|----------|-------------|-----------------|
-| `skill/` | Python + MD | Agent skill: SKILL.md + 7 scripts + 11 references | Agent operations, scripts, docs |
+| `skill/` | Python + MD | Agent skill: SKILL.md + 12 scripts + 11 references | Agent operations, scripts, docs |
 | `mcp-server/` | TypeScript | MCP server: 8 tools via stdio | Programmatic wiki access |
 | `graph-engine/` | TypeScript | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
 | `templates/` | MD + JSON | 19 domain templates for scaffold.py | Adding/modifying project templates |
@@ -36,11 +36,15 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 | `extension/` | JavaScript | Chrome web clipper | Browser clipping |
 | `audit-shared/` | TypeScript | Audit file format library | Audit schema changes |
 | `plugins/obsidian-audit/` | TypeScript | Obsidian plugin | Vault integration |
-| `rust-backend/` | Rust | Multi-format doc parsing (optional) | PDF/Office parsing |
+| `rust-backend/` | _(removed)_ | Coming soon: multi-format doc parsing (PDF, DOCX, EPUB) | — |
 
 ## Build Commands
 
 ```bash
+# Quick one-command install
+bash install.sh
+
+# Or step-by-step:
 # Graph engine
 cd graph-engine && npm install && npx tsc
 
@@ -75,10 +79,13 @@ node graph-engine/dist/index.js --wiki /path/to/wiki --action build
 timeout 5 node mcp-server/dist/index.js --wiki /path/to/wiki <<< '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
 # Full integration test
-python3 skill/scripts/scaffold.py /tmp/test-wiki "Test" --template codebase
+python3 skill/scripts/scaffold.py /tmp/test-wiki "Test" --template codebase --force
 python3 skill/scripts/lint_wiki.py /tmp/test-wiki
 node graph-engine/dist/index.js --wiki /tmp/test-wiki --action build
 node graph-engine/dist/index.js --wiki /tmp/test-wiki --action insights
+python3 skill/scripts/backup.py /tmp/test-wiki --auto
+python3 skill/scripts/link_suggest.py /tmp/test-wiki --limit 5
+python3 skill/scripts/graph_insights.py /tmp/test-wiki --format json
 ```
 
 ## Key Files to Know
@@ -88,8 +95,12 @@ node graph-engine/dist/index.js --wiki /tmp/test-wiki --action insights
 | `skill/SKILL.md` | The agent skill — defines all 8 operations. Loaded by Hermes/Claude/Codex. |
 | `skill/scripts/scaffold.py` | Creates new wikis. `--template` flag picks domain template. |
 | `skill/scripts/ingest.py` | Two-step CoT ingest. Stage 1 analysis → Stage 2 generation. |
-| `skill/scripts/lint_wiki.py` | 14 automated checks. Run this before committing wiki changes. |
+| `skill/scripts/discover.py` | Auto-discovers wiki structure (pages, sources, logs, audits) — single source of truth for all tools. |
+| `skill/scripts/lint_wiki.py` | 15 automated checks with auto-discovered layout. Run this before committing wiki changes. |
 | `skill/scripts/graph_insights.py` | Pure Python graph analysis — no graph-engine dependency. |
+| `skill/scripts/backup.py` | Snapshot, restore, integrity verification — `--auto` one-command safe state. |
+| `skill/scripts/link_suggest.py` | Suggests missing wikilinks from entities — `--apply` auto-adds them. |
+| `skill/scripts/benchmark.py` | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages. |
 | `mcp-server/src/index.ts` | MCP server entry. 8 tool handlers. Built with @modelcontextprotocol/sdk. |
 | `graph-engine/src/index.ts` | Graph CLI. `--action build|insights|search|relevance`. |
 | `graph-engine/src/relevance.ts` | 4-signal relevance model — ported from nashsu/llm_wiki. |
@@ -167,6 +178,9 @@ python3 skill/scripts/scaffold.py /tmp/test-wiki "Test" --template codebase --fo
 python3 skill/scripts/lint_wiki.py /tmp/test-wiki
 node graph-engine/dist/index.js --wiki /tmp/test-wiki --action build
 node graph-engine/dist/index.js --wiki /tmp/test-wiki --action insights
+python3 skill/scripts/graph_insights.py /tmp/test-wiki --format json
+python3 skill/scripts/backup.py /tmp/test-wiki --auto
+python3 skill/scripts/link_suggest.py /tmp/test-wiki --limit 5
 rm -rf /tmp/test-wiki
 ```
 
@@ -181,6 +195,10 @@ rm -rf /tmp/test-wiki
 - **Graph engine CLI expects `--wiki` path** — it auto-detects `wiki/` subdirectory. Pass the project root (parent of wiki/) or the wiki/ directory directly.
 - **scaffold.py refuses to overwrite** — use `--force` flag. Without it, existing wikis are protected.
 - **Two-step ingest may be slow** — Stage 1 analysis is cached by SHA256. Use `--force` to skip cache.
+- **discover.py is the single source of truth for paths** — all tools call it at startup. If you rename directories, run `python3 skill/scripts/discover.py <wiki> --show` to verify detection.
+- **Flat wikis (no `wiki/` subdirectory) are supported** — discover.py auto-detects pages at root. Confidence is lower (0.14) but all tools work.
+- **Custom directory names are supported** — discover.py checks content/, pages/, notes/ for content; sources/, input/ for raw; logs/, journal/ for logs.**
+- **All tools import discover.py via sys.path.insert** — when adding new scripts, add `from discover import discover_layout` and call it at startup.
 
 ## Hermes Skill Installation
 
@@ -198,4 +216,4 @@ The EOW cron job (`9629c8c17a7a`) loads this skill automatically. Changes to `sk
 - **@modelcontextprotocol/sdk** — MCP server only. Pure JS.
 - **Readability.js** + **Turndown.js** — Browser extension only. Already vendored.
 - No Python dependencies beyond stdlib.
-- No Rust required unless building `rust-backend/`.
+- No Rust dependencies. (`rust-backend/` removed — coming soon.)

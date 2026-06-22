@@ -11,8 +11,11 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 | `INDEX.md` | This file — complete file tree |
 | `AGENTS.md` | Architecture and conventions for AI agents |
 | `PURPOSE.md` | Why this system exists, core principles, success criteria |
+| `VERSIONING.md` | Semantic versioning policy and release process |
+| `install.sh` | One-command install — detects deps, builds, creates wrappers |
 | `package.json` | NPM workspace root — scripts for build/test/run |
 | `.gitignore` | Git ignore rules |
+| `.github/workflows/ci.yml` | GitHub Actions CI — syntax checks, builds, integration tests |
 
 ---
 
@@ -38,23 +41,29 @@ Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit
 | `eow-cron-pipeline.md` | Weekly automated maintenance — discover repos, assess health, conditional graph rebuild, lint, report |
 | `migration-guide.md` | Migrating v1 wikis (flat structure, log.md) to v2 format (log/ directory, wiki/ subdirectory) |
 
-### `skill/scripts/` — 7 Python scripts
+### `skill/scripts/` — 13 Python scripts
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `scaffold.py` | 338 | Bootstrap new wiki — `--template` picks from 19 domain templates, `--force` overwrites |
+| `scaffold.py` | 330 | Bootstrap new wiki — `--template` picks from 19 domain templates, `--force` overwrites |
 | `ingest.py` | 233 | Two-step chain-of-thought ingest — Stage 1 analysis + Stage 2 generation with SHA256 caching |
-| `lint_wiki.py` | 542 | 14-pass automated health check — links, orphans, frontmatter, staleness, confidence, contradictions, drift, size, rotation |
+| `lint_wiki.py` | 557 | 15-pass automated health check with auto-discovered layout — dead links, orphans, frontmatter, staleness, source drift |
 | `deep_research.py` | 209 | Agent-driven research — web search, source fetch, auto-ingest, synthesis page |
+| `discover.py` | 350 | Auto-discover wiki structure — pages, sources, logs, audits, page types, frontmatter conventions |
 | `graph_insights.py` | 240 | Pure Python wikilink graph analysis — community detection, surprising connections, knowledge gaps |
+| `link_suggest.py` | 351 | Suggest missing wikilinks — entity extraction, 4-signal scoring, `--apply` auto-add |
+| `backup.py` | 411 | Snapshot, restore, integrity verification, prune — `--auto` one-command safe state |
+| `benchmark.py` | ~280 | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages, CSV output |
 | `audit_review.py` | 147 | Group open/resolved audit files by target for processing |
 | `migrate_log.py` | 117 | Convert v1 log.md to v2 log/ directory format |
+| `test_ingest_blocks.py` | ~150 | Unit test for FILE/REVIEW block parsing in ingest.py |
+| `test_ingest_e2e.py` | ~350 | End-to-end multi-step agent loop integration test for ingest.py |
 
 ---
 
 ## `mcp-server/` — Standalone MCP Server
 
-TypeScript. 8 MCP tools via stdio transport. Works against any wiki directory on disk.
+TypeScript. 8 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wiki (`--projects`) mode.
 
 | File | Purpose |
 |------|---------|
@@ -69,6 +78,7 @@ TypeScript. 8 MCP tools via stdio transport. Works against any wiki directory on
 | `src/graph.ts` | Bridge to graph-engine — build, insights, search via subprocess |
 | `src/storage.ts` | TTL-based cache layer — raw/.cache/<key>.json with expiry |
 | `src/cleanup.ts` | Soft cascade cleanup — strip source refs on deletion, report orphans |
+| `src/discover.ts` | TypeScript bridge to discover.py — calls Python discover module, typed fallback |
 
 ---
 
@@ -129,7 +139,7 @@ Each template directory contains:
 
 ## `web-viewer/` — Local Preview Server
 
-From Lewis Liu. Express + markdown-it + KaTeX + mermaid.
+Express + markdown-it + KaTeX + mermaid. Search bar + graph insights panel.
 
 | File | Purpose |
 |------|---------|
@@ -139,11 +149,12 @@ From Lewis Liu. Express + markdown-it + KaTeX + mermaid.
 | `server/render/markdown.ts` | Markdown rendering with KaTeX |
 | `server/render/wikilinks.ts` | Wikilink resolution |
 | `server/routes/pages.ts` | Page serving |
-| `server/routes/graph.ts` | Graph data API |
+| `server/routes/graph.ts` | Graph data + graph-insights API |
+| `server/routes/search.ts` | TF-based search API — tokenizes, scores, returns ranked results |
 | `server/routes/audit.ts` | Audit CRUD API |
 | `server/routes/tree.ts` | File tree API |
-| `client/index.html` | SPA entry point |
-| `client/main.ts` | Client-side app |
+| `client/index.html` | SPA entry point with tabs (Pages/Search/Graph) |
+| `client/main.ts` | Client-side app — search, tab switching, graph loading |
 | `client/graph.ts` | Graph visualization |
 | `client/feedback.ts` | Selection → audit feedback |
 
@@ -151,7 +162,7 @@ From Lewis Liu. Express + markdown-it + KaTeX + mermaid.
 
 ## `extension/` — Browser Extension
 
-Chrome Manifest V3 web clipper. Uses Readability.js + Turndown.js.
+Chrome Manifest V3 web clipper. Uses Readability.js + Turndown.js. Optional auto-ingest after clip.
 
 | File | Purpose |
 |------|---------|
@@ -190,13 +201,8 @@ Select text → file feedback → writes to audit/. Shares audit-shared with web
 
 ---
 
-## `rust-backend/` — Document Parsing (Optional)
+## `rust-backend/` — Document Parsing (Coming Soon)
 
-Multi-format document parsing via pdfium + pandoc.
+Multi-format document parsing (PDF, DOCX, EPUB) — planned for future implementation.
 
-| File | Purpose |
-|------|---------|
-| `Cargo.toml` | Rust dependencies |
-| `src/main.rs` | CLI binary — parse doc → markdown |
-| `src/parsers/mod.rs` | Parser registry |
-| `src/parsers/pdf.rs` | PDF extraction via pdfium |
+*(Directory removed — was an empty stub.)*

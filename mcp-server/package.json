@@ -1,0 +1,25 @@
+{
+  "name": "mcp-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone MCP server for LLM Wiki — 8 tools working directly against a wiki directory",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "llm-wiki-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "node --import tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0"
+  }
+}

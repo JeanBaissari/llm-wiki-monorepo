@@ -13,62 +13,69 @@ find ~/projects -maxdepth 3 -type d -name '.graphify' 2>/dev/null
 ## Step 2: Assess each repo
 
 For each repo with a wiki/ directory:
-- Check if `SCHEMA.md`, `index.md`, `log.md` exist
+- Check if `CLAUDE.md`, `index.md`, and `log/` directory exist
 - Count wiki pages: `find wiki/ -name '*.md' | wc -l`
-- Check if `.graphify/graph.json` exists and its mtime
+- Check graph freshness: `wiki/graphs/graph-data.json` mtime
 - Check recent log entries for context
 
-## Step 3: Graphify update (conditional)
-
-Only if `.graphify/` exists AND the graph is >3 days old:
+## Step 3: Graph-engine build (always)
 
 ```bash
-export NODE_PATH=$(npm root -g)
-cd <repo>
-node -e "
-const { detectIncremental } = require('@sentropic/graphify');
-const result = detectIncremental('.');
-console.log('new_total:', result.new_total || 0);
-"
+LLM_WIKI_MONOREPO="$HOME/projects/llm-wiki-monorepo"
+cd <repo-wiki-root>
+node "$LLM_WIKI_MONOREPO/graph-engine/dist/index.js" --wiki . --action build
 ```
 
-**Decision threshold:**
-- `new_total == 0`: Nothing changed. Skip.
-- `new_total <= 200`: Run AST-only merge + re-cluster (code-only or small change).
-- `new_total > 200`: Skip rebuild. Log staleness. Don't spawn subagents for semantic extraction — token cost is prohibitive for cron.
+Outputs graph structure to stdout and optionally to `wiki/graphs/graph-data.json`.
 
-**Never run full semantic extraction in cron mode** — requires subagents, LLM calls, and a user to approve.
+## Step 3.5: Graph-engine insights (always)
+
+```bash
+node "$LLM_WIKI_MONOREPO/graph-engine/dist/index.js" --wiki . --action insights
+```
+
+Captures surprising connections and knowledge gaps. Include key findings in the health report.
 
 ## Step 4: Wiki lint (always)
 
 ```bash
-python3 ~/.hermes/skills/research/llm-wiki/scripts/wiki-lint.py <wiki_path>
+python3 "$LLM_WIKI_MONOREPO/skill/scripts/lint_wiki.py" <wiki-root>
 ```
 
 The script checks: orphan pages, broken wikilinks, index completeness, frontmatter, stale content, contradictions, quality signals, source drift, page size, tag audit.
 
-## Step 5: Append to log.md
+## Step 5: Graph insights analysis (pure Python fallback)
 
-For each repo, append an entry like:
+```bash
+python3 "$LLM_WIKI_MONOREPO/skill/scripts/graph_insights.py" <wiki-root> --format markdown
 ```
-## [YYYY-MM-DD] EOW | Graph refresh + lint
-- Graph: <status — existing, stale, N files changed, action taken>
+
+Provides community detection, surprising cross-community connections, and knowledge gaps (isolated nodes, sparse communities, bridge nodes). Use when graph-engine is not available.
+
+## Step 6: Append to log/
+
+For each repo, append an entry to `log/YYYYMMDD.md`:
+```
+## [HH:MM] EOW | Graph build + lint + insights
+- Graph: <N nodes, M edges, C communities, cohesion score>
 - Lint: <N pages checked, N issues, breakdown by category>
+- Insights: <X surprising connections, Y knowledge gaps>
 - STATUS: <one-line health assessment>
 ```
 
-## Step 6: Compile health report
+## Step 7: Compile health report
 
 One paragraph per repo. Cover:
 - Page count + structural health
-- Graph freshness (age, node/edge count, files changed)
-- Most interesting finding (surprising connection, worst regression, contradiction surfaced)
+- Graph freshness (node/edge count, communities, cohesion)
+- Most interesting finding (top surprising connection, worst regression, contradiction surfaced)
+- Knowledge gaps (isolated nodes, sparse communities)
 - Recommended next action
 
 ## Pitfalls
 
-- `detectIncremental` can take 30-120s on large repos (1,600+ files). Use `timeout 120`.
-- `NODE_PATH` must be set for `require('@sentropic/graphify')` to resolve.
 - The lint script exits with code 1 when issues are found — that's normal, not an error.
-- Don't copy stale graph artifacts to `wiki/graphs/` — it's misleading. Just note the age.
-- The `baissari-vbt-lab` wiki has no `SCHEMA.md` — the lint script flags this as a structural issue.
+- Don't commit `wiki/graphs/graph-data.json` — it's in `.gitignore`.
+- Graph-engine can handle 1000+ pages. For very large wikis (>5000 pages), use `timeout 120`.
+- The `graph_insights.py` script is a pure Python fallback — use graph-engine for production.
+- Always run insights after graph build — the insight analysis depends on fresh graph data.

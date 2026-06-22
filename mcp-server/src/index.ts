@@ -22,29 +22,54 @@ import {
   fileExists,
 } from "./wiki-fs.js";
 import { buildIndex, search } from "./search.js";
+import { discoverLayout, WikiLayout } from "./discover.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ─── Config ──────────────────────────────────────────────────────────────────
+
+interface ServerConfig {
+  projects: Map<string, { root: string; layout: WikiLayout }>;  // projectName → {root, layout}
+  defaultProject: string;
+}
+
+let config: ServerConfig;
+
 // ─── CLI Argument Parsing ───────────────────────────────────────────────────
 
 let wikiPath = "";
+let projectsDir = "";
+
 for (let i = 0; i < process.argv.length; i++) {
   if (process.argv[i] === "--wiki" && i + 1 < process.argv.length) {
     wikiPath = process.argv[i + 1];
-    break;
+  }
+  if (process.argv[i] === "--projects" && i + 1 < process.argv.length) {
+    projectsDir = process.argv[i + 1];
   }
 }
-if (!wikiPath) wikiPath = process.env.LLM_WIKI_PATH ?? "";
-if (!wikiPath) {
+
+if (!wikiPath && !projectsDir) {
+  wikiPath = process.env.LLM_WIKI_PATH ?? "";
+}
+
+if (wikiPath && projectsDir) {
+  console.error("Cannot use both --wiki and --projects flags. Choose one mode.");
+  process.exit(1);
+}
+
+if (!wikiPath && !projectsDir) {
   console.error(
     `Usage: ${process.argv[1] ?? "llm-wiki-mcp"} --wiki <path>  (or set LLM_WIKI_PATH)`,
+  );
+  console.error(
+    `       ${process.argv[1] ?? "llm-wiki-mcp"} --projects <path>  (serves multiple wikis)`,
   );
   process.exit(1);
 }
 
-// Resolve wiki path and validate it
-wikiPath = path.resolve(wikiPath);
+if (wikiPath) wikiPath = path.resolve(wikiPath);
 
 // ─── Dynamic Module Loader ──────────────────────────────────────────────────
 
@@ -72,10 +97,42 @@ function errorResult(error: string): ToolResult {
   };
 }
 
-// ─── Helper: sources dir alongside wiki ─────────────────────────────────────
+// ─── Helpers: sources dir, project scanning, wiki root resolution ──────────
 
-function sourcesDir(): string {
-  return path.join(path.dirname(wikiPath), "sources");
+function sourcesDir(layout: WikiLayout): string {
+  return layout.raw_dir ?? path.join(layout.root, "raw");
+}
+
+/** Scan a directory for subdirectories containing a wiki */
+async function scanProjects(basePath: string): Promise<Map<string, { root: string; layout: WikiLayout }>> {
+  const projects = new Map<string, { root: string; layout: WikiLayout }>();
+  const entries = await fs.readdir(basePath, { withFileTypes: true });
+  const dirs = entries
+    .filter((e) => e.isDirectory() && !e.name.startsWith("."))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  for (const entry of dirs) {
+    const projPath = path.join(basePath, entry.name);
+    try {
+      const layout = discoverLayout(projPath);
+      if (layout.confidence >= 0.14) {
+        projects.set(entry.name, { root: projPath, layout });
+      }
+    } catch {
+      // skip — not a wiki
+    }
+  }
+  return projects;
+}
+
+/** Resolve project config (root + layout) from a tool's arguments */
+function getProjectConfig(toolArgs: Record<string, unknown>): { root: string; layout: WikiLayout } {
+  const projectName = (toolArgs.project as string) || config.defaultProject;
+  const project = config.projects.get(projectName);
+  if (!project) {
+    const available = [...config.projects.keys()].join(", ");
+    throw new Error(`Unknown project: "${projectName}". Available: ${available}`);
+  }
+  return project;
 }
 
 // ─── Tool Handler Implementations ───────────────────────────────────────────
@@ -84,22 +141,23 @@ function sourcesDir(): string {
  * 1. llm_wiki_status — Check wiki health, return page count, last ingest,
  *    open review count.
  */
-async function handleStatus(): Promise<ToolResult> {
+async function handleStatus(args: Record<string, unknown> = {}): Promise<ToolResult> {
   try {
-    const exists = await fileExists(wikiPath);
+    const { root: wp, layout } = getProjectConfig(args);
+    const exists = await fileExists(wp);
     if (!exists) {
       return textResult(
-        `# LLM Wiki Status\n\n**Health:** ❌ Wiki directory not found\n**Path:** \`${wikiPath}\``,
+        `# LLM Wiki Status\n\n**Health:** ❌ Wiki directory not found\n**Path:** \`${wp}\``,
       );
     }
 
-    const pages = await findMdFiles(wikiPath);
+    const pages = await findMdFiles(layout.pages_dir);
     const pageCount = pages.length;
 
     // Attempt to read metadata for last ingest date
     let lastIngest: string | null = null;
     try {
-      const metaPath = path.join(wikiPath, "..", ".wiki-meta.json");
+      const metaPath = path.join(wp, "..", ".wiki-meta.json");
       if (await fileExists(metaPath)) {
         const raw = await readFile(metaPath);
         const meta = JSON.parse(raw);
@@ -116,7 +174,7 @@ async function handleStatus(): Promise<ToolResult> {
     }>("./review.js");
     if (reviewMod?.listReviews) {
       try {
-        const reviews = await reviewMod.listReviews(wikiPath);
+        const reviews = await reviewMod.listReviews(layout.audit_dir ?? wp);
         openReviews = reviews.filter((r) => r.status === "open").length;
       } catch {
         // ignore
@@ -124,13 +182,15 @@ async function handleStatus(): Promise<ToolResult> {
     }
 
     const healthEmoji = pageCount > 0 ? "✅ Operational" : "⚠️  No pages found";
+    const projectName = (args.project as string) || config.defaultProject;
 
     return textResult(
       [
         "# LLM Wiki Status",
         "",
+        `**Project:** ${projectName}`,
         `**Health:** ${healthEmoji}`,
-        `**Wiki Path:** \`${wikiPath}\``,
+        `**Wiki Path:** \`${wp}\``,
         `**Page Count:** ${pageCount}`,
         `**Last Ingest:** ${lastIngest ?? "Never"}`,
         `**Open Reviews:** ${openReviews}`,
@@ -144,20 +204,18 @@ async function handleStatus(): Promise<ToolResult> {
 /**
  * 2. llm_wiki_files — List files in wiki/sources/all directories.
  */
-async function handleFiles(args: {
-  root?: string;
-  recursive?: boolean;
-}): Promise<ToolResult> {
+async function handleFiles(args: Record<string, unknown>): Promise<ToolResult> {
   try {
-    const root = args.root ?? "wiki";
-    const recursive = args.recursive !== false;
+    const { root: wp, layout } = getProjectConfig(args);
+    const root = (args.root as string) ?? "wiki";
+    const recursive = (args.recursive as boolean) !== false;
 
     const dirs: { label: string; dir: string }[] = [];
     if (root === "wiki" || root === "all") {
-      dirs.push({ label: "wiki", dir: wikiPath });
+      dirs.push({ label: "wiki", dir: layout.pages_dir });
     }
     if (root === "sources" || root === "all") {
-      dirs.push({ label: "sources", dir: sourcesDir() });
+      dirs.push({ label: "sources", dir: sourcesDir(layout) });
     }
 
     const lines: string[] = [];
@@ -195,17 +253,18 @@ async function handleFiles(args: {
 /**
  * 3. llm_wiki_read_file — Read a file, truncated at 120KB.
  */
-async function handleReadFile(args: { path?: string }): Promise<ToolResult> {
+async function handleReadFile(args: Record<string, unknown>): Promise<ToolResult> {
   try {
-    const filePath = args.path;
+    const { root: wp, layout } = getProjectConfig(args);
+    const filePath = args.path as string | undefined;
     if (!filePath) {
       return errorResult("Missing required argument: path");
     }
 
-    // Resolve relative to wikiPath if not absolute
+    // Resolve relative to pages_dir if not absolute
     const resolved = path.isAbsolute(filePath)
       ? filePath
-      : path.join(wikiPath, filePath);
+      : path.join(layout.pages_dir, filePath);
 
     const exists = await fileExists(resolved);
     if (!exists) {
@@ -230,10 +289,9 @@ async function handleReadFile(args: { path?: string }): Promise<ToolResult> {
 /**
  * 4. llm_wiki_reviews — List reviews, filterable by status.
  */
-async function handleReviews(args: {
-  status?: string;
-}): Promise<ToolResult> {
+async function handleReviews(args: Record<string, unknown>): Promise<ToolResult> {
   try {
+    const { root: wp, layout } = getProjectConfig(args);
     const reviewMod = await tryImport<{
       listReviews: (
         wp: string,
@@ -258,8 +316,8 @@ async function handleReviews(args: {
       );
     }
 
-    const status = args.status ?? "all";
-    const reviews = await reviewMod.listReviews(wikiPath, status);
+    const status = (args.status as string) ?? "all";
+    const reviews = await reviewMod.listReviews(layout.audit_dir ?? wp, status);
 
     if (reviews.length === 0) {
       return textResult(
@@ -300,19 +358,17 @@ async function handleReviews(args: {
 /**
  * 5. llm_wiki_search — BM25 search over wiki pages.
  */
-async function handleSearch(args: {
-  query?: string;
-  top_k?: number;
-}): Promise<ToolResult> {
+async function handleSearch(args: Record<string, unknown>): Promise<ToolResult> {
   try {
-    const query = args.query;
+    const { root: wp, layout } = getProjectConfig(args);
+    const query = args.query as string | undefined;
     if (!query || query.trim() === "") {
       return errorResult("Missing required argument: query");
     }
 
-    const topK = Math.min(Math.max(args.top_k ?? 10, 1), 100);
+    const topK = Math.min(Math.max((args.top_k as number) ?? 10, 1), 100);
 
-    const results = await search(wikiPath, query, topK);
+    const results = await search(layout.pages_dir, query, topK);
 
     if (results.length === 0) {
       return textResult(
@@ -327,7 +383,7 @@ async function handleSearch(args: {
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
-      const relPath = path.relative(wikiPath, r.path);
+      const relPath = path.relative(layout.pages_dir, r.path);
       lines.push(
         `### ${i + 1}. ${r.title}`,
         `**Path:** \`${relPath}\`  **Score:** ${r.score.toFixed(4)}`,
@@ -345,12 +401,10 @@ async function handleSearch(args: {
 /**
  * 6. llm_wiki_graph — Graph operations (build, insights, search).
  */
-async function handleGraph(args: {
-  action?: string;
-  query?: string;
-}): Promise<ToolResult> {
+async function handleGraph(args: Record<string, unknown>): Promise<ToolResult> {
   try {
-    const action = args.action ?? "build";
+    const { root: wp, layout } = getProjectConfig(args);
+    const action = (args.action as string) ?? "build";
 
     const graphMod = await tryImport<{
       buildGraph: (wp: string) => Promise<{ nodes: { id: string; label: string }[]; edges: { source: string; target: string }[] }>;
@@ -371,7 +425,7 @@ async function handleGraph(args: {
         if (!graphMod.buildGraph) {
           return textResult("# Graph: build\n\n_buildGraph not available in graph module._");
         }
-        const result = await graphMod.buildGraph(wikiPath);
+        const result = await graphMod.buildGraph(layout.pages_dir);
         return textResult(
           [
             "# Graph Build Complete",
@@ -388,7 +442,7 @@ async function handleGraph(args: {
         if (!graphMod.getInsights) {
           return textResult("# Graph: insights\n\n_getInsights not available in graph module._");
         }
-        const insights = await graphMod.getInsights(wikiPath);
+        const insights = await graphMod.getInsights(layout.pages_dir);
         if (!insights || insights.length === 0) {
           return textResult("# Graph Insights\n\nNo insights available.");
         }
@@ -400,14 +454,14 @@ async function handleGraph(args: {
       }
 
       case "search": {
-        const query = args.query;
+        const query = args.query as string | undefined;
         if (!query || query.trim() === "") {
           return errorResult("Missing required argument: query for graph search");
         }
         if (!graphMod.searchGraph) {
           return textResult("# Graph: search\n\n_searchGraph not available in graph module._");
         }
-        const graphResult = await graphMod.searchGraph(wikiPath, query);
+        const graphResult = await graphMod.searchGraph(layout.pages_dir, query);
         if (!graphResult || !graphResult.nodes || graphResult.nodes.length === 0) {
           return textResult(`# Graph Search: "${query}"\n\nNo results found.`);
         }
@@ -434,8 +488,9 @@ async function handleGraph(args: {
 /**
  * 7. llm_wiki_lint — Run lint checks on the wiki.
  */
-async function handleLint(): Promise<ToolResult> {
+async function handleLint(args: Record<string, unknown> = {}): Promise<ToolResult> {
   try {
+    const { root: wp, layout } = getProjectConfig(args);
     const lintMod = await tryImport<{
       runLint: (wp: string) => Promise<
         { issues: { type: string; severity: string; page: string; detail: string }[]; exitCode: number }
@@ -448,7 +503,7 @@ async function handleLint(): Promise<ToolResult> {
       );
     }
 
-    const lintResult = await lintMod.runLint(wikiPath);
+    const lintResult = await lintMod.runLint(layout.pages_dir);
     const issues = Array.isArray(lintResult) ? lintResult : lintResult.issues;
 
     if (!issues || issues.length === 0) {
@@ -496,11 +551,10 @@ async function handleLint(): Promise<ToolResult> {
 /**
  * 8. llm_wiki_ingest — Trigger an ingest of a source file.
  */
-async function handleIngest(args: {
-  source_path?: string;
-}): Promise<ToolResult> {
+async function handleIngest(args: Record<string, unknown>): Promise<ToolResult> {
   try {
-    const sourcePath = args.source_path;
+    const { root: wp, layout } = getProjectConfig(args);
+    const sourcePath = args.source_path as string | undefined;
     if (!sourcePath) {
       return errorResult("Missing required argument: source_path");
     }
@@ -508,7 +562,7 @@ async function handleIngest(args: {
     // Resolve source path
     const resolvedSource = path.isAbsolute(sourcePath)
       ? sourcePath
-      : path.join(wikiPath, sourcePath);
+      : path.join(wp, sourcePath);
 
     const exists = await fileExists(resolvedSource);
     if (!exists) {
@@ -527,7 +581,7 @@ async function handleIngest(args: {
     // Run python3 ingest.py with wiki root as first positional arg
     const { execSync } = await import("node:child_process");
     const output = execSync(
-      `python3 "${scriptPath}" "${wikiPath}" "${resolvedSource}"`,
+      `python3 "${scriptPath}" "${layout.root}" "${resolvedSource}"`,
       { encoding: "utf-8", timeout: 120_000, maxBuffer: 10 * 1024 * 1024 },
     );
 
@@ -552,6 +606,14 @@ async function handleIngest(args: {
 
 // ─── MCP Server Setup ───────────────────────────────────────────────────────
 
+const PROJECT_PARAM = {
+  project: {
+    type: "string",
+    description:
+      "Project name. Required when serving multiple wikis (--projects mode). Defaults to the only/ first project.",
+  },
+};
+
 const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_status",
@@ -559,7 +621,9 @@ const TOOL_DEFINITIONS = [
       "Check wiki status — health, page count, last ingest date, open review count.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        ...PROJECT_PARAM,
+      },
       required: [],
     },
   },
@@ -570,6 +634,7 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
+        ...PROJECT_PARAM,
         root: {
           type: "string",
           enum: ["wiki", "sources", "all"],
@@ -589,6 +654,7 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
+        ...PROJECT_PARAM,
         path: {
           type: "string",
           description: "Path to the file (absolute or relative to wiki root)",
@@ -604,6 +670,7 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
+        ...PROJECT_PARAM,
         status: {
           type: "string",
           enum: ["open", "resolved", "all"],
@@ -619,6 +686,7 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
+        ...PROJECT_PARAM,
         query: {
           type: "string",
           description: "Search query",
@@ -638,6 +706,7 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
+        ...PROJECT_PARAM,
         action: {
           type: "string",
           enum: ["build", "insights", "search"],
@@ -657,7 +726,9 @@ const TOOL_DEFINITIONS = [
       "Run lint checks on wiki pages. Reports errors, warnings, and suggestions.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        ...PROJECT_PARAM,
+      },
       required: [],
     },
   },
@@ -668,6 +739,7 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: "object",
       properties: {
+        ...PROJECT_PARAM,
         source_path: {
           type: "string",
           description:
@@ -682,16 +754,33 @@ const TOOL_DEFINITIONS = [
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  // Validate wiki path up front
-  try {
-    const stat = await fs.stat(wikiPath);
-    if (!stat.isDirectory()) {
-      console.error(`Wiki path is not a directory: ${wikiPath}`);
+  // Build config: --projects mode or single-wiki mode
+  if (projectsDir) {
+    const resolvedProjects = path.resolve(projectsDir);
+    const projects = await scanProjects(resolvedProjects);
+    if (projects.size === 0) {
+      console.error(`No wiki projects found in: ${resolvedProjects}`);
       process.exit(1);
     }
-  } catch (e) {
-    console.error(`Wiki path does not exist or is not accessible: ${wikiPath}`);
-    process.exit(1);
+    const firstKey = projects.keys().next().value as string;
+    config = { projects, defaultProject: firstKey };
+  } else {
+    // Validate single wiki path
+    try {
+      const stat = await fs.stat(wikiPath);
+      if (!stat.isDirectory()) {
+        console.error(`Wiki path is not a directory: ${wikiPath}`);
+        process.exit(1);
+      }
+    } catch {
+      console.error(`Wiki path does not exist or is not accessible: ${wikiPath}`);
+      process.exit(1);
+    }
+    const layout = discoverLayout(wikiPath);
+    config = {
+      projects: new Map([["default", { root: wikiPath, layout }]]),
+      defaultProject: "default",
+    };
   }
 
   const server = new Server(
@@ -712,21 +801,21 @@ async function main() {
     try {
       switch (name) {
         case "llm_wiki_status":
-          return await handleStatus();
+          return await handleStatus(toolArgs);
         case "llm_wiki_files":
-          return await handleFiles(toolArgs as { root?: string; recursive?: boolean });
+          return await handleFiles(toolArgs);
         case "llm_wiki_read_file":
-          return await handleReadFile(toolArgs as { path?: string });
+          return await handleReadFile(toolArgs);
         case "llm_wiki_reviews":
-          return await handleReviews(toolArgs as { status?: string });
+          return await handleReviews(toolArgs);
         case "llm_wiki_search":
-          return await handleSearch(toolArgs as { query?: string; top_k?: number });
+          return await handleSearch(toolArgs);
         case "llm_wiki_graph":
-          return await handleGraph(toolArgs as { action?: string; query?: string });
+          return await handleGraph(toolArgs);
         case "llm_wiki_lint":
-          return await handleLint();
+          return await handleLint(toolArgs);
         case "llm_wiki_ingest":
-          return await handleIngest(toolArgs as { source_path?: string });
+          return await handleIngest(toolArgs);
         default:
           return errorResult(`Unknown tool: "${name}". Available tools: ${TOOL_DEFINITIONS.map((t) => t.name).join(", ")}`);
       }

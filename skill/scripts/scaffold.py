@@ -281,8 +281,8 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Available templates:\n  " + "\n  ".join(list_templates()),
     )
-    parser.add_argument("wiki_root", help="Path to create the wiki at")
-    parser.add_argument("title", help="Topic title for the wiki")
+    parser.add_argument("wiki_root", nargs="?", help="Path to create the wiki at")
+    parser.add_argument("title", nargs="?", help="Topic title for the wiki")
     parser.add_argument(
         "--template", "-t",
         default=DEFAULT_TEMPLATE,
@@ -302,5 +302,8 @@ if __name__ == "__main__":
         for t in list_templates():
             print(f"  {t}")
         sys.exit(0)
+
+    if not args.wiki_root or not args.title:
+        parser.error("wiki_root and title are required (unless using --list-templates)")
 
     scaffold(args.wiki_root, args.title, args.template)

@@ -3,7 +3,7 @@
   "name": "LLM Wiki Clipper",
   "version": "0.2.0",
   "description": "Clip web pages to your LLM Wiki knowledge base",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "scripting", "storage", "downloads"],
   "host_permissions": ["http://127.0.0.1:19828/*", "http://localhost:*/*"],
   "action": {
     "default_popup": "popup.html",

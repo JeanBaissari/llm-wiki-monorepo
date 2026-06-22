@@ -25,6 +25,12 @@
     <option value="raw/papers">raw/papers/</option>
     <option value="raw/notes">raw/notes/</option>
   </select>
+  <label>
+    <input type="checkbox" id="autoIngest" checked>
+    Auto-ingest after clip
+  </label>
+  <label for="mcpUrl">MCP Server URL:</label>
+  <input type="text" id="mcpUrl" placeholder="http://localhost:3100" value="http://localhost:3100">
   <button id="clipBtn">📋 Clip Current Page</button>
   <div id="status"></div>
   <script src="popup.js"></script>

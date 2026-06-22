@@ -11,14 +11,18 @@ function status(msg, cls = '') {
 }
 
 // Load saved settings
-chrome.storage.local.get(['wikiPath', 'saveFolder'], (data) => {
+chrome.storage.local.get(['wikiPath', 'saveFolder', 'autoIngest', 'mcpUrl'], (data) => {
   if (data.wikiPath) document.getElementById('wikiPath').value = data.wikiPath;
   if (data.saveFolder) document.getElementById('folder').value = data.saveFolder;
+  if (data.autoIngest !== undefined) document.getElementById('autoIngest').checked = data.autoIngest;
+  if (data.mcpUrl) document.getElementById('mcpUrl').value = data.mcpUrl;
 });
 
 clipBtn.addEventListener('click', async () => {
   const wikiPath = document.getElementById('wikiPath').value.trim();
   const folder = document.getElementById('folder').value;
+  const autoIngest = document.getElementById('autoIngest').checked;
+  const mcpUrl = document.getElementById('mcpUrl').value.trim();
 
   if (!wikiPath) {
     status('Please enter a wiki path', 'error');
@@ -26,7 +30,7 @@ clipBtn.addEventListener('click', async () => {
   }
 
   // Save settings
-  chrome.storage.local.set({ wikiPath, saveFolder: folder });
+  chrome.storage.local.set({ wikiPath, saveFolder: folder, autoIngest, mcpUrl });
 
   status('Clipping...');
 
@@ -34,7 +38,7 @@ clipBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     // Inject Readability + Turndown into the page
-    const results = await chrome.scripting.executeScript({
+    await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['Readability.js', 'Turndown.js'],
     });
@@ -49,7 +53,7 @@ clipBtn.addEventListener('click', async () => {
     const { markdown, title } = extractResult[0].result;
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const filename = `${slug}.md`;
-    const today = new Date().toISOString().slice(0, 10);
+    const filePath = `${folder}/${filename}`;
 
     // Try MCP server first
     let saved = false;
@@ -59,7 +63,7 @@ clipBtn.addEventListener('click', async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectPath: wikiPath,
-          path: `${folder}/${filename}`,
+          path: filePath,
           content: markdown,
         }),
       });
@@ -69,17 +73,40 @@ clipBtn.addEventListener('click', async () => {
     }
 
     if (saved) {
-      status(`✓ Saved to ${folder}/${filename}`, 'success');
+      status(`✓ Saved to ${filePath}`, 'success');
     } else {
       // Fallback: download the markdown file
       const blob = new Blob([markdown], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       await chrome.downloads.download({
         url,
-        filename: `wiki-imports/${folder}/${filename}`,
+        filename: `wiki-imports/${filePath}`,
         saveAs: false,
       });
       status(`⬇ Downloaded ${filename} — move to ${folder}/`, 'success');
+    }
+
+    // Auto-ingest
+    if (autoIngest && saved) {
+      status('Ingesting...', '');
+      try {
+        const ingestResp = await fetch(`${mcpUrl.replace(/\/+$/, '')}/api/ingest`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wiki_root: wikiPath,
+            source_path: filePath,
+          }),
+        });
+        if (ingestResp.ok) {
+          status(`✓ Saved + ingested`, 'success');
+        } else {
+          const errText = await ingestResp.text().catch(() => 'unknown error');
+          status(`✓ Saved, ingest failed: ${errText}`, 'error');
+        }
+      } catch (err) {
+        status(`✓ Saved, ingest unavailable (${err.message})`, 'error');
+      }
     }
   } catch (err) {
     status(`Error: ${err.message}`, 'error');

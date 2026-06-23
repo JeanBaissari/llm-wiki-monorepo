@@ -110,8 +110,13 @@ def migrate(root: str) -> int:
     return 0
 
 
-if __name__ == "__main__":
+def main() -> int:
+    import sys
     if len(sys.argv) < 2:
         print(__doc__)
-        sys.exit(1)
-    sys.exit(migrate(sys.argv[1]))
+        return 1
+    return migrate(sys.argv[1])
+
+
+if __name__ == "__main__":
+    sys.exit(main())

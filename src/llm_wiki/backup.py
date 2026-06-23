@@ -23,6 +23,7 @@ Exit codes:
     1 — error
 """
 
+import argparse
 import glob
 import gzip
 import os
@@ -434,5 +435,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    import argparse
     sys.exit(main())

@@ -1,0 +1,75 @@
+# Release workflow — publishes the Python package to PyPI and creates a GitHub Release
+#
+# Triggered when a tag matching v* is pushed (e.g. v0.1.0, v1.2.3).
+# Uses trusted OIDC publishing to PyPI — no API tokens required.
+# Also generates PEP 740 digital attestations for the published package.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Smoke test: install the package and verify it works
+      - name: Install package
+        run: python -m pip install -e .
+
+      - name: Verify CLI works
+        run: llm-wiki --version
+
+      - name: Verify import works
+        run: python3 -c "import llm_wiki; print(llm_wiki.__version__)"
+
+      # Build wheel + sdist
+      - name: Install build tooling
+        run: python -m pip install build
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      # Upload the dist/ directory so the publish job can download it
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/baissarienterprises-llm-wiki
+    permissions:
+      id-token: write   # OIDC trusted publishing to PyPI
+      attestations: write  # PEP 740 digital attestations
+      contents: write   # Create GitHub Release
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      # Uses trusted publishing (OIDC) — no username/password needed
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      # Create a GitHub Release with release notes generated from the tag
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

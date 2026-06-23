@@ -5,6 +5,8 @@
 [![Node 18+](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org)
 [![License MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
+> `pip install baissarienterprises-llm-wiki`
+
 **A production-grade knowledge base operating system.** AI agents compile raw sources into persistent, cross-linked Markdown wikis. Knowledge compounds over time. No database. No API lock-in. Just files.
 
 Instead of re-retrieving raw documents on every query (RAG), this system **compiles** sources into a living wiki that agents maintain automatically. Clone anywhere, run with any AI agent, pull on any machine.
@@ -30,25 +32,28 @@ Instead of re-retrieving raw documents on every query (RAG), this system **compi
 ## Quick Start
 
 ```bash
-# One-command install
+# Install from PyPI
+pip install baissarienterprises-llm-wiki
+
+# Or install from source (for development)
 git clone https://github.com/JeanBaissari/llm-wiki-monorepo.git
 cd llm-wiki-monorepo
 bash install.sh
 
 # Scaffold a wiki
-python3 skill/scripts/scaffold.py ~/my-wiki "My Research" --template research
+llm-wiki scaffold ~/my-wiki "My Research" --template research
 
 # Ingest a source (two-step agent loop)
-python3 skill/scripts/ingest.py ~/my-wiki raw/articles/my-source.md
+llm-wiki ingest ~/my-wiki raw/articles/my-source.md
 
 # Check quality
-python3 skill/scripts/lint_wiki.py ~/my-wiki
+llm-wiki lint ~/my-wiki
 
 # Discover connections
-node graph-engine/dist/index.js --wiki ~/my-wiki --action insights
+llm-wiki insights ~/my-wiki
 
 # Start MCP server (for Claude Desktop, Codex, etc.)
-node mcp-server/dist/index.js --wiki ~/my-wiki
+llm-wiki serve ~/my-wiki
 ```
 
 ## Architecture

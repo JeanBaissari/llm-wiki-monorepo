@@ -1,0 +1,9 @@
+{
+  "directories": [
+    "meetings",
+    "decisions",
+    "projects",
+    "stakeholders"
+  ],
+  "description": "Organizational dirs under `wiki/` for meeting minutes, decision records, project tracking, and stakeholder profiles."
+}

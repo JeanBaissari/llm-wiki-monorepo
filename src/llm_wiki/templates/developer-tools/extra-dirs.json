@@ -1,0 +1,9 @@
+{
+  "directories": [
+    "tools",
+    "workflows",
+    "benchmarks",
+    "integrations"
+  ],
+  "description": "Organizational dirs under `wiki/` for developer tools, documented workflows, benchmark results, and integration patterns."
+}

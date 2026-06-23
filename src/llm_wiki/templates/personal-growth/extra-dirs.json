@@ -1,0 +1,9 @@
+{
+  "directories": [
+    "goals",
+    "habits",
+    "reflections",
+    "journal"
+  ],
+  "description": "Organizational dirs under `wiki/` for goals, habits, periodic reflections, and daily journal entries."
+}

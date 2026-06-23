@@ -38,7 +38,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from discover import discover_layout, WikiLayout, format_json
 
 
-TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
+# Try multiple locations: installed package, then dev repo
+_T = Path(__file__).resolve().parent / "templates"
+TEMPLATES_DIR = _T if _T.is_dir() else Path(__file__).resolve().parent.parent.parent / "templates"
 DEFAULT_TEMPLATE = "research"
 
 

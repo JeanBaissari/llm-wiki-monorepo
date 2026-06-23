@@ -1,0 +1,9 @@
+{
+  "directories": [
+    "characters",
+    "themes",
+    "plot-threads",
+    "chapters"
+  ],
+  "description": "Organizational dirs under `wiki/` for literary analysis: character profiles, thematic analysis, plot thread tracking, and chapter notes."
+}

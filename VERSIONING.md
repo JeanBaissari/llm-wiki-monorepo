@@ -2,13 +2,12 @@
 
 ## Current Version
 
-The llm-wiki-monorepo is at **3.0.0**.
+The llm-wiki-monorepo Python package is at **0.1.1** (PyPI: `baissarienterprises-llm-wiki`).
 
-| Version | Description |
-|---------|-------------|
-| v1      | Flat files — scripts and wiki pages in a single directory |
-| v2      | Introduced `wiki/` subdirectory — clear separation between tooling and content |
-| v3      | Monorepo — skill, MCP server, graph engine, templates, web viewer, extension, Obsidian plugin, rust-backend |
+| Milestone | Description |
+|-----------|-------------|
+| v0.1.0    | Initial PyPI release — 11 CLI commands, 15-pass lint, graph engine, MCP server, 19 templates |
+| v0.1.1    | Templates shipped inside package for pip-installed users |
 
 ## Version Scheme
 

@@ -26,7 +26,7 @@ The Hermes/Claude/Codex agent skill. Symlinked into `~/.hermes/skills/research/l
 ### `skill/SKILL.md`
 Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit, research, insights. Includes graphify integration, EOW cron pipeline, template system, MCP server reference.
 
-### `skill/references/` — 11 reference guides
+### `skill/references/` — 10 reference guides
 
 | File | Purpose |
 |------|---------|

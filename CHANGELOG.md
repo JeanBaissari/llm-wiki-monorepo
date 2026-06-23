@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] — 2026-06-23
+
+### Fixed
+
+- Templates now ship inside the package wheel — scaffold works from pip install
+- TEMPLATES_DIR resolution searches installed package location first, then dev repo
+- backup.py: import argparse at module level (not inside `__name__` guard)
+- migrate_log.py: add main() function for consistent entry point
+- PyPI classifier: corrected `Topic :: Text Processing :: Markdown` to `Topic :: Text Processing :: Markup :: Markdown`
+
 ## [0.1.0] — 2026-06-22
 
 ### Added

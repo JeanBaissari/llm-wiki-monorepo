@@ -28,7 +28,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 
 | Dir | Language | What it does | When to touch it |
 |-----|----------|-------------|-----------------|
-| `skill/` | Python + MD | Agent skill: SKILL.md + 12 scripts + 11 references | Agent operations, scripts, docs |
+| `skill/` | Python + MD | Agent skill: SKILL.md + 13 scripts + 10 references | Agent operations, scripts, docs |
 | `mcp-server/` | TypeScript | MCP server: 8 tools via stdio | Programmatic wiki access |
 | `graph-engine/` | TypeScript | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
 | `templates/` | MD + JSON | 19 domain templates for scaffold.py | Adding/modifying project templates |
@@ -110,7 +110,7 @@ python3 skill/scripts/graph_insights.py /tmp/test-wiki --format json
 ## Conventions
 
 ### Python scripts
-- All use `argparse` (except older scripts being migrated)
+- All use `argparse`
 - Pure stdlib — no external Python dependencies
 - Exit codes: 0 = success/clean, 1 = issues found, 2 = usage error
 - Print structured output to stdout, errors/warnings to stderr
@@ -190,14 +190,13 @@ rm -rf /tmp/test-wiki
 - **Don't commit `dist/`** — it's in `.gitignore`. Build output is generated.
 - **Don't commit `audit-C-report.md` or similar artifacts** — audit reports go in the wiki's audit/ directory, not the repo root.
 - **graph-data.json is generated** — don't commit it. It's in `.gitignore`.
-- **The patch tool may fail on this repo** — use `sed` or `python3` for inline edits when the patch tool gives escape-drift errors.
 - **MCP server needs `__dirname` resolution** — don't use `process.cwd()` for resolving script paths. Use `path.resolve(__dirname, ...)`.
 - **Graph engine CLI expects `--wiki` path** — it auto-detects `wiki/` subdirectory. Pass the project root (parent of wiki/) or the wiki/ directory directly.
 - **scaffold.py refuses to overwrite** — use `--force` flag. Without it, existing wikis are protected.
 - **Two-step ingest may be slow** — Stage 1 analysis is cached by SHA256. Use `--force` to skip cache.
 - **discover.py is the single source of truth for paths** — all tools call it at startup. If you rename directories, run `python3 skill/scripts/discover.py <wiki> --show` to verify detection.
 - **Flat wikis (no `wiki/` subdirectory) are supported** — discover.py auto-detects pages at root. Confidence is lower (0.14) but all tools work.
-- **Custom directory names are supported** — discover.py checks content/, pages/, notes/ for content; sources/, input/ for raw; logs/, journal/ for logs.**
+- **Custom directory names are supported** — discover.py checks content/, pages/, notes/ for content; sources/, input/ for raw; logs/, journal/ for logs.
 - **All tools import discover.py via sys.path.insert** — when adding new scripts, add `from discover import discover_layout` and call it at startup.
 
 ## Hermes Skill Installation
@@ -208,7 +207,7 @@ The `skill/` directory is symlinked as a Hermes skill:
 ln -sf /path/to/llm-wiki-monorepo/skill ~/.hermes/skills/research/llm-wiki
 ```
 
-The EOW cron job (`9629c8c17a7a`) loads this skill automatically. Changes to `skill/SKILL.md` or `skill/scripts/` propagate immediately — no restart needed.
+The EOW cron job loads this skill automatically. Changes to `skill/SKILL.md` or `skill/scripts/` propagate immediately — no restart needed.
 
 ## External Dependencies
 

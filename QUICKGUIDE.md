@@ -81,7 +81,7 @@ python3 skill/scripts/lint_wiki.py ~/my-wiki --json
 python3 skill/scripts/lint_wiki.py --help
 ```
 
-**15 checks:** dead wikilinks, orphan pages, missing index entries, unlinked concepts, log/ shape, audit/ shape, audit targets, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation, SHA256 source drift, **stale wiki pages from source drift** (new).
+**15 checks:** dead wikilinks, orphan pages, missing index entries, unlinked concepts, log/ shape, audit/ shape, audit targets, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation, SHA256 source drift, stale wiki pages from source drift.
 
 ## 5. Graph Insights
 
@@ -219,7 +219,7 @@ npm start -- --wiki ~/my-wiki --port 4175
 2. Enable "Developer mode"
 3. Click "Load unpacked" → select `extension/` directory
 4. Click the extension icon on any webpage → clips to markdown with frontmatter
-5. **New:** Check "Auto-ingest after clip" to automatically trigger the ingest pipeline
+5. Check "Auto-ingest after clip" to automatically trigger the ingest pipeline
 
 ## 12. Audit Reviews
 

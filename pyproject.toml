@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "baissarienterprises-llm-wiki"
+version = "0.1.0"
+description = "Knowledge base operating system — AI agents compile raw sources into persistent, cross-linked Markdown wikis"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = [
+    "wiki", "knowledge-base", "llm", "ai-agents",
+    "mcp", "knowledge-graph", "markdown", "research-tool",
+    "second-brain", "open-code", "hermes",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Markdown",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/JeanBaissari/llm-wiki-monorepo"
+Repository = "https://github.com/JeanBaissari/llm-wiki-monorepo"
+Documentation = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/QUICKGUIDE.md"
+Changelog = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/CHANGELOG.md"
+Issues = "https://github.com/JeanBaissari/llm-wiki-monorepo/issues"
+
+[project.scripts]
+llm-wiki = "llm_wiki.cli:main"
+llm-wiki-scaffold = "llm_wiki.scaffold:main"
+llm-wiki-ingest = "llm_wiki.ingest:main"
+llm-wiki-lint = "llm_wiki.lint_wiki:main"
+llm-wiki-insights = "llm_wiki.graph_insights:main"
+llm-wiki-link-suggest = "llm_wiki.link_suggest:main"
+llm-wiki-backup = "llm_wiki.backup:main"
+llm-wiki-benchmark = "llm_wiki.benchmark:main"
+llm-wiki-deep-research = "llm_wiki.deep_research:main"
+llm-wiki-audit = "llm_wiki.audit_review:main"
+llm-wiki-discover = "llm_wiki.discover:main"
+
+[project.optional-dependencies]
+dev = []
+test = []
+graph = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+llm_wiki = ["py.typed"]

@@ -20,6 +20,11 @@ web/dist/
 obsidian-releases/
 __pycache__/
 
+# Python build artifacts
+*.egg-info/
+build/
+dist/
+
 # Graph cache (generated at wiki run time)
 graph-data.json
 

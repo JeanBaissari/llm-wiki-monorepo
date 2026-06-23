@@ -1,8 +1,8 @@
 {
   "name": "llm-wiki-monorepo",
-  "version": "3.1.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "Production-grade knowledge base operating system. AI agents compile, maintain, and cross-link Markdown wikis from raw sources. Persistent knowledge that compounds over time.",
+  "description": "Knowledge base operating system — AI agents compile raw sources into persistent, cross-linked Markdown wikis",
   "keywords": [
     "wiki",
     "knowledge-base",

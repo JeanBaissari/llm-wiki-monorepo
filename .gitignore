@@ -41,3 +41,4 @@ skill/references/opencode-tutorial.md
 # OS
 Thumbs.db
 _internal/
+.coverage

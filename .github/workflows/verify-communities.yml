@@ -33,7 +33,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install networkx
+          pip install pytest networkx
 
       - name: Install Node dependencies
         run: |

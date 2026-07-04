@@ -28,6 +28,9 @@ import {
 import { buildIndex, search } from "./search.js";
 import { discoverLayout, WikiLayout } from "./discover.js";
 import { PythonSidecar } from "./sidecar.js";
+import type { SuggestResult } from "./suggest.js";
+import type { BackupResult } from "./backup.js";
+import type { EntityRegistryResult } from "./discover-tool.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -725,6 +728,185 @@ async function handleIngest(args: Record<string, unknown>): Promise<ToolResult> 
   }
 }
 
+// ─── New Tools (LWM_07B): suggest_links, backup, discover_entities ──────────
+
+/**
+ * 12. llm_wiki_suggest_links — Suggest missing wikilinks via Python sidecar.
+ */
+async function handleSuggestLinks(args: Record<string, unknown>): Promise<ToolResult> {
+  try {
+    const { root: wp, layout } = getProjectConfig(args);
+
+    if (!sidecar?.isRunning()) {
+      return errorResult(
+        "Python sidecar is not running — cannot suggest links. The sidecar may have failed to start.",
+      );
+    }
+
+    const suggestMod = await tryImport<{
+      suggestLinks: (
+        sidecar: PythonSidecar,
+        wikiPath: string,
+        options: { threshold?: number; limit?: number; pages?: string[] },
+      ) => Promise<SuggestResult>;
+    }>("./suggest.js");
+
+    if (!suggestMod?.suggestLinks) {
+      return textResult(
+        "# Suggest Links\n\n_Suggest module not available. Install or build src/suggest.ts._",
+      );
+    }
+
+    const threshold = (args.threshold as number) ?? 0.3;
+    const limit = (args.limit as number) ?? 20;
+    const pages = args.pages as string[] | undefined;
+
+    const result = await suggestMod.suggestLinks(sidecar, layout.root, {
+      threshold,
+      limit,
+      pages,
+    });
+
+    if (!result.suggestions || result.suggestions.length === 0) {
+      return textResult("# Link Suggestions\n\nNo suggestions found.");
+    }
+
+    const lines: string[] = [
+      `# Link Suggestions (${result.total})`,
+      "",
+    ];
+
+    for (let i = 0; i < result.suggestions.length; i++) {
+      const s = result.suggestions[i];
+      lines.push(
+        `### ${i + 1}. ${s.source_title} → ${s.target_title}`,
+        `**Score:** ${s.score.toFixed(3)} | **Entity:** \`${s.entity}\` | **Reason:** ${s.reason}`,
+        `**Source:** \`${s.source}\` → **Target:** \`${s.target}\``,
+        "",
+      );
+    }
+
+    return textResult(lines.join("\n"));
+  } catch (e) {
+    return errorResult(`Suggest links failed: ${e}`);
+  }
+}
+
+/**
+ * 13. llm_wiki_backup — Create a snapshot backup via Python sidecar.
+ */
+async function handleBackup(args: Record<string, unknown>): Promise<ToolResult> {
+  try {
+    const { root: wp, layout } = getProjectConfig(args);
+
+    if (!sidecar?.isRunning()) {
+      return errorResult(
+        "Python sidecar is not running — cannot create backup. The sidecar may have failed to start.",
+      );
+    }
+
+    const backupMod = await tryImport<{
+      createBackup: (
+        sidecar: PythonSidecar,
+        wikiPath: string,
+      ) => Promise<BackupResult>;
+    }>("./backup.js");
+
+    if (!backupMod?.createBackup) {
+      return textResult(
+        "# Backup\n\n_Backup module not available. Install or build src/backup.ts._",
+      );
+    }
+
+    const result = await backupMod.createBackup(sidecar, layout.root);
+
+    const sizeMB = (result.size_bytes / (1024 * 1024)).toFixed(1);
+    return textResult(
+      [
+        "# Backup Created",
+        "",
+        `**Archive:** \`${result.archive_path}\``,
+        `**Size:** ${sizeMB} MB (${result.size_bytes.toLocaleString()} bytes)`,
+        `**Files:** ${result.file_count}`,
+        `**Integrity:** ${result.integrity === "valid" ? "✅ Valid" : result.integrity === "invalid" ? "❌ Invalid" : "⚠️  Unverifiable"}`,
+      ].join("\n"),
+    );
+  } catch (e) {
+    return errorResult(`Backup failed: ${e}`);
+  }
+}
+
+/**
+ * 14. llm_wiki_discover_entities — Discover entity registry via Python sidecar.
+ */
+async function handleDiscoverEntities(args: Record<string, unknown>): Promise<ToolResult> {
+  try {
+    const { root: wp, layout } = getProjectConfig(args);
+
+    if (!sidecar?.isRunning()) {
+      return errorResult(
+        "Python sidecar is not running — cannot discover entities. The sidecar may have failed to start.",
+      );
+    }
+
+    const discoverMod = await tryImport<{
+      discoverEntities: (
+        sidecar: PythonSidecar,
+        wikiPath: string,
+        entityType?: string,
+      ) => Promise<EntityRegistryResult>;
+    }>("./discover-tool.js");
+
+    if (!discoverMod?.discoverEntities) {
+      return textResult(
+        "# Entity Discovery\n\n_Discover module not available. Install or build src/discover-tool.ts._",
+      );
+    }
+
+    const entityType = args.entity_type as string | undefined;
+
+    const result = await discoverMod.discoverEntities(
+      sidecar,
+      layout.root,
+      entityType,
+    );
+
+    if (!result.entities || result.entities.length === 0) {
+      return textResult(
+        `# Entity Registry\n\nNo entities found${entityType ? ` of type "${entityType}"` : ""}.`,
+      );
+    }
+
+    const lines: string[] = [
+      `# Entity Registry (${result.total})`,
+      entityType ? `Filtered by type: **${entityType}**` : "",
+      "",
+    ];
+
+    // Group by type for readability
+    const byType: Record<string, typeof result.entities> = {};
+    for (const entity of result.entities) {
+      const t = entity.type || "(no type)";
+      (byType[t] ??= []).push(entity);
+    }
+
+    for (const [type, entities] of Object.entries(byType)) {
+      lines.push(`## ${type} (${entities.length})`, "");
+      for (const e of entities) {
+        const aliasStr = e.aliases?.length
+          ? ` (aliases: ${e.aliases.join(", ")})`
+          : "";
+        lines.push(`- **${e.title}** \`${e.stem}\`${aliasStr}`);
+      }
+      lines.push("");
+    }
+
+    return textResult(lines.join("\n"));
+  } catch (e) {
+    return errorResult(`Entity discovery failed: ${e}`);
+  }
+}
+
 // ─── MCP Server Setup ───────────────────────────────────────────────────────
 
 const PROJECT_PARAM = {
@@ -901,6 +1083,56 @@ const TOOL_DEFINITIONS = [
       required: ["source_path"],
     },
   },
+  {
+    name: "llm_wiki_suggest_links",
+    description:
+      "Suggest missing wikilinks for wiki pages. Analyzes page text against the entity registry and returns link suggestions with confidence scores.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...PROJECT_PARAM,
+        threshold: {
+          type: "number",
+          description: "Minimum suggestion score to include (default: 0.3, range: 0.0–1.0)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum suggestions to return (default: 20)",
+        },
+        pages: {
+          type: "array",
+          items: { type: "string" },
+          description: "Specific page stems to analyze (default: all pages)",
+        },
+      },
+    },
+  },
+  {
+    name: "llm_wiki_backup",
+    description:
+      "Create a timestamped snapshot backup of the wiki. Archives wiki pages, logs, and audits into a tar.gz with integrity verification.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...PROJECT_PARAM,
+      },
+    },
+  },
+  {
+    name: "llm_wiki_discover_entities",
+    description:
+      "Discover all entities registered in the wiki. Returns the entity registry with names, paths, types, and aliases. Optionally filter by entity type.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...PROJECT_PARAM,
+        entity_type: {
+          type: "string",
+          description: "Filter by entity type (e.g., 'person', 'concept', 'tool'). Default: all.",
+        },
+      },
+    },
+  },
 ];
 
 // ─── Main ───────────────────────────────────────────────────────────────────
@@ -1017,6 +1249,12 @@ async function main() {
           return await handleLint(toolArgs);
         case "llm_wiki_ingest":
           return await handleIngest(toolArgs);
+        case "llm_wiki_suggest_links":
+          return await handleSuggestLinks(toolArgs);
+        case "llm_wiki_backup":
+          return await handleBackup(toolArgs);
+        case "llm_wiki_discover_entities":
+          return await handleDiscoverEntities(toolArgs);
         default:
           return errorResult(
             `Unknown tool: "${name}". Available tools: ${TOOL_DEFINITIONS.map((t) => t.name).join(", ")}`,

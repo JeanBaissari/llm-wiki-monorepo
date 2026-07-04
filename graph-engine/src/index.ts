@@ -16,9 +16,8 @@ export { findSurprisingConnections, detectKnowledgeGaps } from './insights.js';
 export type { SurprisingConnection, KnowledgeGap } from './types.js';
 export { applyGraphSearch } from './search.js';
 export type { SearchResult } from './search.js';
-export { buildWikiGraph, buildGraphologyGraph, buildRetrievalGraph } from './build.js';
-export { calculateRelevance, getRelatedNodes, buildGraphStructure } from './relevance.js';
-export type { GraphStructure } from './relevance.js';
+export { buildWikiGraph, buildRetrievalGraph } from './build.js';
+export { calculateRelevance, getRelatedNodes } from './relevance.js';
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing

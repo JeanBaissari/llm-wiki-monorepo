@@ -159,7 +159,7 @@ def update_index(root: str, pages: list, layout=None) -> int:
     existing = set()
     if os.path.exists(ip):
         with open(ip, "r", encoding="utf-8") as f:
-            existing = set(re.findall(r'\[\[([^\]]+)\]\]', f.read()))
+            existing = set(re.findall(r'\[\[([^\]|#]+)', f.read()))
     added = 0
     with open(ip, "a", encoding="utf-8") as f:
         for p in pages:

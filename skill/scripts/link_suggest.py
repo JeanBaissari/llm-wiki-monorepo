@@ -21,6 +21,7 @@ import json
 import re
 import sys
 from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -33,6 +34,30 @@ FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 HEADING_RE = re.compile(r"^#{2,3}\s+(.+)$", re.MULTILINE)
 BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
 SKIP_FILES = frozenset({"index.md", "log.md", "SCHEMA.md"})
+
+
+@dataclass
+class InvertedIndex:
+    """Dual-map inverted index. entity_to_pages: entity→{page_stems}. page_to_entities: page_stem→{entities}."""
+    entity_to_pages: dict = field(default_factory=dict)
+    page_to_entities: dict = field(default_factory=dict)
+
+    @property
+    def entity_count(self) -> int:
+        return len(self.entity_to_pages)
+
+
+def build_inverted_index(pages, registry=None) -> InvertedIndex:
+    fwd, rev = defaultdict(set), {}
+    keys = set(registry.keys()) if registry else None
+    for stem, (_, text, _) in pages.items():
+        clean = text_without_wikilinks(text).lower()
+        rev.setdefault(stem, set())
+        if keys:
+            for k in keys:
+                if k in clean:
+                    fwd[k].add(stem); rev[stem].add(k)
+    return InvertedIndex(entity_to_pages=dict(fwd), page_to_entities=rev)
 
 
 def parse_frontmatter(text: str) -> dict | None:

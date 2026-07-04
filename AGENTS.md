@@ -111,7 +111,7 @@ python3 skill/scripts/graph_insights.py /tmp/test-wiki --format json
 
 ### Python scripts
 - All use `argparse`
-- Pure stdlib — no external Python dependencies
+- **v0.2.0+: Managed dependencies** — see [Python Dependency Policy](#python-dependency-policy-v020) below. External packages installed via `pip` from `pyproject.toml`.
 - Exit codes: 0 = success/clean, 1 = issues found, 2 = usage error
 - Print structured output to stdout, errors/warnings to stderr
 
@@ -214,5 +214,31 @@ The EOW cron job loads this skill automatically. Changes to `skill/SKILL.md` or 
 - **graphology** + **graphology-communities-louvain** — graph-engine only. Pure JS, no native deps.
 - **@modelcontextprotocol/sdk** — MCP server only. Pure JS.
 - **Readability.js** + **Turndown.js** — Browser extension only. Already vendored.
-- No Python dependencies beyond stdlib.
+- **Python (v0.2.0+):** openai, anthropic, litellm, instructor, tenacity, tiktoken, python-dotenv, pydantic, portalocker — specified in `pyproject.toml`. See [Python Dependency Policy](#python-dependency-policy-v020).
 - No Rust dependencies. (`rust-backend/` removed — coming soon.)
+
+## Python Dependency Policy (v0.2.0+)
+
+**v0.1.x policy (retired):** Python scripts used pure stdlib only. No external packages.
+
+**v0.2.0+ policy (current):** Managed Python dependencies specified in `pyproject.toml`. Pinned with minimum versions, selected on:
+
+1. **Maturity:** ≥5k GitHub stars or official SDK from the provider
+2. **Maintenance:** Active releases within the last 3 months
+3. **License:** MIT, Apache 2.0, or BSD — no copyleft
+4. **Size:** No dependency that adds >100MB to a fresh install
+5. **Platform:** Must install via `pip` on Linux, macOS, and Windows
+
+### Core Dependencies
+
+| Package | Min Version | Purpose |
+|---------|------------|---------|
+| openai | ≥1.55 | OpenAI API client — native streaming, token usage, structured output |
+| anthropic | ≥0.39 | Anthropic API client — Claude model access |
+| litellm | ≥1.90 | Multi-provider proxy — fallback routing, cost tracking |
+| instructor | ≥1.15 | Pydantic-guided structured output — typed LLM responses |
+| tenacity | ≥8.0 | Retry decorators — exponential backoff with jitter |
+| tiktoken | ≥0.7 | Fast BPE tokenizer — token counting for OpenAI models |
+| python-dotenv | ≥1.0 | .env file loading — API key management |
+| pydantic | ≥2.0 | Data validation — used by instructor, also for config models |
+| portalocker | ≥2.8 | Cross-platform advisory file locking — concurrency control |

@@ -4,20 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "baissarienterprises-llm-wiki"
-version = "0.1.1"
-description = "Knowledge base operating system — AI agents compile raw sources into persistent, cross-linked Markdown wikis"
+version = "0.2.0"
+description = "Knowledge base operating system — AI agents compile raw sources into persistent, cross-linked Markdown wikis with concurrency control, multi-provider LLM integration, FTS5 search, and community detection"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 keywords = [
     "wiki", "knowledge-base", "llm", "ai-agents",
     "mcp", "knowledge-graph", "markdown", "research-tool",
-    "second-brain", "open-code", "hermes",
+    "second-brain", "hermes-agent", "opencode",
+    "concurrency", "community-detection", "louvain",
+    "fts5", "search", "structured-output",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -26,6 +29,17 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Typing :: Typed",
+]
+dependencies = [
+    "openai>=1.55",
+    "anthropic>=0.39",
+    "litellm>=1.90",
+    "instructor>=1.15",
+    "tenacity>=8.0",
+    "tiktoken>=0.7",
+    "python-dotenv>=1.0",
+    "pydantic>=2.0",
+    "portalocker>=2.8",
 ]
 
 [project.urls]
@@ -47,11 +61,13 @@ llm-wiki-benchmark = "llm_wiki.benchmark:main"
 llm-wiki-deep-research = "llm_wiki.deep_research:main"
 llm-wiki-audit = "llm_wiki.audit_review:main"
 llm-wiki-discover = "llm_wiki.discover:main"
+llm-wiki-index = "llm_wiki.index_wiki:main"
+llm-wiki-health = "llm_wiki.health_check:main"
 
 [project.optional-dependencies]
-dev = []
-test = []
-graph = []
+dev = ["pytest>=8.0", "pytest-cov>=5.0"]
+test = ["pytest>=8.0", "pytest-cov>=5.0", "vcrpy>=6.0"]
+graph = ["networkx>=3.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

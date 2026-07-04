@@ -15,6 +15,7 @@ from typing import Optional
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from discover import discover_layout
+from llm import call_llm  # SDK-based LLM dispatch with retry + timeout support
 
 CHUNK_SIZE = 55_000
 STAGE1_SYSTEM = "You are analyzing a source document for a knowledge base. Extract key entities, concepts, claims, relationships, and contradictions. Be thorough and structured."
@@ -44,22 +45,6 @@ def tcomp(): return date.today().strftime("%Y%m%d")
 def tiso(): return date.today().isoformat()
 def tslug(): return datetime.now().strftime("%Y%m%d-%H%M%S")
 
-def call_llm(system: str, user: str, provider: str = "default") -> Optional[str]:
-    """Call the LLM. If a provider CLI is available, shell out; else print prompts to stdout."""
-    if provider and provider != "default":
-        cmds = {"claude": ["claude", "chat", "--print"], "openai": ["openai", "api", "chat.completions.create", "-m", "gpt-4o"],
-                "deepseek": ["deepseek", "chat"], "together": ["together", "chat"]}
-        if provider in cmds:
-            try:
-                proc = subprocess.run(cmds[provider], input=json.dumps({"system": system, "messages": [{"role": "user", "content": user}]}),
-                                       capture_output=True, text=True, timeout=120)
-                if proc.returncode == 0: return proc.stdout.strip()
-                print(f"  \u26a0  LLM ({provider}) error: {proc.stderr.strip()}", file=sys.stderr); return None
-            except (FileNotFoundError, subprocess.TimeoutExpired) as e:
-                print(f"  \u26a0  LLM ({provider}) failed: {e}", file=sys.stderr); return None
-    sep = "=" * 70; print(f"\n{sep}\n  SYSTEM PROMPT [{provider}]:\n{sep}\n{system}\n\n{sep}\n  USER PROMPT [{provider}]:\n{sep}\n{user}", file=sys.stderr)
-    return None
-
 def read_response() -> Optional[str]:
     rf = os.environ.get("LLM_WIKI_RESPONSE_FILE")
     return read_file(rf) if rf else None
@@ -75,22 +60,25 @@ def read_orientation(wiki_root: str, layout=None) -> dict:
     return {f: read_file(os.path.join(wiki_root, f)) or f"({f} not found)"
             for f in ("CLAUDE.md", "PURPOSE.md", "wiki/index.md")}
 
-def stage1_analyze(text: str, orient: dict, provider: str, slug: str) -> Optional[str]:
+def stage1_analyze(text: str, orient: dict, provider: str, slug: str,
+                   llm_timeout: Optional[int] = None) -> Optional[str]:
     parts = [f"## Wiki Conventions (CLAUDE.md)\n{orient.get('CLAUDE.md','')}",
              f"## Wiki Scope (PURPOSE.md)\n{orient.get('PURPOSE.md','')}",
              f"## Current Wiki Index\n{orient.get('wiki/index.md','')}",
              f"## Source Document ({slug})\n{text}"]
     print(f"  Stage 1: Analyzing ({len(text)} chars)...", file=sys.stderr)
-    result = call_llm(STAGE1_SYSTEM, "\n\n".join(parts), provider)
+    result = call_llm(STAGE1_SYSTEM, "\n\n".join(parts), provider, total_timeout=llm_timeout)
     return result or read_response()
 
-def stage1_consolidate(analyses: list, provider: str) -> Optional[str]:
+def stage1_consolidate(analyses: list, provider: str,
+                       llm_timeout: Optional[int] = None) -> Optional[str]:
     if len(analyses) <= 1: return analyses[0] if analyses else None
     sys_p = "Consolidate these chunk analyses into one coherent analysis. Merge entities, concepts, claims, relationships. Remove duplicates."
     user = "## Chunk Analyses\n\n" + "\n\n---\n\n".join(f"### Chunk {i+1}\n{a}" for i,a in enumerate(analyses))
-    return call_llm(sys_p, user, provider) or read_response()
+    return call_llm(sys_p, user, provider, total_timeout=llm_timeout) or read_response()
 
-def stage2_generate(analysis: str, slug: str, src_path: str, orient: dict, provider: str) -> Optional[str]:
+def stage2_generate(analysis: str, slug: str, src_path: str, orient: dict, provider: str,
+                    llm_timeout: Optional[int] = None) -> Optional[str]:
     parts = [f"## Wiki Conventions (CLAUDE.md)\n{orient.get('CLAUDE.md','')}",
              f"## Wiki Scope (PURPOSE.md)\n{orient.get('PURPOSE.md','')}",
              f"## Current Wiki Index\n{orient.get('wiki/index.md','')}",
@@ -102,7 +90,7 @@ def stage2_generate(analysis: str, slug: str, src_path: str, orient: dict, provi
              "Valid REVIEW types: missing-page, duplicate-page, contradiction, suggestion\n"
              "Output ONLY structured blocks. No commentary."]
     print(f"  Stage 2: Generating pages...", file=sys.stderr)
-    return call_llm(STAGE2_SYSTEM, "\n\n".join(parts), provider) or read_response()
+    return call_llm(STAGE2_SYSTEM, "\n\n".join(parts), provider, total_timeout=llm_timeout) or read_response()
 
 FILE_RE = re.compile(r"^---FILE:\s*(.+?)\s*$\n^---$\n(.*?)(?=^---(?:FILE|REVIEW):|\Z)", re.MULTILINE|re.DOTALL)
 REVIEW_RE = re.compile(r"^---REVIEW:\s*(.+?)\s*$\n(.*?)(?=^---(?:FILE|REVIEW):|\Z)", re.MULTILINE|re.DOTALL)
@@ -166,7 +154,21 @@ def append_log(root: str, slug: str, created: int, updated: int, reviews: int, l
     else:
         with open(lp, "w", encoding="utf-8") as f: f.write(f"# {tiso()}\n\n{entry}")
 
-def ingest(wiki_root: str, source_path: str, provider: str = "default", force: bool = False) -> int:
+def ingest(wiki_root: str, source_path: str, provider: str = "default", force: bool = False,
+           llm_timeout: Optional[int] = None) -> int:
+    """Ingest a source document into the wiki.
+
+    Args:
+        wiki_root: Path to the wiki root directory.
+        source_path: Path to the source document.
+        provider: LLM provider name.
+        force: Skip cache and force re-ingest.
+        llm_timeout: Total LLM call deadline in seconds (spans retries).
+                     Default: None (no limit).
+
+    Returns:
+        0 on success, 1 on failure.
+    """
     layout = discover_layout(wiki_root)
     if not os.path.isdir(wiki_root): print(f"ERROR: wiki root not found: {wiki_root}", file=sys.stderr); return 1
     source_text = read_file(source_path)
@@ -195,24 +197,24 @@ def ingest(wiki_root: str, source_path: str, provider: str = "default", force: b
             analyses = []
             for i, c in enumerate(chunks):
                 print(f"  Chunk {i+1}/{len(chunks)}...", file=sys.stderr)
-                r = stage1_analyze(c, orient, provider, f"{slug}-chunk{i+1}")
+                r = stage1_analyze(c, orient, provider, f"{slug}-chunk{i+1}", llm_timeout=llm_timeout)
                 if r: analyses.append(r)
-            analysis = stage1_consolidate(analyses, provider) if analyses else None
+            analysis = stage1_consolidate(analyses, provider, llm_timeout=llm_timeout) if analyses else None
         else:
-            analysis = stage1_analyze(source_text, orient, provider, slug)
+            analysis = stage1_analyze(source_text, orient, provider, slug, llm_timeout=llm_timeout)
         if analysis:
             try:
                 with open(cache_path, "w") as f:
                     json.dump({"source_hash": s_hash, "source_slug": slug, "analysis": analysis, "timestamp": ts()}, f)
                 print(f"  Cached analysis", file=sys.stderr)
-            except IOError as e: print(f"  \u26a0  Cache write failed: {e}", file=sys.stderr)
+            except IOError as e: print(f"  ⚠  Cache write failed: {e}", file=sys.stderr)
     
     if not analysis:
         print("ERROR: No analysis. Set LLM_WIKI_RESPONSE_FILE with LLM output.", file=sys.stderr); return 1
     print(f"  Analysis: {len(analysis)} chars", file=sys.stderr)
     
     # Stage 2: Generation
-    result = stage2_generate(analysis, slug, source_path, orient, provider)
+    result = stage2_generate(analysis, slug, source_path, orient, provider, llm_timeout=llm_timeout)
     if not result:
         print("ERROR: No generation result. Set LLM_WIKI_RESPONSE_FILE.", file=sys.stderr); return 1
     print(f"  Generation: {len(result)} chars", file=sys.stderr)
@@ -246,7 +248,10 @@ def main() -> int:
     p.add_argument("--llm", dest="provider", default="default", help="LLM provider")
     p.add_argument("--force", action="store_true", help="Skip cache, force overwrite")
     p.add_argument("--batch", metavar="DIR", help="Batch process all sources in DIR")
+    p.add_argument("--llm-timeout", type=int, default=None,
+                   help="Total LLM call deadline in seconds (spans retries; budget/cost control)")
     args = p.parse_args()
+    llm_timeout = args.llm_timeout
     if args.batch:
         if not os.path.isdir(args.batch): print(f"ERROR: batch dir not found: {args.batch}", file=sys.stderr); return 1
         files = sorted(os.path.join(args.batch, f) for f in os.listdir(args.batch)
@@ -254,8 +259,8 @@ def main() -> int:
         if not files: print(f"No source files in {args.batch}", file=sys.stderr); return 1
         print(f"Batch: {len(files)} files", file=sys.stderr)
         for f in files:
-            print(f"\n{'='*60}", file=sys.stderr); ec = ingest(args.wiki_root, f, args.provider, args.force)
+            print(f"\n{'='*60}", file=sys.stderr); ec = ingest(args.wiki_root, f, args.provider, args.force, llm_timeout=llm_timeout)
         return ec
-    return ingest(args.wiki_root, args.source_path, args.provider, args.force)
+    return ingest(args.wiki_root, args.source_path, args.provider, args.force, llm_timeout=llm_timeout)
 
 if __name__ == "__main__": sys.exit(main())

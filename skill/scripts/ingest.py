@@ -211,11 +211,18 @@ def update_index(root: str, pages: list, layout=None) -> int:
     else:
         ip = os.path.join(root, "wiki", "index.md")
     if not os.path.exists(ip): return 0
+    existing = set()
+    if os.path.exists(ip):
+        with open(ip, "r", encoding="utf-8") as f:
+            existing = set(re.findall(r'\[\[([^\]]+)\]\]', f.read()))
     added = 0
     with open(ip, "a", encoding="utf-8") as f:
         for p in pages:
-            parts = p.split("/"); display = re.sub(r"\.md$", "", parts[-1]).replace("_"," ").replace("-"," ").title()
-            f.write(f"- [[{p[:-3]}|{display}]] — (auto-added by ingest)\n"); added += 1
+            link = p[:-3]
+            if link in existing: continue
+            existing.add(link)
+            display = re.sub(r"\.md$", "", p.split("/")[-1]).replace("_"," ").replace("-"," ").title()
+            f.write(f"- [[{link}|{display}]] — (auto-added by ingest)\n"); added += 1
     return added
 
 def append_log(root: str, slug: str, created: int, updated: int, reviews: int, log_dir: str = None) -> None:

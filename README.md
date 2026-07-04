@@ -1,34 +1,74 @@
 # LLM Wiki Monorepo
 
-[![CI](https://github.com/JeanBaissari/llm-wiki-monorepo/actions/workflows/ci.yml/badge.svg)](https://github.com/JeanBaissari/llm-wiki-monorepo/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/baissarienterprises-llm-wiki.svg)](https://pypi.org/project/baissarienterprises-llm-wiki/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
-[![Node 18+](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org)
-[![License MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+<p align="center">
+  <strong>A knowledge base that builds itself.</strong><br>
+  AI agents read your documents, build a structured wiki, and keep it current — no database, no API lock-in, one repo.
+</p>
 
-> `pip install baissarienterprises-llm-wiki`
+<p align="center">
+  <a href="#what-is-this">What is this?</a> •
+  <a href="#features">Features</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#packages">Packages</a> •
+  <a href="#templates">Templates</a> •
+  <a href="#credits">Credits</a> •
+  <a href="#license">License</a>
+</p>
 
-**A knowledge base that builds itself.** AI agents compile raw sources into persistent, cross-linked Markdown wikis. Instead of re-retrieving documents on every query (RAG), the system incrementally builds and maintains a living wiki from your sources. Knowledge compounds over time. No database. No API lock-in. One repo. Any agent. Any machine.
+<p align="center">
+  <a href="https://github.com/JeanBaissari/llm-wiki-monorepo/actions/workflows/ci.yml"><img src="https://github.com/JeanBaissari/llm-wiki-monorepo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-18+-green.svg" alt="Node 18+"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License MIT"></a>
+</p>
 
 ---
 
+```bash
+pip install baissarienterprises-llm-wiki
+```
+
+## What is this?
+
+LLM Wiki is a **production-grade knowledge engine** that turns raw documents into a living, cross-linked Markdown wiki. Instead of re-retrieving documents on every query (RAG), the system **incrementally builds and maintains** a persistent knowledge base. Sources are compiled once, kept current, and compound over time.
+
+It's a monorepo of everything needed to run a self-building wiki: a Python CLI package, an MCP server for programmatic access, a knowledge graph engine with community detection, a Chrome web clipper, a web viewer, an Obsidian plugin, and 19 domain templates — all wired together through an agent skill that works with any LLM.
+
+---
+
+
 ## Features
 
-- **Two-Step Chain-of-Thought Ingest** — LLM analyzes sources first, then generates structured wiki pages with SHA256 caching, streaming Stage 1 progress, and multi-provider LLM support (OpenAI, Anthropic, DeepSeek, or agent-native with zero API keys)
-- **Agent-Native LLM Provider** — routes ingest calls through Hermes, Claude Code, or Codex models directly — no external API keys required when running inside an AI agent session
-- **Structured Output** — Pydantic-typed FILE and REVIEW blocks via instructor — no fragile regex parsing. Retry with exponential backoff on transient failures. Token counting and cost estimation per operation
-- **Concurrency Control** — per-page advisory locking, atomic writes (temp → fsync → rename), content-hash conflict detection (SHA256 in frontmatter), and three-tier conflict management with automatic cleanup
-- **15-Pass Automated Lint** — dead links, orphans, frontmatter validation, contradictions, source drift, unresolved conflicts, stale page detection when raw sources change
-- **Knowledge Graph Engine** — Louvain community detection with full Blondel et al. modularity, 4-signal relevance model with precomputed adjacency, surprising connection discovery, and knowledge gap detection. Pure Python fallback included
-- **SQLite FTS5 Search** — full-text search with SHA256 freshness detection, pre-build at startup, incremental updates, BM25 fallback. `--rebuild` flag for full reindex
-- **Inverted Entity Index** — dual-map entity→pages + page→entities for O(1) link suggestion lookups. 4-signal scoring with automatic wikilink insertion (`--apply`)
-- **MCP Server** — 10 stdio tools for programmatic wiki access. Direct Python sidecar with zero subprocess overhead. Integrates with Claude Desktop, Codex, Cursor, and any MCP-compatible client
-- **Community Verification Suite** — NMI/ARI cross-validation across 5 seeds, statistical similarity metrics, modularity tolerance within 1% relative error
-- **Backup & Recovery** — tar.gz snapshots with restore, integrity verification, and automatic pruning. One-command `--auto` for safe state
-- **19 Domain Templates** — research, codebase, finance, machine learning, cybersecurity, medicine, algorithmic trading, and more. Every template provides PURPOSE.md, SCHEMA.md → CLAUDE.md, and extra-dirs.json
-- **Deep Research** — web search → fetch → ingest → synthesize. Multi-source compilation into structured wiki pages
-- **Chrome Web Clipper** — one-click web page capture with Readability + Turndown, auto-trigger ingest after clip
-- **CI/CD Pipeline** — pytest + vitest matrix across Python 3.10–3.12 and Node 18–22, coverage reporting, caching, benchmark artifacts
+- **Two-Step Ingest** — LLM analyzes sources first, then generates structured wiki pages. SHA256 caching skips unchanged files. Streaming progress, multi-provider support (OpenAI, Anthropic, DeepSeek), and agent-native mode that needs zero API keys.
+
+- **Agent-Native Provider** — route ingest through Hermes, Claude Code, or Codex directly. No external API keys required when running inside an AI agent session.
+
+- **Structured Output** — Pydantic-typed parsing via instructor. No regex guesswork. Retry with exponential backoff on transient failures. Token counting and cost estimation per operation.
+
+- **Concurrency Control** — per-page advisory locking, atomic writes (temp → fsync → rename), SHA256 conflict detection, and three-tier conflict management with automatic cleanup. Multiple agents can safely operate on the same wiki.
+
+- **Knowledge Graph Engine** — Louvain community detection with full Blondel et al. modularity. 4-signal relevance model with precomputed adjacency. Surprising connection discovery and knowledge gap detection. Pure Python fallback included.
+
+- **15-Pass Automated Lint** — dead links, orphans, frontmatter validation, contradictions, source drift, unresolved conflicts, and stale page detection when raw sources change.
+
+- **SQLite FTS5 Search** — full-text search with SHA256 freshness detection. Pre-builds at startup, incremental updates, BM25 fallback. Rebuild with `--rebuild`.
+
+- **Inverted Entity Index** — dual-map entity→pages + page→entities for O(1) link suggestions. 4-signal scoring with automatic wikilink insertion.
+
+- **MCP Server** — 10 stdio tools for programmatic wiki access. Direct Python sidecar with zero subprocess overhead. Integrates with Claude Desktop, Codex, Cursor, and any MCP-compatible client.
+
+- **Community Verification Suite** — NMI/ARI cross-validation across 5 seeds, statistical similarity metrics, modularity tolerance within 1% relative error.
+
+- **Backup & Recovery** — tar.gz snapshots with restore, integrity verification, and automatic pruning. One-command `--auto` for safe state.
+
+- **19 Domain Templates** — research, codebase, finance, machine learning, cybersecurity, medicine, algorithmic trading, and more. Every template ships with PURPOSE.md, SCHEMA.md → CLAUDE.md, and extra-dirs.json.
+
+- **Deep Research** — web search → fetch → ingest → synthesize. Multi-source compilation into structured wiki pages.
+
+- **Chrome Web Clipper** — one-click web page capture with Readability + Turndown, auto-triggering ingest after clip.
+
+- **CI/CD Pipeline** — pytest + vitest matrix across Python 3.10–3.12 and Node 18–22, coverage reporting, caching, benchmark artifacts.
 
 ## Quick Start
 
@@ -134,6 +174,8 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 ## Credits
 
 The foundational methodology comes from **Andrej Karpathy**'s [llm-wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern — using LLMs to incrementally build and maintain a personal wiki from raw sources. This project is a production-grade implementation with concurrency control, multi-provider LLM support, FTS5 search, MCP integration, and community detection.
+
+Also see the [desktop application fork](https://github.com/JeanBaissari/llm_wiki) by [nashsu](https://github.com/nashsu/llm_wiki) — a cross-platform Tauri app with graph visualization, vector search, and a rich chat interface built on the same foundational pattern.
 
 ## License
 

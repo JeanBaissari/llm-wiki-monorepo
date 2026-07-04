@@ -169,18 +169,21 @@ def build_entity_registry(pages: dict[str, tuple[Path, str, dict | None]]) -> di
 
 
 def generate_suggestions(
-    pages: dict, registry: dict, wiki_dir: Path, limit: int, min_confidence: float
+    pages: dict, registry: dict, wiki_dir: Path, limit: int, min_confidence: float,
+    inverted: InvertedIndex = None,
 ) -> list[dict]:
     total = len(pages)
     if total == 0:
         return []
 
-    entity_page_count: Counter = Counter()
-    for stem, (_, text, _) in pages.items():
-        clean = text_without_wikilinks(text).lower()
-        for key in registry:
-            if key in clean:
-                entity_page_count[key] += 1
+    entity_page_count: Counter | None = None
+    if inverted is None:
+        entity_page_count = Counter()
+        for stem, (_, text, _) in pages.items():
+            clean = text_without_wikilinks(text).lower()
+            for key in registry:
+                if key in clean:
+                    entity_page_count[key] += 1
 
     suggestions = []
 
@@ -216,7 +219,7 @@ def generate_suggestions(
             freq_score = min(count, 3) / 3.0
             pos_mult = 1.5 if early_count > 0 else 1.0
             type_bonus = 0.2 if source_type and entry["target_type"] and source_type == entry["target_type"] else 0.0
-            common_pages = entity_page_count.get(key, 1)
+            common_pages = len(inverted.entity_to_pages.get(key, set())) if inverted is not None else entity_page_count.get(key, 1)
             common_penalty = min(common_pages / total * 2, 0.5) if total > 0 else 0.0
 
             score = freq_score * pos_mult + type_bonus - common_penalty

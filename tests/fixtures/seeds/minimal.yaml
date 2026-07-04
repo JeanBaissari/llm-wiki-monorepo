@@ -1,0 +1,132 @@
+schema_version: 8857edf6
+description: Minimal wiki with 5 pages, 2 sources, 10 wikilinks
+template: codebase
+wiki_name: Minimal Test Wiki
+pages:
+- path: wiki/entities/python.md
+  title: Python
+  type: entity
+  tags:
+  - programming
+  - language
+  sources:
+  - python-org
+  content: '# Python
+
+
+    Python is a high-level programming language.
+
+
+    ## Related
+
+    - [[PyTorch]] is a deep learning framework built on Python.
+
+    - [[TensorFlow]] also uses Python as its primary interface.
+
+    - See [[Transfer Learning]] for an important ML concept.
+
+    '
+- path: wiki/entities/pytorch.md
+  title: PyTorch
+  type: entity
+  tags:
+  - deep-learning
+  - framework
+  sources:
+  - pytorch-docs
+  content: '# PyTorch
+
+
+    PyTorch is a deep learning framework by Meta.
+
+
+    ## Related
+
+    - Built on [[Python]].
+
+    - Competes with [[TensorFlow]].
+
+    - Frequently used for [[Transfer Learning]].
+
+    '
+- path: wiki/entities/tensorflow.md
+  title: TensorFlow
+  type: entity
+  tags:
+  - deep-learning
+  - framework
+  sources:
+  - tf-docs
+  content: '# TensorFlow
+
+
+    TensorFlow is a deep learning framework by Google.
+
+
+    ## Related
+
+    - Uses [[Python]] for its API.
+
+    - Competes with [[PyTorch]].
+
+    '
+- path: wiki/concepts/transfer_learning.md
+  title: Transfer Learning
+  type: concept
+  tags:
+  - ml
+  - technique
+  sources:
+  - ml-textbook
+  content: '# Transfer Learning
+
+
+    Transfer learning is reusing a pre-trained model on a new task.
+
+
+    ## Frameworks
+
+    - [[PyTorch]] provides extensive transfer learning support.
+
+    - [[TensorFlow]] also has transfer learning capabilities.
+
+
+    ## Related Concepts
+
+    - [[Fine Tuning]] is a form of transfer learning.
+
+    '
+- path: wiki/concepts/fine_tuning.md
+  title: Fine Tuning
+  type: concept
+  tags:
+  - ml
+  - technique
+  sources:
+  - ml-textbook
+  content: '# Fine Tuning
+
+
+    Fine-tuning adjusts pre-trained model weights for a specific dataset.
+
+
+    ## Relationship
+
+    - Fine-tuning is a specific technique within [[Transfer Learning]].
+
+    - Both [[PyTorch]] and [[TensorFlow]] support fine-tuning.
+
+    '
+sources:
+- path: raw/articles/python-org.md
+  content: '# Python.org
+
+    Python official documentation overview.
+
+    '
+- path: raw/articles/pytorch-docs.md
+  content: '# PyTorch Documentation
+
+    Official PyTorch documentation and tutorials.
+
+    '

@@ -1,0 +1,26 @@
+{
+  "name": "two_clique",
+  "description": "Two disconnected cliques of 10 nodes each. Expected: 2 communities.",
+  "expected_communities": 2,
+  "nodes": ["a0","a1","a2","a3","a4","a5","a6","a7","a8","a9","b0","b1","b2","b3","b4","b5","b6","b7","b8","b9"],
+  "edges": [
+    {"source":"a0","target":"a1","weight":1},{"source":"a0","target":"a2","weight":1},{"source":"a0","target":"a3","weight":1},{"source":"a0","target":"a4","weight":1},{"source":"a0","target":"a5","weight":1},{"source":"a0","target":"a6","weight":1},{"source":"a0","target":"a7","weight":1},{"source":"a0","target":"a8","weight":1},{"source":"a0","target":"a9","weight":1},
+    {"source":"a1","target":"a2","weight":1},{"source":"a1","target":"a3","weight":1},{"source":"a1","target":"a4","weight":1},{"source":"a1","target":"a5","weight":1},{"source":"a1","target":"a6","weight":1},{"source":"a1","target":"a7","weight":1},{"source":"a1","target":"a8","weight":1},{"source":"a1","target":"a9","weight":1},
+    {"source":"a2","target":"a3","weight":1},{"source":"a2","target":"a4","weight":1},{"source":"a2","target":"a5","weight":1},{"source":"a2","target":"a6","weight":1},{"source":"a2","target":"a7","weight":1},{"source":"a2","target":"a8","weight":1},{"source":"a2","target":"a9","weight":1},
+    {"source":"a3","target":"a4","weight":1},{"source":"a3","target":"a5","weight":1},{"source":"a3","target":"a6","weight":1},{"source":"a3","target":"a7","weight":1},{"source":"a3","target":"a8","weight":1},{"source":"a3","target":"a9","weight":1},
+    {"source":"a4","target":"a5","weight":1},{"source":"a4","target":"a6","weight":1},{"source":"a4","target":"a7","weight":1},{"source":"a4","target":"a8","weight":1},{"source":"a4","target":"a9","weight":1},
+    {"source":"a5","target":"a6","weight":1},{"source":"a5","target":"a7","weight":1},{"source":"a5","target":"a8","weight":1},{"source":"a5","target":"a9","weight":1},
+    {"source":"a6","target":"a7","weight":1},{"source":"a6","target":"a8","weight":1},{"source":"a6","target":"a9","weight":1},
+    {"source":"a7","target":"a8","weight":1},{"source":"a7","target":"a9","weight":1},
+    {"source":"a8","target":"a9","weight":1},
+    {"source":"b0","target":"b1","weight":1},{"source":"b0","target":"b2","weight":1},{"source":"b0","target":"b3","weight":1},{"source":"b0","target":"b4","weight":1},{"source":"b0","target":"b5","weight":1},{"source":"b0","target":"b6","weight":1},{"source":"b0","target":"b7","weight":1},{"source":"b0","target":"b8","weight":1},{"source":"b0","target":"b9","weight":1},
+    {"source":"b1","target":"b2","weight":1},{"source":"b1","target":"b3","weight":1},{"source":"b1","target":"b4","weight":1},{"source":"b1","target":"b5","weight":1},{"source":"b1","target":"b6","weight":1},{"source":"b1","target":"b7","weight":1},{"source":"b1","target":"b8","weight":1},{"source":"b1","target":"b9","weight":1},
+    {"source":"b2","target":"b3","weight":1},{"source":"b2","target":"b4","weight":1},{"source":"b2","target":"b5","weight":1},{"source":"b2","target":"b6","weight":1},{"source":"b2","target":"b7","weight":1},{"source":"b2","target":"b8","weight":1},{"source":"b2","target":"b9","weight":1},
+    {"source":"b3","target":"b4","weight":1},{"source":"b3","target":"b5","weight":1},{"source":"b3","target":"b6","weight":1},{"source":"b3","target":"b7","weight":1},{"source":"b3","target":"b8","weight":1},{"source":"b3","target":"b9","weight":1},
+    {"source":"b4","target":"b5","weight":1},{"source":"b4","target":"b6","weight":1},{"source":"b4","target":"b7","weight":1},{"source":"b4","target":"b8","weight":1},{"source":"b4","target":"b9","weight":1},
+    {"source":"b5","target":"b6","weight":1},{"source":"b5","target":"b7","weight":1},{"source":"b5","target":"b8","weight":1},{"source":"b5","target":"b9","weight":1},
+    {"source":"b6","target":"b7","weight":1},{"source":"b6","target":"b8","weight":1},{"source":"b6","target":"b9","weight":1},
+    {"source":"b7","target":"b8","weight":1},{"source":"b7","target":"b9","weight":1},
+    {"source":"b8","target":"b9","weight":1}
+  ]
+}

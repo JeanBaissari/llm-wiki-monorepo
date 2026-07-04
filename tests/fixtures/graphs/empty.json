@@ -1,0 +1,7 @@
+{
+  "name": "empty",
+  "description": "10 nodes, 0 edges. Expected: 10 communities (each node isolated).",
+  "expected_communities": 10,
+  "nodes": ["n0","n1","n2","n3","n4","n5","n6","n7","n8","n9"],
+  "edges": []
+}

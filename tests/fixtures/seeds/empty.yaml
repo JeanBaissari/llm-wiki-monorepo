@@ -1,0 +1,6 @@
+schema_version: 8857edf6
+description: Bare scaffold — no pages, no sources. Used for scaffold-only tests.
+template: codebase
+wiki_name: Empty Test Wiki
+pages: []
+sources: []

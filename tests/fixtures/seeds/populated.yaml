@@ -1,0 +1,810 @@
+schema_version: 8857edf6
+description: Populated wiki with 50+ pages, 15+ sources, complex link graph
+template: codebase
+wiki_name: Populated Test Wiki
+pages:
+- path: wiki/entities/pytorch.md
+  title: PyTorch
+  type: entity
+  tags:
+  - deep-learning
+  - framework
+  - meta
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# PyTorch
+
+    Deep learning framework by Meta.
+
+
+    Related: [[TensorFlow]], [[JAX]], [[Python]], [[CUDA]]'
+- path: wiki/entities/tensorflow.md
+  title: TensorFlow
+  type: entity
+  tags:
+  - deep-learning
+  - framework
+  - google
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# TensorFlow
+
+    Deep learning framework by Google.
+
+
+    Related: [[PyTorch]], [[Keras]], [[TPU]], [[Python]]'
+- path: wiki/entities/jax.md
+  title: JAX
+  type: entity
+  tags:
+  - deep-learning
+  - framework
+  - google
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# JAX
+
+    High-performance numerical computing.
+
+
+    Related: [[TensorFlow]], [[NumPy]], [[jax|XLA]]'
+- path: wiki/entities/keras.md
+  title: Keras
+  type: entity
+  tags:
+  - deep-learning
+  - api
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Keras
+
+    High-level neural networks API.
+
+
+    Related: [[TensorFlow]], [[PyTorch]], [[JAX]]'
+- path: wiki/entities/python.md
+  title: Python
+  type: entity
+  tags:
+  - programming
+  - language
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Python
+
+    General-purpose programming language.
+
+
+    Related: [[PyTorch]], [[TensorFlow]], [[NumPy]]'
+- path: wiki/entities/numpy.md
+  title: NumPy
+  type: entity
+  tags:
+  - python
+  - library
+  - numerical
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# NumPy
+
+    Fundamental package for scientific computing.
+
+
+    Related: [[Python]], [[JAX]], [[numpy|SciPy]]'
+- path: wiki/entities/cuda.md
+  title: CUDA
+  type: entity
+  tags:
+  - nvidia
+  - gpu
+  - parallel
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# CUDA
+
+    Parallel computing platform by NVIDIA.
+
+
+    Related: [[PyTorch]], [[TensorFlow]], [[GPU]]'
+- path: wiki/entities/tpu.md
+  title: TPU
+  type: entity
+  tags:
+  - google
+  - hardware
+  - accelerator
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# TPU
+
+    Tensor Processing Unit by Google.
+
+
+    Related: [[TensorFlow]], [[JAX]], [[GPU]]'
+- path: wiki/entities/gpu.md
+  title: GPU
+  type: entity
+  tags:
+  - hardware
+  - computing
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# GPU
+
+    Graphics Processing Unit.
+
+
+    Related: [[CUDA]], [[TPU]], [[Deep Learning]]'
+- path: wiki/concepts/transfer_learning.md
+  title: Transfer Learning
+  type: concept
+  tags:
+  - ml
+  - technique
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Transfer Learning
+
+    Reusing pre-trained models.
+
+
+    Related: [[Fine Tuning]], [[PyTorch]], [[TensorFlow]], [[pre_training|Pre-training]]'
+- path: wiki/concepts/fine_tuning.md
+  title: Fine Tuning
+  type: concept
+  tags:
+  - ml
+  - technique
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Fine Tuning
+
+    Adjusting pre-trained weights.
+
+
+    Related: [[Transfer Learning]], [[LoRA]], [[fine_tuning|Hyperparameters]]'
+- path: wiki/concepts/deep_learning.md
+  title: Deep Learning
+  type: concept
+  tags:
+  - ml
+  - ai
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Deep Learning
+
+    Subset of machine learning.
+
+
+    Related: [[Neural Network]], [[PyTorch]], [[TensorFlow]], [[GPU]]'
+- path: wiki/concepts/neural_network.md
+  title: Neural Network
+  type: concept
+  tags:
+  - ml
+  - architecture
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Neural Network
+
+    Computing system inspired by biological brains.
+
+
+    Related: [[Deep Learning]], [[CNN]], [[Transformer]], [[Backpropagation]]'
+- path: wiki/concepts/cnn.md
+  title: Convolutional Neural Network
+  type: concept
+  tags:
+  - ml
+  - architecture
+  - vision
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# CNN
+
+    Convolutional Neural Network.
+
+    Related: [[Neural Network]], [[resnet_paper|ResNet]], [[cnn|Computer Vision]]'
+- path: wiki/concepts/transformer.md
+  title: Transformer Architecture
+  type: concept
+  tags:
+  - ml
+  - architecture
+  - attention
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Transformer
+
+    Attention-based architecture.
+
+
+    Related: [[Attention Mechanism]], [[bert_paper|BERT]], [[GPT]], [[Neural Network]]'
+- path: wiki/concepts/attention_mechanism.md
+  title: Attention Mechanism
+  type: concept
+  tags:
+  - ml
+  - attention
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Attention
+
+    Mechanism to focus on relevant input.
+
+
+    Related: [[Transformer]], [[attention_mechanism|Self-Attention]], [[attention_mechanism|Multi-Head Attention]]'
+- path: wiki/concepts/lora.md
+  title: LoRA
+  type: concept
+  tags:
+  - ml
+  - fine-tuning
+  - efficient
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# LoRA
+
+    Low-Rank Adaptation for efficient fine-tuning.
+
+
+    Related: [[Fine Tuning]], [[lora|QLoRA]], [[lora|PEFT]]'
+- path: wiki/concepts/pre_training.md
+  title: Pre-training
+  type: concept
+  tags:
+  - ml
+  - training
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Pre-training
+
+    Initial training on large datasets.
+
+
+    Related: [[Transfer Learning]], [[Fine Tuning]], [[bert_paper|BERT]]'
+- path: wiki/concepts/backpropagation.md
+  title: Backpropagation
+  type: concept
+  tags:
+  - ml
+  - optimization
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Backpropagation
+
+    Algorithm for training neural networks.
+
+
+    Related: [[Neural Network]], [[Gradient Descent]], [[backpropagation|Loss Function]]'
+- path: wiki/concepts/gradient_descent.md
+  title: Gradient Descent
+  type: concept
+  tags:
+  - ml
+  - optimization
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Gradient Descent
+
+    Optimization algorithm.
+
+
+    Related: [[Backpropagation]], [[gradient_descent|SGD]], [[gradient_descent|Adam Optimizer]], [[backpropagation|Loss Function]]'
+- path: wiki/entities/attention_is_all_you_need.md
+  title: Attention Is All You Need
+  type: entity
+  tags:
+  - paper
+  - transformer
+  - '2017'
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Attention Is All You Need
+
+    Seminal paper by Vaswani et al. (2017).
+
+
+    Related: [[Transformer]], [[Attention Mechanism]], [[Vaswani]]'
+- path: wiki/entities/vaswani.md
+  title: Vaswani et al.
+  type: entity
+  tags:
+  - author
+  - researcher
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Vaswani et al.
+
+    Authors of the Transformer paper.
+
+
+    Related: [[Attention Is All You Need]], [[Transformer]]'
+- path: wiki/entities/resnet_paper.md
+  title: Deep Residual Learning
+  type: entity
+  tags:
+  - paper
+  - cnn
+  - '2015'
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Deep Residual Learning
+
+    ResNet paper by He et al. (2015).
+
+
+    Related: [[CNN]], [[resnet_paper|ResNet]], [[cnn|Computer Vision]]'
+- path: wiki/entities/bert_paper.md
+  title: BERT
+  type: entity
+  tags:
+  - paper
+  - transformer
+  - nlp
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# BERT
+
+    Pre-training of Deep Bidirectional Transformers.
+
+
+    Related: [[Transformer]], [[GPT]], [[NLP]], [[pre_training|Pre-training]]'
+- path: wiki/concepts/nlp.md
+  title: Natural Language Processing
+  type: concept
+  tags:
+  - ai
+  - language
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# NLP
+
+    AI subfield for language tasks.
+
+
+    Related: [[bert_paper|BERT]], [[GPT]], [[Transformer]], [[Tokenization]]'
+- path: wiki/entities/gpt.md
+  title: GPT
+  type: entity
+  tags:
+  - nlp
+  - transformer
+  - openai
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# GPT
+
+    Generative Pre-trained Transformer.
+
+
+    Related: [[Transformer]], [[bert_paper|BERT]], [[NLP]], [[LLM]]'
+- path: wiki/concepts/llm.md
+  title: Large Language Model
+  type: concept
+  tags:
+  - ai
+  - nlp
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# LLM
+
+    Large Language Models.
+
+
+    Related: [[GPT]], [[bert_paper|BERT]], [[Transformer]], [[Prompt Engineering]]'
+- path: wiki/concepts/prompt_engineering.md
+  title: Prompt Engineering
+  type: concept
+  tags:
+  - nlp
+  - technique
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Prompt Engineering
+
+    Crafting effective prompts for LLMs.
+
+
+    Related: [[LLM]], [[GPT]], [[prompt_engineering|Few-Shot Learning]]'
+- path: wiki/concepts/tokenization.md
+  title: Tokenization
+  type: concept
+  tags:
+  - nlp
+  - preprocessing
+  sources:
+  - populated-fixture
+  updated: '2026-06-20'
+  content: '# Tokenization
+
+    Splitting text into tokens.
+
+
+    Related: [[NLP]], [[tokenization|BPE]], [[tokenization|WordPiece]]'
+- path: wiki/concepts/topic_01.md
+  title: Topic 01
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 01
+
+    Auxiliary topic 1 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_02.md
+  title: Topic 02
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 02
+
+    Auxiliary topic 2 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_03.md
+  title: Topic 03
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 03
+
+    Auxiliary topic 3 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_04.md
+  title: Topic 04
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 04
+
+    Auxiliary topic 4 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_05.md
+  title: Topic 05
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 05
+
+    Auxiliary topic 5 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_06.md
+  title: Topic 06
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 06
+
+    Auxiliary topic 6 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_07.md
+  title: Topic 07
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 07
+
+    Auxiliary topic 7 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_08.md
+  title: Topic 08
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 08
+
+    Auxiliary topic 8 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_09.md
+  title: Topic 09
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 09
+
+    Auxiliary topic 9 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_10.md
+  title: Topic 10
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 10
+
+    Auxiliary topic 10 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_11.md
+  title: Topic 11
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 11
+
+    Auxiliary topic 11 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_12.md
+  title: Topic 12
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 12
+
+    Auxiliary topic 12 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_13.md
+  title: Topic 13
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 13
+
+    Auxiliary topic 13 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_14.md
+  title: Topic 14
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 14
+
+    Auxiliary topic 14 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_15.md
+  title: Topic 15
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 15
+
+    Auxiliary topic 15 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_16.md
+  title: Topic 16
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 16
+
+    Auxiliary topic 16 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_17.md
+  title: Topic 17
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 17
+
+    Auxiliary topic 17 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_18.md
+  title: Topic 18
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 18
+
+    Auxiliary topic 18 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_19.md
+  title: Topic 19
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 19
+
+    Auxiliary topic 19 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_20.md
+  title: Topic 20
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 20
+
+    Auxiliary topic 20 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_21.md
+  title: Topic 21
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 21
+
+    Auxiliary topic 21 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_22.md
+  title: Topic 22
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 22
+
+    Auxiliary topic 22 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_23.md
+  title: Topic 23
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 23
+
+    Auxiliary topic 23 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+- path: wiki/concepts/topic_24.md
+  title: Topic 24
+  type: concept
+  tags:
+  - test
+  - auxiliary
+  sources:
+  - populated-fixture
+  content: '# Topic 24
+
+    Auxiliary topic 24 for the populated test wiki.
+
+
+    Related: [[Deep Learning]], [[Python]]'
+sources:
+- path: raw/articles/ml-survey.md
+  content: '# Machine Learning Survey
+
+
+    Comprehensive survey of ML techniques.
+
+    '
+- path: raw/articles/transformer-paper-notes.md
+  content: '# Transformer Paper Notes
+
+
+    Notes on Attention Is All You Need.
+
+    '
+- path: raw/articles/framework-comparison.md
+  content: '# Framework Comparison
+
+
+    Comparing PyTorch, TensorFlow, and JAX.
+
+    '

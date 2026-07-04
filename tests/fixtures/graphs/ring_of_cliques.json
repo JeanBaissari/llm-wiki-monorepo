@@ -1,0 +1,24 @@
+{
+  "name": "ring_of_cliques",
+  "description": "5 cliques of 4 nodes each arranged in a ring (each clique connected to neighbors by one edge). Expected: 5 communities (may vary with resolution).",
+  "expected_communities": null,
+  "nodes": ["c0_a","c0_b","c0_c","c0_d","c1_a","c1_b","c1_c","c1_d","c2_a","c2_b","c2_c","c2_d","c3_a","c3_b","c3_c","c3_d","c4_a","c4_b","c4_c","c4_d"],
+  "edges": [
+    {"source":"c0_a","target":"c0_b","weight":1},{"source":"c0_a","target":"c0_c","weight":1},{"source":"c0_a","target":"c0_d","weight":1},
+    {"source":"c0_b","target":"c0_c","weight":1},{"source":"c0_b","target":"c0_d","weight":1},
+    {"source":"c0_c","target":"c0_d","weight":1},
+    {"source":"c1_a","target":"c1_b","weight":1},{"source":"c1_a","target":"c1_c","weight":1},{"source":"c1_a","target":"c1_d","weight":1},
+    {"source":"c1_b","target":"c1_c","weight":1},{"source":"c1_b","target":"c1_d","weight":1},
+    {"source":"c1_c","target":"c1_d","weight":1},
+    {"source":"c2_a","target":"c2_b","weight":1},{"source":"c2_a","target":"c2_c","weight":1},{"source":"c2_a","target":"c2_d","weight":1},
+    {"source":"c2_b","target":"c2_c","weight":1},{"source":"c2_b","target":"c2_d","weight":1},
+    {"source":"c2_c","target":"c2_d","weight":1},
+    {"source":"c3_a","target":"c3_b","weight":1},{"source":"c3_a","target":"c3_c","weight":1},{"source":"c3_a","target":"c3_d","weight":1},
+    {"source":"c3_b","target":"c3_c","weight":1},{"source":"c3_b","target":"c3_d","weight":1},
+    {"source":"c3_c","target":"c3_d","weight":1},
+    {"source":"c4_a","target":"c4_b","weight":1},{"source":"c4_a","target":"c4_c","weight":1},{"source":"c4_a","target":"c4_d","weight":1},
+    {"source":"c4_b","target":"c4_c","weight":1},{"source":"c4_b","target":"c4_d","weight":1},
+    {"source":"c4_c","target":"c4_d","weight":1},
+    {"source":"c0_a","target":"c1_a","weight":1},{"source":"c1_a","target":"c2_a","weight":1},{"source":"c2_a","target":"c3_a","weight":1},{"source":"c3_a","target":"c4_a","weight":1},{"source":"c4_a","target":"c0_a","weight":1}
+  ]
+}

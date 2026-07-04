@@ -1,0 +1,52 @@
+# .github/workflows/verify-communities.yml
+#
+# LWM_08B — Community detection cross-implementation verification suite.
+# Runs on every push/PR to main (or manually).
+# Checks that TypeScript and Python Louvain agree on 7 graph topologies.
+
+name: Community Detection Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  verify-communities:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install networkx
+
+      - name: Install Node dependencies
+        run: |
+          cd graph-engine && npm ci
+
+      - name: Build TypeScript graph-engine
+        run: |
+          cd graph-engine && npm run build
+
+      - name: Run verification suite
+        run: |
+          python3 tests/verification/run_verification.py
+
+      - name: Run pytest verification integration
+        run: |
+          python3 -m pytest tests/test_verification.py -v

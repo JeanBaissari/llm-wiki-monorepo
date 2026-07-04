@@ -1,86 +1,68 @@
 // MCP Server — Lint Bridge
-// Bridges to lint_wiki.py (Python), with a TypeScript fallback for basic checks.
+//
+// Primary path: delegates to lint_wiki.py via the Python sidecar (LWM_07).
+// Fallback: TypeScript structural checks when sidecar is unavailable.
 
-import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
 import type { LintIssue } from "./types.js";
 import { fileExists, findMdFiles } from "./wiki-fs.js";
+import type { PythonSidecar } from "./sidecar.js";
 
-const execFileAsync = promisify(execFile);
-
-// Monorepo root is the parent of the mcp-server/ directory
-const MONOREPO_ROOT = path.resolve(process.cwd(), "..");
-
-/** Full path to lint_wiki.py */
-function lintScriptPath(): string {
-  return path.resolve(
-    MONOREPO_ROOT,
-    "skill",
-    "scripts",
-    "lint_wiki.py",
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+// ── Public API ──────────────────────────────────────────────────────────────
 
 /**
  * Run lint checks against a wiki directory.
  *
- * First tries to shell out to `lint_wiki.py` (Python). If the script is not
- * found, falls back to basic TypeScript structural checks (dead wikilinks,
- * orphan pages, missing index entries).
+ * Uses the Python sidecar for comprehensive 16-pass linting.
+ * Falls back to basic TypeScript structural checks if the sidecar
+ * is not provided or is unavailable.
  *
- * @param wikiPath — Path to the wiki root (containing wiki/, log/, audit/…)
+ * @param wikiPath  Path to the wiki root (containing wiki/, log/, audit/…)
+ * @param sidecar   Optional PythonSidecar instance for zero-subprocess linting
  */
 export async function runLint(
   wikiPath: string,
+  sidecar?: PythonSidecar | null,
 ): Promise<{ issues: LintIssue[]; exitCode: number }> {
-  const scriptPath = lintScriptPath();
-  const hasPythonScript = await fileExists(scriptPath);
+  // Try sidecar first (primary path, LWM_07)
+  if (sidecar?.isRunning()) {
+    try {
+      const result = (await sidecar.call("lint_wiki", {
+        paths: [],
+        fix: false,
+        check_broken_links: true,
+      })) as {
+        issues: { type: string; severity: string; page: string; detail: string }[];
+        warnings: string[];
+        passed: boolean;
+      };
 
-  if (!hasPythonScript) {
-    return runBasicLint(wikiPath);
+      if (result && Array.isArray(result.issues)) {
+        const issues: LintIssue[] = result.issues.map((i) => ({
+          type: i.type,
+          severity: i.severity,
+          page: i.page,
+          detail: i.detail,
+        }));
+        return { issues, exitCode: result.passed ? 0 : 1 };
+      }
+    } catch (e) {
+      // Sidecar call failed — fall through to basic lint
+      console.error(`[lint] Sidecar lint failed, falling back to basic: ${e}`);
+    }
   }
 
-  try {
-    const { stdout } = await execFileAsync("python3", [scriptPath, wikiPath], {
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    return { issues: parseLintOutput(stdout), exitCode: 0 };
-  } catch (err: unknown) {
-    // Non-zero exit code — the error object carries stdout/stderr
-    const execErr = err as NodeJS.ErrnoException & {
-      stdout?: string;
-      stderr?: string;
-    };
-    const stdout = execErr.stdout ?? "";
-    const exitCode = execErr.code ?? (typeof (err as any).code === "number" ? (err as any).code : 1);
-    return { issues: parseLintOutput(stdout), exitCode };
-  }
+  // Fallback: basic TypeScript structural checks
+  return runBasicLint(wikiPath);
 }
 
-// ---------------------------------------------------------------------------
-// Parsing lint_wiki.py human-readable output
-// ---------------------------------------------------------------------------
+// ── Parsing (for backward compat with old subprocess output) ────────────────
 
-/**
- * Each section in the output has the form:
- *
- *   <emoji> <Category name> (N):
- *      <detail line>
- *      <detail line>
- *
- * We map known section headers to LintIssue types.
- */
 interface SectionMatcher {
   pattern: RegExp;
   type: string;
   severity: string;
-  /** If true, detail lines contain something like "file → [[target]]" */
   hasArrow: boolean;
 }
 
@@ -107,12 +89,10 @@ export function parseLintOutput(output: string): LintIssue[] {
   const lines = output.split("\n");
 
   let currentSection: SectionMatcher | null = null;
-  let currentCount = 0; // expected from header
 
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
 
-    // Check if this line starts a new section
     let matched: SectionMatcher | null = null;
     for (const sm of SECTION_MATCHERS) {
       if (sm.pattern.test(line)) {
@@ -123,37 +103,21 @@ export function parseLintOutput(output: string): LintIssue[] {
 
     if (matched) {
       currentSection = matched;
-      // Extract count from parentheses: "🔴 Dead wikilinks (3):"
-      const countMatch = line.match(/\((\d+)\)/);
-      currentCount = countMatch ? parseInt(countMatch[1], 10) : 0;
       continue;
     }
 
-    // Skip status/empty lines when not in a section
     if (!currentSection) continue;
 
-    // Skip summary separator and summary line
-    if (line.startsWith("─") || line.startsWith("✅") || line.startsWith("⚠️") || line.startsWith("✅") || line.startsWith("❌")) {
-      // End of section — ✅/⚠️ lines indicate no issues for that category
-      // We don't emit issues for clean sections
-      // But some lines like "✅ No dead wikilinks" are standalone status lines
-      // Check if this is a summary/status line outside a section
+    if (line.startsWith("─") || line.startsWith("✅") || line.startsWith("⚠️") || line.startsWith("❌")) {
       if (line.startsWith("─") || line.startsWith("✅ Wiki is healthy") || line.startsWith("⚠️")) {
         currentSection = null;
       }
       continue;
     }
 
-    // Detail lines are indented with 3 spaces
-    if (!line.startsWith("   ")) {
-      // Not a detail line — could be another section we missed, skip
-      continue;
-    }
+    if (!line.startsWith("   ")) continue;
 
-    // Parse the detail line
     const detail = line.trim();
-
-    // Build the LintIssue
     const issue: LintIssue = {
       type: currentSection.type,
       severity: currentSection.severity,
@@ -162,11 +126,9 @@ export function parseLintOutput(output: string): LintIssue[] {
     };
 
     if (currentSection.hasArrow && detail.includes("→")) {
-      // Format: "source/file.md → [[Target]]"
       const arrowIdx = detail.indexOf("→");
       issue.page = detail.slice(0, arrowIdx).trim();
     } else {
-      // Format is the page path itself
       issue.page = detail;
     }
 
@@ -176,28 +138,20 @@ export function parseLintOutput(output: string): LintIssue[] {
   return issues;
 }
 
-// ---------------------------------------------------------------------------
-// TypeScript fallback — basic structural checks
-// ---------------------------------------------------------------------------
+// ── TypeScript fallback — basic structural checks ────────────────────────
 
 const WIKILINK_RE = /\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]/g;
 
-/**
- * Fallback lint when lint_wiki.py is not available.
- * Checks: dead wikilinks, orphan pages, missing index entries.
- */
 async function runBasicLint(
   wikiPath: string,
 ): Promise<{ issues: LintIssue[]; exitCode: number }> {
   const issues: LintIssue[] = [];
   const wikiDir = path.join(wikiPath, "wiki");
 
-  // Find all .md files under wiki/
   let mdFiles: string[];
   try {
     mdFiles = await findMdFiles(wikiDir);
   } catch {
-    // If wiki/ doesn't exist, try wikiPath directly
     try {
       mdFiles = await findMdFiles(wikiPath);
     } catch {
@@ -209,7 +163,6 @@ async function runBasicLint(
     return { issues: [], exitCode: 0 };
   }
 
-  // Build page stem lookup (basename without .md, case-insensitive)
   const pageStems = new Set<string>();
   const pagePathByStem = new Map<string, string>();
   for (const f of mdFiles) {
@@ -218,8 +171,7 @@ async function runBasicLint(
     pagePathByStem.set(stem.toLowerCase(), f);
   }
 
-  // ── Pass 1: dead wikilinks ────────────────────────────────
-  const inbound = new Map<string, string[]>(); // stem → sources
+  const inbound = new Map<string, string[]>();
   const deadLinks: Array<{ source: string; link: string }> = [];
 
   for (const filePath of mdFiles) {
@@ -244,54 +196,30 @@ async function runBasicLint(
   }
 
   for (const dl of deadLinks) {
-    issues.push({
-      type: "dead-wikilink",
-      severity: "error",
-      page: dl.source,
-      detail: `${dl.source} → [[${dl.link}]]`,
-    });
+    issues.push({ type: "dead-wikilink", severity: "error", page: dl.source, detail: `${dl.source} → [[${dl.link}]]` });
   }
 
-  // ── Pass 2: orphan pages (no inbound links) ───────────────
   const skipOrphan = new Set(["index"]);
   for (const filePath of mdFiles) {
     const stem = path.basename(filePath, ".md").toLowerCase();
     if (skipOrphan.has(stem)) continue;
     if (!inbound.has(stem) || inbound.get(stem)!.length === 0) {
       const relPath = path.relative(wikiPath, filePath);
-      issues.push({
-        type: "orphan-page",
-        severity: "warn",
-        page: relPath,
-        detail: relPath,
-      });
+      issues.push({ type: "orphan-page", severity: "warn", page: relPath, detail: relPath });
     }
   }
 
-  // ── Pass 3: missing index entries ─────────────────────────
   const indexPath = path.join(wikiDir, "index.md");
   let indexText = "";
-  try {
-    indexText = await readFile(indexPath, "utf-8");
-  } catch {
-    // No index.md — skip this check
-  }
+  try { indexText = await readFile(indexPath, "utf-8"); } catch { /* no index.md */ }
 
   if (indexText) {
     for (const filePath of mdFiles) {
       const relPath = path.relative(wikiPath, filePath);
       if (path.basename(filePath) === "index.md") continue;
       const stem = path.basename(filePath, ".md");
-      if (
-        !indexText.includes(`[[${stem}]]`) &&
-        !indexText.includes(relPath.replace(/\.md$/, ""))
-      ) {
-        issues.push({
-          type: "missing-index-entry",
-          severity: "warn",
-          page: relPath,
-          detail: relPath,
-        });
+      if (!indexText.includes(`[[${stem}]]`) && !indexText.includes(relPath.replace(/\.md$/, ""))) {
+        issues.push({ type: "missing-index-entry", severity: "warn", page: relPath, detail: relPath });
       }
     }
   }

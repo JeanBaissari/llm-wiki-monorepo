@@ -1,5 +1,10 @@
 import { execSync } from "child_process";
 import path from "path";
+import { existsSync } from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * WikiLayout — matches the Python discover.py WikiLayout dataclass.
@@ -68,7 +73,6 @@ function basicLayout(wikiPath: string): WikiLayout {
   const wikiDir = path.join(root, "wiki");
 
   // Check if wiki/ subdirectory exists
-  const { existsSync } = require("fs");
   const pagesDir = existsSync(wikiDir) ? wikiDir : root;
   const rawDir = path.join(root, "raw");
   const logDir = path.join(root, "log");

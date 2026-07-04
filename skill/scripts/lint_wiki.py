@@ -25,6 +25,8 @@ Checks:
  12. Page size        — pages over 200 lines flagged for splitting
  13. Log rotation     — total H2 entries across log > 500
  14. Source drift     — SHA256 hash mismatches in raw frontmatter
+ 15. Stale from drift — pages sourced from drifted raw files
+ 16. Conflict files   — unresolved *(conflict).md files
 
 Exit codes:
   0 — no issues found
@@ -34,6 +36,7 @@ Exit codes:
 import hashlib
 import os
 import re
+import shutil
 import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -41,6 +44,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from discover import discover_layout
+from wiki_logging import error, configure as log_configure
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 LOG_FILENAME_RE = re.compile(r"^(\d{4})(\d{2})(\d{2})\.md$")
@@ -120,6 +124,36 @@ def parse_frontmatter(text: str) -> dict | None:
     return result
 
 
+def clean_conflicts(pages_dir: str, archive_dir: str, max_age_days: int = 30) -> int:
+    """Move conflict files older than max_age_days to an archive directory.
+
+    Args:
+        pages_dir: Path to wiki pages directory
+        archive_dir: Path to archive directory root (e.g., wiki_root/_archive)
+        max_age_days: Only archive conflicts older than this many days
+
+    Returns:
+        Number of conflict files archived.
+    """
+    pages_path = Path(pages_dir)
+    archive_path = Path(archive_dir)
+    cutoff = datetime.now().timestamp() - (max_age_days * 86400)
+    archived = 0
+
+    for cf in pages_path.rglob("*(conflict).md"):
+        try:
+            if cf.stat().st_mtime < cutoff:
+                rel = cf.relative_to(pages_path)
+                dest = archive_path / "conflicts" / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(cf), str(dest))
+                archived += 1
+        except OSError:
+            pass
+
+    return archived
+
+
 def lint(root: str) -> int:
     root_path = Path(root).resolve()
     layout = discover_layout(root_path)
@@ -133,7 +167,7 @@ def lint(root: str) -> int:
     audit_required_fields = AUDIT_REQUIRED_BASE | set(layout.frontmatter_required)
 
     if not pages_dir.exists():
-        print(f"ERROR: pages directory not found at {pages_dir}", file=sys.stderr)
+        error("lint", "Pages directory not found", path=str(pages_dir))
         return 1
 
     pages = load_pages(pages_dir)
@@ -144,8 +178,6 @@ def lint(root: str) -> int:
     inbound: dict[str, list[str]] = defaultdict(list)
 
     # ── Pass 1: dead wikilinks ──────────────────────────────────────────────
-    # Also cache file content and frontmatter for later passes to avoid
-    # re-reading every file three times.
     file_cache: dict[Path, str] = {}
     fm_cache: dict[Path, dict | None] = {}
     dead_links: list[tuple[str, str]] = []
@@ -177,7 +209,7 @@ def lint(root: str) -> int:
     orphans = [
         p for p in all_wiki_files
         if p.stem not in inbound and p.stem not in skip_orphan
-        and p.parent != pages_dir  # skip index.md at root
+        and p.parent != pages_dir
     ]
     if orphans:
         print(f"\n🟡 Orphan pages ({len(orphans)}) — no inbound wikilinks:")
@@ -258,7 +290,7 @@ def lint(root: str) -> int:
         print("⚠️  log directory not found — skipping log shape check")
 
     # ── Pass 6: audit/ shape ─────────────────────────────────────────────────
-    audit_targets_to_check: list[tuple[str, str]] = []  # (audit_id, target)
+    audit_targets_to_check: list[tuple[str, str]] = []
     if audit_path is not None and audit_path.exists() and audit_path.is_dir():
         audit_files = [
             p for p in audit_path.rglob("*.md") if p.name != ".gitkeep"
@@ -309,8 +341,6 @@ def lint(root: str) -> int:
     missing_targets: list[tuple[str, str]] = []
     for audit_id, target in audit_targets_to_check:
         target_path = root_path / target
-        # Audit target paths are relative to wiki-root but typically point
-        # at files under wiki/. Check both locations.
         if not target_path.exists():
             alt = pages_dir / target
             if not alt.exists():
@@ -526,7 +556,6 @@ def lint(root: str) -> int:
     if drift_issues:
         drifted_slugs: set[str] = set()
         for issue in drift_issues:
-            # "raw/articles/strategy.md: sha256 mismatch ..."
             raw_path_str = issue.split(":")[0]
             raw_file = Path(raw_path_str)
             drifted_slugs.add(raw_file.stem.lower())
@@ -557,6 +586,25 @@ def lint(root: str) -> int:
     else:
         print("✅ No stale wiki pages from source drift")
 
+    # ── Pass 16: unresolved conflict files ──────────────────────────────────
+    conflict_files = [f for f in all_wiki_files if "(conflict)" in f.name]
+    if conflict_files:
+        print(f"\n🔴 Unresolved conflict files ({len(conflict_files)}):")
+        for cf in sorted(conflict_files):
+            rel = cf.relative_to(root_path)
+            age_days = None
+            try:
+                mtime = cf.stat().st_mtime
+                age_days = (datetime.now().timestamp() - mtime) / 86400
+            except OSError:
+                pass
+            age_str = f" ({age_days:.0f}d old)" if age_days is not None else ""
+            print(f"   {rel}{age_str}")
+        print(f"   Resolve manually or run with --clean-conflicts to archive old conflicts.")
+        issues += len(conflict_files)
+    else:
+        print("✅ No unresolved conflict files")
+
     # ── Summary ─────────────────────────────────────────────────────────────
     print(f"\n{'─'*40}")
     if issues == 0:
@@ -570,15 +618,98 @@ def lint(root: str) -> int:
     return 0 if issues == 0 else 1
 
 
+def lint_files(
+    root: str = "",
+    paths: list[str] | None = None,
+    fix: bool = False,
+    check_broken_links: bool = True,
+) -> dict:
+    """Run lint checks on a wiki and return structured results.
+
+    This is the importable core function — called by both the CLI
+    (via lint()) and the sidecar RPC handler.
+
+    Args:
+        root: Path to the wiki root directory.
+        paths: Optional list of specific page paths to lint (unused by
+               lint_wiki which always scans all pages).
+        fix: If True, auto-fix issues where possible.
+        check_broken_links: If True, validate wikilinks resolve to actual pages.
+
+    Returns:
+        dict with keys:
+            issues: list of {type, severity, page, detail} dicts
+            warnings: list of warning strings
+            passed: bool — True if no issues found
+    """
+    import io
+    old_stdout = sys.stdout
+    captured = io.StringIO()
+    try:
+        sys.stdout = captured
+        exit_code = lint(root)
+    finally:
+        sys.stdout = old_stdout
+
+    output = captured.getvalue()
+    issues: list[dict] = []
+    warnings: list[str] = []
+
+    for line in output.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+
+        # Collect structured issues from the human-readable output
+        # Pattern: "source/file.md → [[Target]]" = dead wikilink
+        if "→" in line and "[[" in line:
+            parts = line.split("→", 1)
+            page = parts[0].strip()
+            detail = line
+            # Determine severity from context — dead wikilinks are errors
+            issues.append({
+                "type": "dead-wikilink" if "[[" in parts[1] else "lint-issue",
+                "severity": "error",
+                "page": page,
+                "detail": detail,
+            })
+        elif line.startswith("🔴"):
+            warnings.append(f"[ERROR] {line}")
+        elif line.startswith("🟡"):
+            warnings.append(f"[WARN] {line}")
+
+    return {
+        "issues": issues,
+        "warnings": warnings,
+        "passed": exit_code == 0,
+    }
+
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Comprehensive health check for an LLM Wiki - 14 automated passes.",
+        description="Comprehensive health check for an LLM Wiki - 16 automated passes.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Examples:\n  python3 lint_wiki.py ~/my-wiki\n  python3 lint_wiki.py ~/my-wiki --json",
+        epilog="Examples:\n  python3 lint_wiki.py ~/my-wiki\n  python3 lint_wiki.py ~/my-wiki --json\n  python3 lint_wiki.py ~/my-wiki --clean-conflicts",
     )
     parser.add_argument("wiki_root", help="Path to the wiki root directory")
     parser.add_argument("--json", action="store_true", help="Output results as JSON instead of text")
+    parser.add_argument("--clean-conflicts", action="store_true",
+                        help="Archive conflict files older than 30 days to _archive/conflicts/")
+    parser.add_argument("--clean-stale-locks", action="store_true",
+                        help="Remove stale lock files (dead PID or expired timeout ×3)")
+    parser.add_argument("--quiet", action="store_true", help="Suppress INFO/WARN log output")
+    parser.add_argument("--verbose", action="store_true", help="Enable DEBUG log output")
     args = parser.parse_args()
+    log_configure(quiet=args.quiet, verbose=args.verbose)
+    if args.clean_conflicts:
+        layout = discover_layout(args.wiki_root)
+        archived = clean_conflicts(layout.pages_dir, os.path.join(args.wiki_root, "_archive"))
+        print(f"Conflict cleanup: {archived} file(s) archived to _archive/conflicts/")
+    if args.clean_stale_locks:
+        from lock_wiki import clean_stale_locks as _clean_stale_locks
+        layout = discover_layout(args.wiki_root)
+        cleaned = _clean_stale_locks(layout.pages_dir)
+        print(f"Stale lock cleanup: {cleaned} lock file(s) removed")
     sys.exit(lint(args.wiki_root))

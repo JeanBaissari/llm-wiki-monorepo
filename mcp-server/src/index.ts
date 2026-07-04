@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * LLM Wiki MCP Server — stdio-based server with 8 tools.
+ * LLM Wiki MCP Server — stdio-based server with 11 tools.
+ *
+ * LWM_07: Python sidecar + direct TypeScript imports replace per-call
+ * subprocess spawning. Zero fork/exec overhead per tool call.
  *
  * Usage: node dist/index.js --wiki <path>  (or set LLM_WIKI_PATH)
  */
@@ -13,6 +16,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
+import * as fsSync from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -23,6 +27,7 @@ import {
 } from "./wiki-fs.js";
 import { buildIndex, search } from "./search.js";
 import { discoverLayout, WikiLayout } from "./discover.js";
+import { PythonSidecar } from "./sidecar.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,11 +35,12 @@ const __dirname = path.dirname(__filename);
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 interface ServerConfig {
-  projects: Map<string, { root: string; layout: WikiLayout }>;  // projectName → {root, layout}
+  projects: Map<string, { root: string; layout: WikiLayout }>;
   defaultProject: string;
 }
 
 let config: ServerConfig;
+let sidecar: PythonSidecar | null = null;
 
 // ─── CLI Argument Parsing ───────────────────────────────────────────────────
 
@@ -103,7 +109,6 @@ function sourcesDir(layout: WikiLayout): string {
   return layout.raw_dir ?? path.join(layout.root, "raw");
 }
 
-/** Scan a directory for subdirectories containing a wiki */
 async function scanProjects(basePath: string): Promise<Map<string, { root: string; layout: WikiLayout }>> {
   const projects = new Map<string, { root: string; layout: WikiLayout }>();
   const entries = await fs.readdir(basePath, { withFileTypes: true });
@@ -124,7 +129,6 @@ async function scanProjects(basePath: string): Promise<Map<string, { root: strin
   return projects;
 }
 
-/** Resolve project config (root + layout) from a tool's arguments */
 function getProjectConfig(toolArgs: Record<string, unknown>): { root: string; layout: WikiLayout } {
   const projectName = (toolArgs.project as string) || config.defaultProject;
   const project = config.projects.get(projectName);
@@ -133,6 +137,20 @@ function getProjectConfig(toolArgs: Record<string, unknown>): { root: string; la
     throw new Error(`Unknown project: "${projectName}". Available: ${available}`);
   }
   return project;
+}
+
+// ─── Monorepo root resolution ─────────────────────────────────────────────
+
+function monorepoRoot(): string {
+  let dir = __dirname;
+  for (let i = 0; i < 5; i++) {
+    const candidate = path.join(dir, "skill", "scripts", "sidecar.py");
+    if (fsSync.existsSync(candidate)) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return path.resolve(__dirname, "..", "..");
 }
 
 // ─── Tool Handler Implementations ───────────────────────────────────────────
@@ -154,7 +172,6 @@ async function handleStatus(args: Record<string, unknown> = {}): Promise<ToolRes
     const pages = await findMdFiles(layout.pages_dir);
     const pageCount = pages.length;
 
-    // Attempt to read metadata for last ingest date
     let lastIngest: string | null = null;
     try {
       const metaPath = path.join(wp, "..", ".wiki-meta.json");
@@ -167,7 +184,6 @@ async function handleStatus(args: Record<string, unknown> = {}): Promise<ToolRes
       // ignore
     }
 
-    // Try loading review module for open review count
     let openReviews = 0;
     const reviewMod = await tryImport<{
       listReviews: (wp: string, status?: string) => Promise<{ status: string }[]>;
@@ -194,6 +210,7 @@ async function handleStatus(args: Record<string, unknown> = {}): Promise<ToolRes
         `**Page Count:** ${pageCount}`,
         `**Last Ingest:** ${lastIngest ?? "Never"}`,
         `**Open Reviews:** ${openReviews}`,
+        `**Sidecar:** ${sidecar?.isRunning() ? "✅ Running" : "⚠️  Not running"}`,
       ].join("\n"),
     );
   } catch (e) {
@@ -261,7 +278,6 @@ async function handleReadFile(args: Record<string, unknown>): Promise<ToolResult
       return errorResult("Missing required argument: path");
     }
 
-    // Resolve relative to pages_dir if not absolute
     const resolved = path.isAbsolute(filePath)
       ? filePath
       : path.join(layout.pages_dir, filePath);
@@ -272,10 +288,9 @@ async function handleReadFile(args: Record<string, unknown>): Promise<ToolResult
     }
 
     let content = await readFile(resolved);
-    const maxBytes = 120 * 1024; // 120KB
+    const maxBytes = 120 * 1024;
 
     if (Buffer.byteLength(content, "utf-8") > maxBytes) {
-      // Truncate at 120KB boundary
       const truncated = Buffer.from(content, "utf-8").subarray(0, maxBytes);
       content = truncated.toString("utf-8") + "\n\n_… (truncated at 120KB)_";
     }
@@ -356,7 +371,7 @@ async function handleReviews(args: Record<string, unknown>): Promise<ToolResult>
 }
 
 /**
- * 5. llm_wiki_search — BM25 search over wiki pages.
+ * 5. llm_wiki_search — FTS5 search over wiki pages.
  */
 async function handleSearch(args: Record<string, unknown>): Promise<ToolResult> {
   try {
@@ -368,7 +383,7 @@ async function handleSearch(args: Record<string, unknown>): Promise<ToolResult> 
 
     const topK = Math.min(Math.max((args.top_k as number) ?? 10, 1), 100);
 
-    const results = await search(layout.pages_dir, query, topK);
+    const results = await search(layout.root, query, topK);
 
     if (results.length === 0) {
       return textResult(
@@ -383,7 +398,7 @@ async function handleSearch(args: Record<string, unknown>): Promise<ToolResult> 
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
-      const relPath = path.relative(layout.pages_dir, r.path);
+      const relPath = path.relative(layout.root, r.path);
       lines.push(
         `### ${i + 1}. ${r.title}`,
         `**Path:** \`${relPath}\`  **Score:** ${r.score.toFixed(4)}`,
@@ -398,103 +413,195 @@ async function handleSearch(args: Record<string, unknown>): Promise<ToolResult> 
   }
 }
 
+// ─── Graph Tools (LWM_07: direct imports, split into separate tools) ─────
+
 /**
- * 6. llm_wiki_graph — Graph operations (build, insights, search).
+ * 6. llm_wiki_graph — Combined graph tool (backward-compatible wrapper).
+ *
+ * Preserved for backward compatibility. Delegates to the split tools below.
  */
 async function handleGraph(args: Record<string, unknown>): Promise<ToolResult> {
-  try {
-    const { root: wp, layout } = getProjectConfig(args);
-    const action = (args.action as string) ?? "build";
+  const action = (args.action as string) ?? "build";
 
-    const graphMod = await tryImport<{
-      buildGraph: (wp: string) => Promise<{ nodes: { id: string; label: string }[]; edges: { source: string; target: string }[] }>;
-      getInsights: (wp: string) => Promise<string[]>;
-      searchGraph: (wp: string, q: string) => Promise<
-        { nodes: { id: string; label: string; type: string; path: string; linkCount: number; community: number }[]; edges: any[]; matchedNodeIds: string[] }
-      >;
-    }>("./graph.js");
-
-    if (!graphMod) {
-      return textResult(
-        `# Graph: ${action}\n\n_Graph module not available. Install or build src/graph.ts._`,
+  switch (action) {
+    case "build":
+      return handleGraphBuild(args);
+    case "insights":
+      return handleGraphInsights(args);
+    case "search":
+      return handleGraphSearch(args);
+    default:
+      return errorResult(
+        `Unknown graph action: "${action}". Use "build", "insights", or "search".`,
       );
-    }
-
-    switch (action) {
-      case "build": {
-        if (!graphMod.buildGraph) {
-          return textResult("# Graph: build\n\n_buildGraph not available in graph module._");
-        }
-        const result = await graphMod.buildGraph(layout.pages_dir);
-        return textResult(
-          [
-            "# Graph Build Complete",
-            "",
-            `**Nodes:** ${result.nodes.length}`,
-            `**Edges:** ${result.edges.length}`,
-            "",
-            "The knowledge graph has been rebuilt from the wiki content.",
-          ].join("\n"),
-        );
-      }
-
-      case "insights": {
-        if (!graphMod.getInsights) {
-          return textResult("# Graph: insights\n\n_getInsights not available in graph module._");
-        }
-        const insights = await graphMod.getInsights(layout.pages_dir);
-        if (!insights || insights.length === 0) {
-          return textResult("# Graph Insights\n\nNo insights available.");
-        }
-        const lines: string[] = ["# Graph Insights", ""];
-        for (let i = 0; i < insights.length; i++) {
-          lines.push(`${i + 1}. ${insights[i]}`);
-        }
-        return textResult(lines.join("\n"));
-      }
-
-      case "search": {
-        const query = args.query as string | undefined;
-        if (!query || query.trim() === "") {
-          return errorResult("Missing required argument: query for graph search");
-        }
-        if (!graphMod.searchGraph) {
-          return textResult("# Graph: search\n\n_searchGraph not available in graph module._");
-        }
-        const graphResult = await graphMod.searchGraph(layout.pages_dir, query);
-        if (!graphResult || !graphResult.nodes || graphResult.nodes.length === 0) {
-          return textResult(`# Graph Search: "${query}"\n\nNo results found.`);
-        }
-        const lines: string[] = [
-          `# Graph Search Results for "${query}" (${graphResult.nodes.length})`,
-          "",
-        ];
-        for (const r of graphResult.nodes) {
-          lines.push(`- **${r.label}** (\`${r.id}\`)`);
-        }
-        return textResult(lines.join("\n"));
-      }
-
-      default:
-        return errorResult(
-          `Unknown graph action: "${action}". Use "build", "insights", or "search".`,
-        );
-    }
-  } catch (e) {
-    return errorResult(`Graph operation failed: ${e}`);
   }
 }
 
 /**
- * 7. llm_wiki_lint — Run lint checks on the wiki.
+ * 7. llm_wiki_graph_build — Build the knowledge graph.
+ *
+ * Imports buildWikiGraph from graph-engine directly (LWM_07).
+ */
+async function handleGraphBuild(args: Record<string, unknown>): Promise<ToolResult> {
+  try {
+    const { root: wp, layout } = getProjectConfig(args);
+
+    const graphMod = await tryImport<{
+      buildGraph: (wp: string) => Promise<{ nodes: { id: string; label: string }[]; edges: { source: string; target: string }[] }>;
+    }>("./graph.js");
+
+    if (!graphMod?.buildGraph) {
+      return textResult(
+        "# Graph: build\n\n_Graph module not available. Install or build src/graph.ts._",
+      );
+    }
+
+    const result = await graphMod.buildGraph(layout.pages_dir);
+    return textResult(
+      [
+        "# Graph Build Complete",
+        "",
+        `**Nodes:** ${result.nodes.length}`,
+        `**Edges:** ${result.edges.length}`,
+        "",
+        "The knowledge graph has been rebuilt from the wiki content.",
+      ].join("\n"),
+    );
+  } catch (e) {
+    return errorResult(`Graph build failed: ${e}`);
+  }
+}
+
+/**
+ * 8. llm_wiki_graph_insights — Get graph insights (surprising connections, knowledge gaps).
+ *
+ * Imports findSurprisingConnections/detectKnowledgeGaps from graph-engine directly (LWM_07).
+ */
+async function handleGraphInsights(args: Record<string, unknown>): Promise<ToolResult> {
+  try {
+    const { root: wp, layout } = getProjectConfig(args);
+
+    const graphMod = await tryImport<{
+      getInsights: (wp: string) => Promise<string[]>;
+    }>("./graph.js");
+
+    if (!graphMod?.getInsights) {
+      return textResult(
+        "# Graph: insights\n\n_Graph module not available. Install or build src/graph.ts._",
+      );
+    }
+
+    const insights = await graphMod.getInsights(layout.pages_dir);
+    if (!insights || (Array.isArray(insights) && insights.length === 0)) {
+      return textResult("# Graph Insights\n\nNo insights available.");
+    }
+
+    // Handle both old (string[]) and new (object) return formats
+    if (Array.isArray(insights)) {
+      const lines: string[] = ["# Graph Insights", ""];
+      for (let i = 0; i < insights.length; i++) {
+        lines.push(`${i + 1}. ${insights[i]}`);
+      }
+      return textResult(lines.join("\n"));
+    }
+
+    // Structured format from LWM_07
+    const data = insights as unknown as {
+      surprisingConnections?: Array<{ source: any; target: any; score: number; reasons: string[] }>;
+      knowledgeGaps?: Array<{ title: string; description: string; suggestion: string }>;
+    };
+
+    const lines: string[] = ["# Graph Insights", ""];
+
+    if (data.surprisingConnections?.length) {
+      lines.push(`## Surprising Connections (${data.surprisingConnections.length})`, "");
+      for (const sc of data.surprisingConnections) {
+        const srcLabel = sc.source?.label ?? sc.source?.id ?? "?";
+        const tgtLabel = sc.target?.label ?? sc.target?.id ?? "?";
+        lines.push(`- **${srcLabel}** ↔ **${tgtLabel}** (score: ${sc.score.toFixed(2)})`);
+        if (sc.reasons?.length) {
+          lines.push(`  _${sc.reasons.join(", ")}_`);
+        }
+      }
+      lines.push("");
+    }
+
+    if (data.knowledgeGaps?.length) {
+      lines.push(`## Knowledge Gaps (${data.knowledgeGaps.length})`, "");
+      for (const kg of data.knowledgeGaps) {
+        lines.push(`- **${kg.title}**: ${kg.description}`);
+        if (kg.suggestion) lines.push(`  → ${kg.suggestion}`);
+      }
+      lines.push("");
+    }
+
+    return textResult(lines.join("\n"));
+  } catch (e) {
+    return errorResult(`Graph insights failed: ${e}`);
+  }
+}
+
+/**
+ * 9. llm_wiki_graph_search — Search the knowledge graph.
+ *
+ * Imports applyGraphSearch from graph-engine directly (LWM_07).
+ */
+async function handleGraphSearch(args: Record<string, unknown>): Promise<ToolResult> {
+  const query = args.query as string | undefined;
+  if (!query || query.trim() === "") {
+    return errorResult("Missing required argument: query for graph search");
+  }
+
+  try {
+    const { root: wp, layout } = getProjectConfig(args);
+
+    const graphMod = await tryImport<{
+      searchGraph: (wp: string, q: string) => Promise<{
+        nodes: { id: string; label: string; type: string; path: string; linkCount: number; community: number }[];
+        edges: any[];
+        matchedNodeIds: string[];
+      }>;
+    }>("./graph.js");
+
+    if (!graphMod?.searchGraph) {
+      return textResult(
+        "# Graph: search\n\n_Graph module not available. Install or build src/graph.ts._",
+      );
+    }
+
+    const graphResult = await graphMod.searchGraph(layout.pages_dir, query);
+
+    if (!graphResult || !graphResult.nodes || graphResult.nodes.length === 0) {
+      return textResult(`# Graph Search: "${query}"\n\nNo results found.`);
+    }
+
+    const lines: string[] = [
+      `# Graph Search Results for "${query}" (${graphResult.nodes.length})`,
+      "",
+    ];
+    for (const r of graphResult.nodes) {
+      lines.push(`- **${r.label}** (\`${r.id}\`)`);
+    }
+    return textResult(lines.join("\n"));
+  } catch (e) {
+    return errorResult(`Graph search failed: ${e}`);
+  }
+}
+
+// ─── Lint & Ingest Tools (LWM_07: sidecar RPC) ──────────────────────────
+
+/**
+ * 10. llm_wiki_lint — Run lint checks on the wiki via Python sidecar.
  */
 async function handleLint(args: Record<string, unknown> = {}): Promise<ToolResult> {
   try {
     const { root: wp, layout } = getProjectConfig(args);
+
     const lintMod = await tryImport<{
-      runLint: (wp: string) => Promise<
-        { issues: { type: string; severity: string; page: string; detail: string }[]; exitCode: number }
-      >;
+      runLint: (wp: string, sidecar?: PythonSidecar | null) => Promise<{
+        issues: { type: string; severity: string; page: string; detail: string }[];
+        exitCode: number;
+      }>;
     }>("./lint.js");
 
     if (!lintMod?.runLint) {
@@ -503,7 +610,7 @@ async function handleLint(args: Record<string, unknown> = {}): Promise<ToolResul
       );
     }
 
-    const lintResult = await lintMod.runLint(layout.pages_dir);
+    const lintResult = await lintMod.runLint(layout.pages_dir, sidecar);
     const issues = Array.isArray(lintResult) ? lintResult : lintResult.issues;
 
     if (!issues || issues.length === 0) {
@@ -549,7 +656,7 @@ async function handleLint(args: Record<string, unknown> = {}): Promise<ToolResul
 }
 
 /**
- * 8. llm_wiki_ingest — Trigger an ingest of a source file.
+ * 11. llm_wiki_ingest — Trigger an ingest of a source file via Python sidecar.
  */
 async function handleIngest(args: Record<string, unknown>): Promise<ToolResult> {
   try {
@@ -559,7 +666,6 @@ async function handleIngest(args: Record<string, unknown>): Promise<ToolResult> 
       return errorResult("Missing required argument: source_path");
     }
 
-    // Resolve source path
     const resolvedSource = path.isAbsolute(sourcePath)
       ? sourcePath
       : path.join(wp, sourcePath);
@@ -569,33 +675,48 @@ async function handleIngest(args: Record<string, unknown>): Promise<ToolResult> 
       return errorResult(`Source file not found: ${resolvedSource}`);
     }
 
-    // Find ingest script using __dirname (dist/ → monorepo root)
-    const scriptPath = path.resolve(__dirname, "../..", "skill", "scripts", "ingest.py");
-
-    if (!(await fileExists(scriptPath))) {
+    if (!sidecar?.isRunning()) {
       return errorResult(
-        `Ingest script not found at: ${scriptPath}`,
+        "Python sidecar is not running — cannot ingest. The sidecar may have failed to start.",
       );
     }
 
-    // Run python3 ingest.py with wiki root as first positional arg
-    const { execSync } = await import("node:child_process");
-    const output = execSync(
-      `python3 "${scriptPath}" "${layout.root}" "${resolvedSource}"`,
-      { encoding: "utf-8", timeout: 120_000, maxBuffer: 10 * 1024 * 1024 },
-    );
+    const ingestMod = await tryImport<{
+      runIngest: (
+        sidecar: PythonSidecar,
+        wikiRoot: string,
+        sourcePath: string,
+        options: Record<string, unknown>,
+      ) => Promise<{
+        success: boolean;
+        pages_created: number;
+        pages_updated: number;
+        reviews_written: number;
+        error: string;
+      }>;
+    }>("./ingest.js");
+
+    if (!ingestMod?.runIngest) {
+      return textResult(
+        "# Ingest\n\n_Ingest module not available. Install or build src/ingest.ts._",
+      );
+    }
+
+    const result = await ingestMod.runIngest(sidecar, layout.root, resolvedSource, {});
+
+    if (!result.success) {
+      return errorResult(`Ingest failed: ${result.error}`);
+    }
 
     return textResult(
       [
         "# Ingest Complete",
         "",
         `**Source:** \`${resolvedSource}\``,
-        `**Script:** \`${scriptPath}\``,
         "",
-        "**Output:**",
-        "```",
-        output.trim(),
-        "```",
+        `**Pages Created:** ${result.pages_created}`,
+        `**Pages Updated:** ${result.pages_updated}`,
+        `**Reviews Written:** ${result.reviews_written}`,
       ].join("\n"),
     );
   } catch (e: any) {
@@ -610,7 +731,7 @@ const PROJECT_PARAM = {
   project: {
     type: "string",
     description:
-      "Project name. Required when serving multiple wikis (--projects mode). Defaults to the only/ first project.",
+      "Project name. Required when serving multiple wikis (--projects mode). Defaults to the only/first project.",
   },
 };
 
@@ -621,9 +742,7 @@ const TOOL_DEFINITIONS = [
       "Check wiki status — health, page count, last ingest date, open review count.",
     inputSchema: {
       type: "object",
-      properties: {
-        ...PROJECT_PARAM,
-      },
+      properties: { ...PROJECT_PARAM },
       required: [],
     },
   },
@@ -682,7 +801,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_search",
     description:
-      "BM25 full-text search over wiki markdown pages. Returns ranked results with snippets.",
+      "FTS5 full-text search over wiki markdown pages. Returns ranked results with snippets.",
     inputSchema: {
       type: "object",
       properties: {
@@ -702,7 +821,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_graph",
     description:
-      "Knowledge graph operations: build, insights, or search.",
+      "Knowledge graph operations: build, insights, or search. (Backward-compatible wrapper — see llm_wiki_graph_build, _insights, _search for individual tools.)",
     inputSchema: {
       type: "object",
       properties: {
@@ -721,29 +840,62 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
-    name: "llm_wiki_lint",
+    name: "llm_wiki_graph_build",
     description:
-      "Run lint checks on wiki pages. Reports errors, warnings, and suggestions.",
+      "Build the knowledge graph from wiki markdown files. Uses direct graph-engine import — zero subprocess.",
+    inputSchema: {
+      type: "object",
+      properties: { ...PROJECT_PARAM },
+      required: [],
+    },
+  },
+  {
+    name: "llm_wiki_graph_insights",
+    description:
+      "Get graph insights — surprising connections and knowledge gaps. Uses direct graph-engine import.",
+    inputSchema: {
+      type: "object",
+      properties: { ...PROJECT_PARAM },
+      required: [],
+    },
+  },
+  {
+    name: "llm_wiki_graph_search",
+    description:
+      "Search the knowledge graph for nodes matching a query. Uses direct graph-engine import.",
     inputSchema: {
       type: "object",
       properties: {
         ...PROJECT_PARAM,
+        query: {
+          type: "string",
+          description: "Search query for graph nodes",
+        },
       },
+      required: ["query"],
+    },
+  },
+  {
+    name: "llm_wiki_lint",
+    description:
+      "Run lint checks on wiki pages via Python sidecar. Reports errors, warnings, and suggestions.",
+    inputSchema: {
+      type: "object",
+      properties: { ...PROJECT_PARAM },
       required: [],
     },
   },
   {
     name: "llm_wiki_ingest",
     description:
-      "Trigger ingest of a source file into the wiki. Runs python3 skill/scripts/ingest.py.",
+      "Trigger ingest of a source file into the wiki via Python sidecar. Zero subprocess — uses long-lived sidecar process.",
     inputSchema: {
       type: "object",
       properties: {
         ...PROJECT_PARAM,
         source_path: {
           type: "string",
-          description:
-            "Path to the source file to ingest (absolute or relative to wiki root)",
+          description: "Path to the source file to ingest (absolute or relative to wiki root)",
         },
       },
       required: ["source_path"],
@@ -765,7 +917,6 @@ async function main() {
     const firstKey = projects.keys().next().value as string;
     config = { projects, defaultProject: firstKey };
   } else {
-    // Validate single wiki path
     try {
       const stat = await fs.stat(wikiPath);
       if (!stat.isDirectory()) {
@@ -782,6 +933,50 @@ async function main() {
       defaultProject: "default",
     };
   }
+
+  // ── Pre-build search indexes for all projects ──────────────────────────
+  for (const [name, project] of config.projects) {
+    try {
+      await buildIndex(project.root);
+      console.error(`[startup] Search index ready for project: ${name}`);
+    } catch (e) {
+      console.error(`[startup] Search index build deferred for ${name}: ${e}`);
+    }
+  }
+
+  // ── Start Python Sidecar (LWM_07) ──────────────────────────────────────
+  // Use the default project's wiki root for the sidecar
+  const defaultProject = config.projects.get(config.defaultProject);
+  if (defaultProject) {
+    try {
+      const root = monorepoRoot();
+      sidecar = new PythonSidecar(defaultProject.root, root);
+      console.error(`[startup] Starting Python sidecar...`);
+      await sidecar.start();
+      console.error(`[startup] Python sidecar ready`);
+    } catch (e) {
+      console.error(`[startup] Python sidecar failed to start: ${e}`);
+      console.error(`[startup] MCP server will run without Python-backed tools`);
+      sidecar = null;
+    }
+  }
+
+  // ── Graceful shutdown ──────────────────────────────────────────────────
+  const shutdown = async () => {
+    console.error("[shutdown] MCP server shutting down...");
+    if (sidecar) {
+      try {
+        await sidecar.stop();
+        console.error("[shutdown] Python sidecar stopped");
+      } catch (e) {
+        console.error(`[shutdown] Sidecar stop error: ${e}`);
+      }
+    }
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 
   const server = new Server(
     { name: "llm-wiki-mcp", version: "1.0.0" },
@@ -812,12 +1007,20 @@ async function main() {
           return await handleSearch(toolArgs);
         case "llm_wiki_graph":
           return await handleGraph(toolArgs);
+        case "llm_wiki_graph_build":
+          return await handleGraphBuild(toolArgs);
+        case "llm_wiki_graph_insights":
+          return await handleGraphInsights(toolArgs);
+        case "llm_wiki_graph_search":
+          return await handleGraphSearch(toolArgs);
         case "llm_wiki_lint":
           return await handleLint(toolArgs);
         case "llm_wiki_ingest":
           return await handleIngest(toolArgs);
         default:
-          return errorResult(`Unknown tool: "${name}". Available tools: ${TOOL_DEFINITIONS.map((t) => t.name).join(", ")}`);
+          return errorResult(
+            `Unknown tool: "${name}". Available tools: ${TOOL_DEFINITIONS.map((t) => t.name).join(", ")}`,
+          );
       }
     } catch (e) {
       return errorResult(`Tool "${name}" failed: ${e}`);
@@ -827,8 +1030,6 @@ async function main() {
   // Connect transport
   const transport = new StdioServerTransport();
   await server.connect(transport);
-
-  // Keep process alive — the transport handles stdin/stdout
 }
 
 main().catch((e) => {

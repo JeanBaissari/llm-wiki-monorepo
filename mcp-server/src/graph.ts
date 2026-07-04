@@ -1,42 +1,22 @@
 // MCP Server — Graph Bridge
-// Bridges to graph-engine (Node.js CLI) for graph operations.
+//
+// Direct imports from graph-engine library (LWM_07).
+// Replaces subprocess spawn (node graph-engine/dist/cli.js) with
+// in-process function calls — zero fork/exec overhead.
+//
+// Dynamic imports (tryImport pattern) ensure the MCP server starts
+// gracefully even if graph-engine isn't built (Q3).
 
-import { execFile } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import type { GraphNode, GraphEdge } from "./types.js";
 import { fileExists, ensureDir } from "./wiki-fs.js";
 
-const execFileAsync = promisify(execFile);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Monorepo root is the parent of the mcp-server/ directory
-const MONOREPO_ROOT = path.resolve(process.cwd(), "..");
-
-/** Path to the graph-engine CLI entry point */
-function graphEnginePath(): string {
-  return path.resolve(
-    MONOREPO_ROOT,
-    "graph-engine",
-    "dist",
-    "index.js",
-  );
-}
-
-/** Where graph-data.json is cached (inside the wiki root) */
-function graphDataPath(wikiPath: string): string {
-  return path.join(wikiPath, "graph-data.json");
-}
-
-// ---------------------------------------------------------------------------
-// Types returned by graph-engine CLI (JSON on stdout)
-// ---------------------------------------------------------------------------
-
-interface GraphEngineBuildResult {
-  nodes: GraphEngineNode[];
-  edges: GraphEngineEdge[];
-  communities: GraphEngineCommunity[];
-}
+// ── Graph-engine type imports (mirrors graph-engine's types) ──────────
 
 interface GraphEngineNode {
   id: string;
@@ -53,41 +33,60 @@ interface GraphEngineEdge {
   weight: number;
 }
 
-interface GraphEngineCommunity {
-  id: number;
-  nodeCount: number;
-  cohesion: number;
-  topNodes: string[];
-}
-
-interface GraphEngineInsights {
-  surprisingConnections: Array<{
-    source: GraphEngineNode;
-    target: GraphEngineNode;
-    score: number;
-    reasons: string[];
-    key: string;
-  }>;
-  knowledgeGaps: Array<{
-    type: "isolated-node" | "sparse-community" | "bridge-node";
-    title: string;
-    description: string;
-    nodeIds: string[];
-    suggestion: string;
-  }>;
-}
-
-interface GraphEngineSearch {
+interface GraphBuildResult {
   nodes: GraphEngineNode[];
   edges: GraphEngineEdge[];
-  matchedNodeIds: string[];
+  communities: { id: number; nodeCount: number; cohesion: number; topNodes: string[] }[];
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// ── Dynamic import helper ─────────────────────────────────────────────
 
-/** Map graph-engine node type to the MCP server's GraphNode type */
+async function tryImport<T>(modulePath: string): Promise<T | null> {
+  try {
+    return (await import(modulePath)) as T;
+  } catch {
+    return null;
+  }
+}
+
+// ── Resolve graph-engine ──────────────────────────────────────────────
+
+let _graphEnginePath: string | null = null;
+
+function resolveGraphEngine(): string {
+  if (_graphEnginePath) return _graphEnginePath;
+
+  // Try workspace resolution first (npm workspaces hoist to node_modules)
+  // Fall back to relative path from monorepo root
+  const candidates = [
+    "graph-engine",
+    path.resolve(__dirname, "..", "..", "graph-engine", "dist", "index.js"),
+    path.resolve(process.cwd(), "..", "graph-engine", "dist", "index.js"),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      // Check if resolvable
+      require.resolve(candidate);
+      _graphEnginePath = candidate;
+      return candidate;
+    } catch {
+      // Not resolvable — try next
+    }
+  }
+
+  // Last resort: relative from __dirname
+  _graphEnginePath = path.resolve(__dirname, "..", "..", "graph-engine", "dist", "index.js");
+  return _graphEnginePath;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+
+/** Where graph-data.json is cached (inside the wiki root) */
+function graphDataPath(wikiPath: string): string {
+  return path.join(wikiPath, "graph-data.json");
+}
+
 function toGraphNode(n: GraphEngineNode): GraphNode {
   return {
     id: n.id,
@@ -99,68 +98,37 @@ function toGraphNode(n: GraphEngineNode): GraphNode {
   };
 }
 
-/** Map graph-engine edge type to the MCP server's GraphEdge type */
 function toGraphEdge(e: GraphEngineEdge): GraphEdge {
   return { source: e.source, target: e.target, weight: e.weight };
 }
 
-/**
- * Call the graph-engine CLI and return parsed JSON.
- *
- * The graph-engine writes result JSON to stdout and error JSON to stderr.
- * We capture both and parse stdout on success.
- */
-async function callGraphEngine(
-  wikiPath: string,
-  action: string,
-  extraArgs: string[] = [],
-): Promise<unknown> {
-  const enginePath = graphEnginePath();
-
-  const args = ["--wiki", wikiPath, "--action", action, ...extraArgs];
-
-  try {
-    const { stdout } = await execFileAsync("node", [enginePath, ...args], {
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    return JSON.parse(stdout);
-  } catch (err: unknown) {
-    const execErr = err as NodeJS.ErrnoException & {
-      stdout?: string;
-      stderr?: string;
-    };
-
-    // If stdout has JSON, try to parse it (some errors still emit JSON)
-    if (execErr.stdout) {
-      try {
-        return JSON.parse(execErr.stdout);
-      } catch {
-        // Not JSON — fall through
-      }
-    }
-
-    // Build a descriptive error
-    const stderr = execErr.stderr?.trim() ?? "";
-    const message = stderr || execErr.message || `graph-engine ${action} failed`;
-    throw new Error(message);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+// ── Public API ────────────────────────────────────────────────────────
 
 /**
  * Build the wiki knowledge graph and cache it to graph-data.json.
  *
- * Calls: `node graph-engine/dist/index.js --wiki <path> --action build`
- *
- * The result is written to `<wikiPath>/graph-data.json` for subsequent calls.
+ * Imports buildWikiGraph from graph-engine directly (LWM_07).
+ * Zero subprocess — runs in-process.
  */
 export async function buildGraph(
   wikiPath: string,
 ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[]; communities: any[] }> {
-  const raw = (await callGraphEngine(wikiPath, "build")) as GraphEngineBuildResult;
+  const geMod = await tryImport<{
+    buildWikiGraph: (wikiPath: string) => Promise<GraphBuildResult>;
+  }>(resolveGraphEngine());
+
+  if (!geMod?.buildWikiGraph) {
+    throw new Error(
+      "graph-engine not available — run `npm run build` in graph-engine/",
+    );
+  }
+
+  // Resolve wiki path: if the passed path contains a wiki/ subdir, use it
+  const { existsSync } = await import("node:fs");
+  const wikiSubdir = path.join(wikiPath, "wiki");
+  const resolvedPath = existsSync(wikiSubdir) ? wikiSubdir : wikiPath;
+
+  const raw = await geMod.buildWikiGraph(resolvedPath);
 
   const nodes = (raw.nodes ?? []).map(toGraphNode);
   const edges = (raw.edges ?? []).map(toGraphEdge);
@@ -181,56 +149,113 @@ export async function buildGraph(
 /**
  * Get insights (surprising connections & knowledge gaps) for a wiki.
  *
- * Calls: `node graph-engine/dist/index.js --wiki <path> --action insights`
- *
- * Requires graph-data.json to exist. If missing, automatically runs `buildGraph`
- * first.
+ * Imports findSurprisingConnections and detectKnowledgeGaps directly
+ * from graph-engine (LWM_07). Requires graph-data.json to exist.
+ * If missing, automatically runs buildGraph first.
  */
-export async function getInsights(wikiPath: string): Promise<any> {
+export async function getInsights(wikiPath: string): Promise<{
+  surprisingConnections: Array<{
+    source: any; target: any; score: number; reasons: string[]; key: string;
+  }>;
+  knowledgeGaps: Array<{
+    type: string; title: string; description: string;
+    nodeIds: string[]; suggestion: string;
+  }>;
+}> {
   const dataPath = graphDataPath(wikiPath);
   const hasData = await fileExists(dataPath);
 
   if (!hasData) {
-    // Auto-build before fetching insights
     await buildGraph(wikiPath);
   }
 
-  const raw = await callGraphEngine(wikiPath, "insights");
-  return raw;
+  // Load cached graph data
+  const raw = await readFile(dataPath, "utf-8");
+  const graphData = JSON.parse(raw) as {
+    nodes: GraphEngineNode[];
+    edges: GraphEngineEdge[];
+    communities: any[];
+  };
+
+  const geMod = await tryImport<{
+    findSurprisingConnections: (
+      nodes: GraphEngineNode[],
+      edges: GraphEngineEdge[],
+      communities: any[],
+    ) => any[];
+    detectKnowledgeGaps: (
+      nodes: GraphEngineNode[],
+      edges: GraphEngineEdge[],
+      communities: any[],
+    ) => any[];
+  }>(resolveGraphEngine());
+
+  if (!geMod?.findSurprisingConnections || !geMod?.detectKnowledgeGaps) {
+    throw new Error(
+      "graph-engine insights not available — run `npm run build` in graph-engine/",
+    );
+  }
+
+  return {
+    surprisingConnections: geMod.findSurprisingConnections(
+      graphData.nodes,
+      graphData.edges,
+      graphData.communities,
+    ),
+    knowledgeGaps: geMod.detectKnowledgeGaps(
+      graphData.nodes,
+      graphData.edges,
+      graphData.communities,
+    ),
+  };
 }
 
 /**
  * Search the graph for nodes matching a query.
  *
- * Calls: `node graph-engine/dist/index.js --wiki <path> --action search --query <q>`
- *
- * Requires graph-data.json to exist. If missing, automatically runs `buildGraph`
- * first.
+ * Imports applyGraphSearch directly from graph-engine (LWM_07).
+ * Requires graph-data.json to exist. If missing, auto-builds first.
  */
 export async function searchGraph(
   wikiPath: string,
   query: string,
-): Promise<any> {
+): Promise<{
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  matchedNodeIds: string[];
+}> {
   const dataPath = graphDataPath(wikiPath);
   const hasData = await fileExists(dataPath);
 
   if (!hasData) {
-    // Auto-build before searching
     await buildGraph(wikiPath);
   }
 
-  const raw = (await callGraphEngine(wikiPath, "search", [
-    "--query",
-    query,
-  ])) as GraphEngineSearch;
+  const raw = await readFile(dataPath, "utf-8");
+  const graphData = JSON.parse(raw) as {
+    nodes: GraphEngineNode[];
+    edges: GraphEngineEdge[];
+  };
 
-  if (!raw || typeof raw !== "object") {
-    return { nodes: [], edges: [], matchedNodeIds: [] };
+  const geMod = await tryImport<{
+    applyGraphSearch: (
+      nodes: GraphEngineNode[],
+      edges: GraphEngineEdge[],
+      query: string,
+    ) => { nodes: GraphEngineNode[]; edges: GraphEngineEdge[]; matchedNodeIds: Set<string> };
+  }>(resolveGraphEngine());
+
+  if (!geMod?.applyGraphSearch) {
+    throw new Error(
+      "graph-engine search not available — run `npm run build` in graph-engine/",
+    );
   }
 
+  const result = geMod.applyGraphSearch(graphData.nodes, graphData.edges, query);
+
   return {
-    nodes: (raw.nodes ?? []).map(toGraphNode),
-    edges: (raw.edges ?? []).map(toGraphEdge),
-    matchedNodeIds: Array.from(raw.matchedNodeIds ?? []),
+    nodes: (result.nodes ?? []).map(toGraphNode),
+    edges: (result.edges ?? []).map(toGraphEdge),
+    matchedNodeIds: Array.from(result.matchedNodeIds ?? []),
   };
 }

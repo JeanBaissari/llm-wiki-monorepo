@@ -12,11 +12,13 @@ import { join } from 'node:path';
 // ---------------------------------------------------------------------------
 // Re-export public API for programmatic use
 // ---------------------------------------------------------------------------
-
 export { findSurprisingConnections, detectKnowledgeGaps } from './insights.js';
 export type { SurprisingConnection, KnowledgeGap } from './types.js';
 export { applyGraphSearch } from './search.js';
 export type { SearchResult } from './search.js';
+export { buildWikiGraph, buildGraphologyGraph, buildRetrievalGraph } from './build.js';
+export { calculateRelevance, getRelatedNodes, buildGraphStructure } from './relevance.js';
+export type { GraphStructure } from './relevance.js';
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -146,10 +148,16 @@ async function main(): Promise<void> {
         }
         const data = loadGraphData(wiki);
         const relMod = await tryImport('./relevance.js');
-        if (!relMod || typeof (relMod as any).getRelatedNodes !== 'function') {
+        if (
+          !relMod ||
+          typeof (relMod as any).getRelatedNodes !== 'function' ||
+          typeof (relMod as any).buildGraphStructure !== 'function'
+        ) {
           throw new Error('Relevance action not available — graph-engine relevance module missing.');
         }
-        result = (relMod as any).getRelatedNodes(nodeId, data.nodes, data.edges, 10);
+        // Build precomputed structure once (LWM_04 optimization)
+        const structure = (relMod as any).buildGraphStructure(data.edges);
+        result = (relMod as any).getRelatedNodes(nodeId, data.nodes, structure, 10);
         break;
       }
 

@@ -106,7 +106,8 @@ def parse_fm(text: str) -> dict:
     return {line.split(":", 1)[0].strip(): line.split(":", 1)[1].strip()
             for line in m.group(1).splitlines() if ":" in line and not line.strip().startswith("#")}
 
-def write_wiki(root: str, rpath: str, content: str, pages_dir: str = None) -> tuple:
+def write_wiki(root: str, rpath: str, content: str, pages_dir: str = None,
+               force: bool = False, lock_timeout=None) -> tuple:
     if pages_dir:
         parts = rpath.split("/", 1)
         if len(parts) == 2:
@@ -114,10 +115,30 @@ def write_wiki(root: str, rpath: str, content: str, pages_dir: str = None) -> tu
         fp = os.path.join(pages_dir, rpath)
     else:
         fp = os.path.join(root, rpath)
-    if os.path.exists(fp):
-        if read_file(fp) and read_file(fp).strip() == content.strip(): return "skipped", True
-        print(f"  \u26a0  Skipping {rpath} — exists (use --force to overwrite)", file=sys.stderr); return "skipped", True
-    return ("created", True) if write_file(fp, content) else ("error", False)
+    try:
+        from llm_wiki.atomic_write import atomic_write
+        from llm_wiki.content_hash import read_hash, inject_hash
+        current = read_file(fp)
+        if current and not force:
+            if current.strip() == content.strip():
+                return "skipped", True
+            expected = read_hash(content)
+            current_hash = read_hash(current) if current else ""
+            if expected and current_hash and expected != current_hash:
+                conflict_path = fp.replace(".md", " (conflict).md")
+                if atomic_write(conflict_path, content):
+                    print(f"  ⚠  CONFLICT: {rpath} was modified. Changes saved to {os.path.basename(conflict_path)}.", file=sys.stderr)
+                    return "conflict", True
+                return "error", False
+        final = inject_hash(content)
+        ok = atomic_write(fp, final)
+        status = "updated" if current else "created"
+        return (status, True) if ok else ("error", False)
+    except ImportError:
+        if os.path.exists(fp):
+            if read_file(fp) and read_file(fp).strip() == content.strip(): return "skipped", True
+            print(f"  ⚠  Skipping {rpath} — exists (use --force to overwrite)", file=sys.stderr); return "skipped", True
+        return ("created", True) if write_file(fp, content) else ("error", False)
 
 def write_review(root: str, rtype: str, body: str, slug: str, audit_dir: str = None) -> Optional[str]:
     fm = parse_fm(body); ts = tslug(); fname = f"{ts}-{slug}-{rtype}.md"

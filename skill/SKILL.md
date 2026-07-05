@@ -426,9 +426,9 @@ Key differences and recommendation. ^[raw/articles/comparison-source.md]
 
 ## Template System
 
-The monorepo ships with 19 domain-specific project templates. Each template provides a pre-configured `PURPOSE.md`, `SCHEMA.md` (becomes `CLAUDE.md`), and domain-specific page types and directories.
+The monorepo ships with 20 domain-specific project templates. Each template provides a pre-configured `PURPOSE.md`, `SCHEMA.md` (becomes `CLAUDE.md`), and domain-specific page types and directories.
 
-**Available templates:** `research`, `codebase`, `finance`, `algorithmic-trading`, `cybersecurity`, `machine-learning`, `prompt-engineering`, `copywriting`, `marketing`, `design-systems`, `architecture`, `crypto`, `commodities`, `decompilers`, `medicine`, `developer-tools`, `personal-growth`, `reading`, `business`
+**Available templates:** `research`, `codebase`, `finance`, `algorithmic-trading`, `algorithmic-trading-mql4`, `cybersecurity`, `machine-learning`, `prompt-engineering`, `copywriting`, `marketing`, `design-systems`, `architecture`, `crypto`, `commodities`, `decompilers`, `medicine`, `developer-tools`, `personal-growth`, `reading`, `business`
 
 **Template contents:**
 - `PURPOSE.md` — Why this wiki exists, scope, success criteria, key questions

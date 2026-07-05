@@ -576,6 +576,7 @@ All operations are linear or sub-linear (verified by `llm-wiki benchmark`).
 
 ```
 algorithmic-trading  (strategies/, backtests/, indicators/, risk/, modules/)
+algorithmic-trading-mql4  (architecture/, decisions/, graphs/)
 architecture         (diagrams/, services/, infrastructure/, decisions/)
 business             (meetings/, decisions/, projects/, stakeholders/)
 codebase             (architecture/, modules/, apis/, decisions/)

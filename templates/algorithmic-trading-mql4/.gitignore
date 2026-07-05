@@ -1,0 +1,23 @@
+# llm-wiki scaffolded wiki — recommended .gitignore
+
+# Graph engine artifacts (regenerated each run)
+wiki/graphs/graph-data.json
+wiki/graphs/code-graph.json
+wiki/graphs/graph-export.html
+wiki/graphs/graph.svg
+
+# Backup snapshots
+_backups/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Python (if ingesting with local env)
+__pycache__/
+*.pyc
+.venv/
+venv/

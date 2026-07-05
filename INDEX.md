@@ -45,7 +45,7 @@ Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `scaffold.py` | 330 | Bootstrap new wiki — `--template` picks from 19 domain templates, `--force` overwrites |
+| `scaffold.py` | 330 | Bootstrap new wiki — `--template` picks from 20 domain templates, `--force` overwrites |
 | `ingest.py` | 233 | Two-step chain-of-thought ingest — Stage 1 analysis + Stage 2 generation with SHA256 caching |
 | `lint_wiki.py` | 557 | 15-pass automated health check with auto-discovered layout — dead links, orphans, frontmatter, staleness, source drift |
 | `deep_research.py` | 209 | Agent-driven research — web search, source fetch, auto-ingest, synthesis page |
@@ -118,6 +118,7 @@ Each template directory contains:
 | `codebase/` | architecture, modules, apis, decisions | Software/quant dev projects |
 | `finance/` | markets, instruments, strategies, reports | Financial research, market analysis |
 | `algorithmic-trading/` | strategies, backtests, indicators, risk, modules | Quant strategies, backtests |
+| `algorithmic-trading-mql4/` | architecture, decisions, graphs | MQL4/5 trading projects with source code |
 | `cybersecurity/` | vulnerabilities, exploits, tools, advisories | Security audits, vuln research |
 | `machine-learning/` | models, datasets, experiments, benchmarks | ML training, fine-tuning |
 | `prompt-engineering/` | techniques, evaluations, templates, providers | Prompt research |

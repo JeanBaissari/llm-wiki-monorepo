@@ -183,7 +183,7 @@
 - MCP server with 8 tools, single and multi-wiki mode
 - Web viewer with search bar and graph insights panel
 - Browser extension with auto-ingest after clip
-- 19 domain templates (audited and consistent)
+- 20 domain templates (audited and consistent)
 - CI/CD pipeline (GitHub Actions) with full integration tests
 - One-command install script (`install.sh`)
 - VERSIONING.md — semantic versioning policy

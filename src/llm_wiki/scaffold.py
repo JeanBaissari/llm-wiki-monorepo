@@ -11,7 +11,7 @@ Examples:
     python3 scaffold.py ~/wikis/strategy-lab "Strategy Lab" --template algorithmic-trading
 
 Templates available:
-    research, codebase, finance, algorithmic-trading, cybersecurity,
+    research, codebase, finance, algorithmic-trading, algorithmic-trading-mql4, cybersecurity,
     machine-learning, prompt-engineering, copywriting, marketing,
     design-systems, architecture, crypto, commodities, decompilers,
     medicine, developer-tools, personal-growth, reading, business
@@ -77,6 +77,18 @@ def load_extra_dirs(template_path: Path) -> list[str]:
     return []
 
 
+def load_raw_dirs(template_path: Path) -> list[str]:
+    """Load raw subdirectories from template's raw-dirs.json if present."""
+    raw_json = template_path / "raw-dirs.json"
+    if raw_json.exists():
+        try:
+            with open(raw_json) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+    return ["articles", "papers", "notes", "refs"]
+
+
 def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force: bool = False, page_dirs=None, no_raw=False, no_log=False, no_audit=False, no_outputs=False, verbose=False) -> None:
     today = date.today()
     today_iso = today.isoformat()
@@ -85,6 +97,7 @@ def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force
 
     template_path = get_template(template_name)
     extra_dirs = load_extra_dirs(template_path)
+    raw_dirs = load_raw_dirs(template_path)
 
     # ── Overwrite protection ──────────────────────────────────────────
     root_path = Path(root)
@@ -107,7 +120,8 @@ def scaffold(root: str, title: str, template_name: str = DEFAULT_TEMPLATE, force
 
     base_dirs = []
     if not no_raw:
-        base_dirs.extend(["raw/articles", "raw/papers", "raw/notes", "raw/refs"])
+        for d in raw_dirs:
+            base_dirs.append(f"raw/{d}")
     for d in page_dirs_list:
         base_dirs.append(f"wiki/{d}")
     if not no_outputs:
@@ -221,9 +235,9 @@ wiki_config:
 
     # ── Template-specific extra files ─────────────────────────────────
     for item in template_path.iterdir():
-        if item.name in ("SCHEMA.md", "PURPOSE.md", "extra-dirs.json", "index-format.md"):
+        if item.name in ("SCHEMA.md", "PURPOSE.md", "extra-dirs.json", "index-format.md", "raw-dirs.json"):
             continue
-        if item.is_file() and item.suffix in (".md", ".json", ".yaml", ".yml"):
+        if item.is_file() and (item.suffix in (".md", ".json", ".yaml", ".yml", ".cfg") or item.name in (".gitignore", ".env")):
             dest = os.path.join(root, item.name)
             if not os.path.exists(dest):
                 shutil.copy2(item, dest)

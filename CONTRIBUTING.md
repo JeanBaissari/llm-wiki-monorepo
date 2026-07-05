@@ -8,7 +8,7 @@
 src/llm_wiki/         ← Python package — CLI, LLM providers, concurrency, search
 skill/scripts/        ← Python scripts — scaffold, ingest, lint, insights, backup
 skill/SKILL.md        ← Agent skill definition — loaded by Hermes/Claude/Codex
-templates/            ← 19 domain templates (PURPOSE.md + SCHEMA.md + extra-dirs.json)
+templates/            ← 20 domain templates (PURPOSE.md + SCHEMA.md + extra-dirs.json)
 tests/                ← pytest suite — 16 test files + conftest.py fixtures
 mcp-server/           ← TypeScript — MCP server (stdio, 10 tools)
 graph-engine/         ← TypeScript — knowledge graph (relevance, Louvain, insights)

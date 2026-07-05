@@ -59,7 +59,7 @@ python3 skill/scripts/scaffold.py ~/my-wiki "New Topic" --template codebase --fo
 └── outputs/        ← Query answers, charts
 ```
 
-**19 domain templates available:** research, codebase, finance, algorithmic-trading, cybersecurity, machine-learning, prompt-engineering, copywriting, marketing, design-systems, architecture, crypto, commodities, decompilers, medicine, developer-tools, personal-growth, reading, business.
+**20 domain templates available:** research, codebase, finance, algorithmic-trading, algorithmic-trading-mql4, cybersecurity, machine-learning, prompt-engineering, copywriting, marketing, design-systems, architecture, crypto, commodities, decompilers, medicine, developer-tools, personal-growth, reading, business.
 
 ---
 

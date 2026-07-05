@@ -34,7 +34,7 @@ pip install baissarienterprises-llm-wiki
 
 LLM Wiki is a **production-grade knowledge engine** that turns raw documents into a living, cross-linked Markdown wiki. Instead of re-retrieving documents on every query (RAG), the system **incrementally builds and maintains** a persistent knowledge base. Sources are compiled once, kept current, and compound over time.
 
-It's a monorepo of everything needed to run a self-building wiki: a Python CLI package, an MCP server for programmatic access, a knowledge graph engine with community detection, a Chrome web clipper, a web viewer, an Obsidian plugin, and 19 domain templates — all wired together through an agent skill that works with any LLM.
+It's a monorepo of everything needed to run a self-building wiki: a Python CLI package, an MCP server for programmatic access, a knowledge graph engine with community detection, a Chrome web clipper, a web viewer, an Obsidian plugin, and 20 domain templates — all wired together through an agent skill that works with any LLM.
 
 ---
 
@@ -146,9 +146,9 @@ wiki/ directory  ← shared state (Markdown files)
 | `audit-shared/` | TypeScript | Shared audit file format library |
 | `plugins/obsidian-audit/` | TypeScript | Obsidian plugin — file feedback from vault |
 
-## Templates (19 domains)
+## Templates (20 domains)
 
-`research` `codebase` `finance` `algorithmic-trading` `cybersecurity` `machine-learning` `prompt-engineering` `copywriting` `marketing` `design-systems` `architecture` `crypto` `commodities` `decompilers` `medicine` `developer-tools` `personal-growth` `reading` `business`
+`research` `codebase` `finance` `algorithmic-trading` `algorithmic-trading-mql4` `cybersecurity` `machine-learning` `prompt-engineering` `copywriting` `marketing` `design-systems` `architecture` `crypto` `commodities` `decompilers` `medicine` `developer-tools` `personal-growth` `reading` `business`
 
 Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.md` (page types, conventions, frontmatter, cross-referencing, contradiction handling), `extra-dirs.json` (domain directories).
 

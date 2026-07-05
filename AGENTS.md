@@ -31,7 +31,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 | `skill/` | Python + MD | Agent skill: SKILL.md + 13 scripts + 10 references | Agent operations, scripts, docs |
 | `mcp-server/` | TypeScript | MCP server: 8 tools via stdio | Programmatic wiki access |
 | `graph-engine/` | TypeScript | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
-| `templates/` | MD + JSON | 19 domain templates for scaffold.py | Adding/modifying project templates |
+| `templates/` | MD + JSON | 20 domain templates for scaffold.py | Adding/modifying project templates |
 | `web-viewer/` | TypeScript | Local preview server: mermaid, KaTeX, feedback | UI changes |
 | `extension/` | JavaScript | Chrome web clipper | Browser clipping |
 | `audit-shared/` | TypeScript | Audit file format library | Audit schema changes |

@@ -98,6 +98,11 @@
       <div class="graph-header">
         <h2>Knowledge graph</h2>
         <div class="graph-controls">
+          <label id="code-toggle-wrap" class="toggle-label hidden">
+            <input type="checkbox" id="code-toggle" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-text">Code</span>
+          </label>
           <button id="graph-reset" class="btn btn-ghost" type="button">Reset</button>
           <button id="graph-close" class="btn btn-icon btn-ghost" type="button" title="Close (G or Esc)">✕</button>
         </div>
@@ -113,6 +118,12 @@
           <div class="legend-row"><span class="legend-dot entities"></span> entities</div>
           <div class="legend-row"><span class="legend-dot summaries"></span> summaries</div>
           <div class="legend-row"><span class="legend-dot other"></span> other</div>
+          <div class="legend-row edge-legend hidden" id="legend-code">
+            <span class="legend-line" style="background:#4caf50; height:2px;"></span> code
+          </div>
+          <div class="legend-row edge-legend hidden" id="legend-cross">
+            <span class="legend-line" style="background:#ff9800; height:2px; border-top:2px dashed #ff9800;"></span> cross
+          </div>
         </div>
       </div>
     </div>

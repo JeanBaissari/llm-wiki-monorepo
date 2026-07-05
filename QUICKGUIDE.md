@@ -2,6 +2,21 @@
 
 Hands-on command reference. Every operation you can run, with real examples.
 
+## Two Paths to Run Commands
+
+All Python operations have **two invocation paths** — both supported, neither deprecated:
+
+| Path | Usage | Example |
+|------|-------|---------|
+| **`llm-wiki` CLI** | Pip-installed usage. Cleaner syntax, built-in aliases. | `llm-wiki scaffold ~/my-wiki "Title"` |
+| **`python3 skill/scripts/`** | Hermes skill integration. Works without pip install. | `python3 skill/scripts/scaffold.py ~/my-wiki "Title"` |
+
+Each section below shows `llm-wiki` first, then the direct script invocation as the alternative.
+
+> **Tip:** `llm-wiki` has short aliases — `sc` for scaffold, `in` for ingest, `ls` for lint, `bk` for backup, `dr` for deep-research, `lsug` for link-suggest.
+
+---
+
 ## 1. One-Command Install
 
 ```bash
@@ -10,22 +25,25 @@ bash install.sh
 
 Detects Python/Node versions, installs npm dependencies, builds all TypeScript packages, verifies all Python scripts, and optionally creates Hermes symlinks and PATH wrappers.
 
+No `llm-wiki` equivalent — this sets up the monorepo itself.
+
+---
+
 ## 2. Scaffold a Wiki
 
 ```bash
-# Default research template
+# llm-wiki CLI (pip-installed usage)
+llm-wiki scaffold ~/my-wiki "My Research Topic"
+llm-wiki scaffold ~/my-codebase-wiki "My Project" --template codebase
+llm-wiki scaffold ~/strat-wiki "Strategy Lab" --template algorithmic-trading
+llm-wiki scaffold --list-templates
+llm-wiki scaffold ~/my-wiki "New Topic" --template codebase --force
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/scaffold.py ~/my-wiki "My Research Topic"
-
-# Domain-specific template
 python3 skill/scripts/scaffold.py ~/my-codebase-wiki "My Project" --template codebase
-
-# Algorithmic trading wiki (for quant strategies)
 python3 skill/scripts/scaffold.py ~/strat-wiki "Strategy Lab" --template algorithmic-trading
-
-# List all 19 templates
 python3 skill/scripts/scaffold.py --list-templates
-
-# Force overwrite existing wiki
 python3 skill/scripts/scaffold.py ~/my-wiki "New Topic" --template codebase --force
 ```
 
@@ -41,26 +59,31 @@ python3 skill/scripts/scaffold.py ~/my-wiki "New Topic" --template codebase --fo
 └── outputs/        ← Query answers, charts
 ```
 
+**19 domain templates available:** research, codebase, finance, algorithmic-trading, cybersecurity, machine-learning, prompt-engineering, copywriting, marketing, design-systems, architecture, crypto, commodities, decompilers, medicine, developer-tools, personal-growth, reading, business.
+
+---
+
 ## 3. Ingest Sources
 
 ```bash
-# Two-step chain-of-thought ingest (recommended for complex sources)
+# llm-wiki CLI (pip-installed usage)
+llm-wiki ingest ~/my-wiki raw/articles/my-article.md
+llm-wiki ingest ~/my-wiki raw/articles/my-article.md --force
+llm-wiki ingest ~/my-wiki raw/articles/my-article.md --batch raw/articles/
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/ingest.py ~/my-wiki raw/articles/my-article.md
-
-# Force re-ingest (skip cache)
 python3 skill/scripts/ingest.py ~/my-wiki raw/articles/my-article.md --force
-
-# Batch ingest a directory
-python3 skill/scripts/ingest.py ~/my-wiki raw/articles/ --batch
+python3 skill/scripts/ingest.py ~/my-wiki raw/articles/my-article.md --batch raw/articles/
 ```
 
 **Agent loop mode** (no API key needed):
 ```bash
 # Pass 1: prints Stage 1 prompt → you respond with analysis → cached
-LLM_WIKI_RESPONSE_FILE=~/stage1-response.txt python3 skill/scripts/ingest.py ~/my-wiki source.md
+LLM_WIKI_RESPONSE_FILE=~/stage1-response.txt llm-wiki ingest ~/my-wiki source.md
 
 # Pass 2: uses cached analysis → prints Stage 2 prompt → you respond with pages
-LLM_WIKI_RESPONSE_FILE=~/stage2-response.txt python3 skill/scripts/ingest.py ~/my-wiki source.md
+LLM_WIKI_RESPONSE_FILE=~/stage2-response.txt llm-wiki ingest ~/my-wiki source.md
 ```
 
 **How two-step ingest works:**
@@ -68,24 +91,42 @@ LLM_WIKI_RESPONSE_FILE=~/stage2-response.txt python3 skill/scripts/ingest.py ~/m
 2. Stage 2 (Generation): LLM produces FILE blocks (wiki pages) + REVIEW blocks (issues to fix)
 3. Result: pages created/updated, review items generated, index + log updated
 
+---
+
 ## 4. Lint the Wiki
 
 ```bash
-# Run all 15 automated checks
+# llm-wiki CLI (pip-installed usage)
+llm-wiki lint ~/my-wiki
+llm-wiki lint ~/my-wiki --json
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/lint_wiki.py ~/my-wiki
-
-# JSON output (for scripts)
 python3 skill/scripts/lint_wiki.py ~/my-wiki --json
-
-# Show help
-python3 skill/scripts/lint_wiki.py --help
 ```
 
-**15 checks:** dead wikilinks, orphan pages, missing index entries, unlinked concepts, log/ shape, audit/ shape, audit targets, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation, SHA256 source drift, stale wiki pages from source drift.
+**15 automated checks:** dead wikilinks, orphan pages, missing index entries, unlinked concepts, log/ shape, audit/ shape, audit targets, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation, SHA256 source drift, stale wiki pages from source drift.
+
+---
 
 ## 5. Graph Insights
 
-### TypeScript engine (production)
+### Python engine (via CLI)
+
+```bash
+# llm-wiki CLI (pip-installed usage)
+llm-wiki insights ~/my-wiki
+llm-wiki insights ~/my-wiki --connections 10 --gaps 10
+llm-wiki insights ~/my-wiki --format json
+
+# Alternative: direct script invocation (Hermes skill integration)
+python3 skill/scripts/graph_insights.py ~/my-wiki
+python3 skill/scripts/graph_insights.py ~/my-wiki --connections 10 --gaps 10
+python3 skill/scripts/graph_insights.py ~/my-wiki --format json
+```
+
+### TypeScript engine (production — no CLI equivalent)
+
 ```bash
 # Build graph
 node graph-engine/dist/index.js --wiki ~/my-wiki --action build
@@ -100,69 +141,75 @@ node graph-engine/dist/index.js --wiki ~/my-wiki --action search --query "strate
 node graph-engine/dist/index.js --wiki ~/my-wiki --action relevance --node "entities/xau-swinger"
 ```
 
-### Python fallback (no deps)
-```bash
-python3 skill/scripts/graph_insights.py ~/my-wiki
+> The TypeScript graph engine is a separate Node.js package — there's no `llm-wiki` CLI wrapper for it.
 
-# Limit results
-python3 skill/scripts/graph_insights.py ~/my-wiki --connections 10 --gaps 10
-
-# JSON output
-python3 skill/scripts/graph_insights.py ~/my-wiki --format json
-```
+---
 
 ## 6. Link Suggestions
 
 ```bash
-# Get ranked suggestions for missing wikilinks
+# llm-wiki CLI (pip-installed usage)
+llm-wiki link-suggest ~/my-wiki
+llm-wiki link-suggest ~/my-wiki --apply
+llm-wiki link-suggest ~/my-wiki --limit 10 --min-confidence 0.5
+llm-wiki link-suggest ~/my-wiki --format json
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/link_suggest.py ~/my-wiki
-
-# Auto-add wikilinks (modifies pages)
 python3 skill/scripts/link_suggest.py ~/my-wiki --apply
-
-# Limit to top 10, minimum confidence 0.5
 python3 skill/scripts/link_suggest.py ~/my-wiki --limit 10 --min-confidence 0.5
-
-# JSON output
 python3 skill/scripts/link_suggest.py ~/my-wiki --format json
 ```
 
 Entity extraction from frontmatter, headings, and bold terms. 4-signal scoring: frequency, position, type affinity, commonality penalty.
 
+---
+
 ## 7. Deep Research
 
 ```bash
-# Research a topic — web search + source fetch + auto-ingest + synthesis
+# llm-wiki CLI (pip-installed usage)
+llm-wiki deep-research ~/my-wiki "transformer attention mechanisms"
+llm-wiki deep-research ~/my-wiki "topic" --urls "https://arxiv.org/abs/1706.03762,https://example.com/article"
+llm-wiki deep-research ~/my-wiki "topic" --depth 3 --sources 10
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/deep_research.py ~/my-wiki "transformer attention mechanisms"
-
-# With specific URLs
 python3 skill/scripts/deep_research.py ~/my-wiki "topic" --urls "https://arxiv.org/abs/1706.03762,https://example.com/article"
-
-# Control depth
 python3 skill/scripts/deep_research.py ~/my-wiki "topic" --depth 3 --sources 10
 ```
+
+---
 
 ## 8. Backup & Recovery
 
 ```bash
-# Create a timestamped snapshot
+# llm-wiki CLI (pip-installed usage)
+llm-wiki backup ~/my-wiki --snapshot
+llm-wiki backup ~/my-wiki --list
+llm-wiki backup ~/my-wiki --restore 20260622-143000
+llm-wiki backup ~/my-wiki --verify
+llm-wiki backup ~/my-wiki --prune 5
+llm-wiki backup ~/my-wiki --auto
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/backup.py ~/my-wiki --snapshot
-
-# List available backups
 python3 skill/scripts/backup.py ~/my-wiki --list
-
-# Restore from a specific backup
 python3 skill/scripts/backup.py ~/my-wiki --restore 20260622-143000
-
-# Verify wiki integrity (wikilinks, frontmatter, required files)
 python3 skill/scripts/backup.py ~/my-wiki --verify
-
-# Keep only the 5 most recent backups
 python3 skill/scripts/backup.py ~/my-wiki --prune 5
-
-# One-command safe state: snapshot + prune to 10 + verify
 python3 skill/scripts/backup.py ~/my-wiki --auto
 ```
+
+**Operations:**
+- `--snapshot` — Create a timestamped tar.gz snapshot
+- `--list` — List all available backups
+- `--restore <TIMESTAMP>` — Restore from a specific backup
+- `--verify` — Check wiki integrity (wikilinks, frontmatter, required files)
+- `--prune N` — Keep only the N most recent backups
+- `--auto` — One-command safe state: snapshot + prune to 10 + verify
+
+---
 
 ## 9. MCP Server
 
@@ -177,15 +224,19 @@ node mcp-server/dist/index.js --projects ~/wikis
 LLM_WIKI_PATH=~/my-wiki node mcp-server/dist/index.js
 ```
 
-**8 MCP Tools:**
+No `llm-wiki` CLI equivalent — the MCP server is a TypeScript package accessed via stdio.
+
+**10 MCP Tools:**
 - `llm_wiki_status` — Health, page count, last ingest, open reviews
 - `llm_wiki_files` — File tree listing (wiki/sources/all)
 - `llm_wiki_read_file` — Read any file (120KB limit)
 - `llm_wiki_reviews` — List review items (open/resolved/all)
-- `llm_wiki_search` — BM25 full-text search
+- `llm_wiki_search` — SQLite FTS5 full-text search
 - `llm_wiki_graph` — Graph operations (build/insights/search)
 - `llm_wiki_lint` — Run automated lint checks
 - `llm_wiki_ingest` — Trigger two-step ingest on a source
+- `llm_wiki_audit_save` — Save audit feedback responses
+- `llm_wiki_links_suggest` — Suggest missing wikilinks
 
 **Multi-wiki mode:** Add `"project": "project-name"` to tool call arguments.
 
@@ -201,6 +252,8 @@ LLM_WIKI_PATH=~/my-wiki node mcp-server/dist/index.js
 }
 ```
 
+---
+
 ## 10. Web Viewer
 
 ```bash
@@ -211,7 +264,11 @@ npm start -- --wiki ~/my-wiki --port 4175
 # Open http://127.0.0.1:4175
 ```
 
+No `llm-wiki` CLI equivalent — the web viewer is a standalone TypeScript app.
+
 **Features:** Search bar (TF-based ranking), graph insights panel (metrics, surprising connections, knowledge gaps), KaTeX math, mermaid diagrams, wikilink resolution, audit feedback.
+
+---
 
 ## 11. Browser Extension
 
@@ -221,36 +278,73 @@ npm start -- --wiki ~/my-wiki --port 4175
 4. Click the extension icon on any webpage → clips to markdown with frontmatter
 5. Check "Auto-ingest after clip" to automatically trigger the ingest pipeline
 
+No `llm-wiki` CLI equivalent — the extension is a standalone Chrome extension.
+
+---
+
 ## 12. Audit Reviews
 
 ```bash
-# List open reviews
+# llm-wiki CLI (pip-installed usage)
+llm-wiki audit ~/my-wiki --open
+llm-wiki audit ~/my-wiki --resolved
+llm-wiki audit ~/my-wiki --all
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/audit_review.py ~/my-wiki --open
-
-# List resolved reviews
 python3 skill/scripts/audit_review.py ~/my-wiki --resolved
-
-# List all
 python3 skill/scripts/audit_review.py ~/my-wiki --all
 ```
+
+---
 
 ## 13. Performance Benchmarks
 
 ```bash
-# Run benchmarks across 10/100/500/1000/5000 page wikis
+# llm-wiki CLI (pip-installed usage)
+llm-wiki benchmark /tmp/benchmark-results.csv
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/benchmark.py /tmp/benchmark-results.csv
 ```
 
-Outputs CSV with timing for: lint, graph build, graph insights, Python insights. Includes scaling factor analysis.
+Outputs CSV with timing for: lint, graph build, graph insights, Python insights. Includes scaling factor analysis across 10/100/500/1000/5000 page wikis.
 
-## 14. Migrate Old Wikis
+---
+
+## 14. Wiki Structure Discovery
 
 ```bash
-# Convert v1 log.md → v2 log/ directory
+# llm-wiki CLI (pip-installed usage)
+llm-wiki discover ~/my-wiki
+llm-wiki discover ~/my-wiki --json
+llm-wiki discover ~/my-wiki --show
+
+# Alternative: direct script invocation (Hermes skill integration)
+python3 skill/scripts/discover.py ~/my-wiki
+python3 skill/scripts/discover.py ~/my-wiki --json
+python3 skill/scripts/discover.py ~/my-wiki --show
+```
+
+Auto-detects wiki layout: content pages, source documents, log/audit directories, page type taxonomy, frontmatter conventions. Used internally by all other tools.
+
+---
+
+## 15. Migrate Old Wikis
+
+```bash
+# llm-wiki CLI (pip-installed usage)
+llm-wiki migrate-log ~/my-old-wiki
+
+# Alternative: direct script invocation (Hermes skill integration)
 python3 skill/scripts/migrate_log.py ~/my-old-wiki
 ```
 
-## 15. Hermes Agent Install
+Converts v1 `log.md` → v2 `log/` directory structure.
+
+---
+
+## 16. Hermes Agent Install
 
 ```bash
 # Symlink skill into Hermes (also offered by install.sh)
@@ -260,33 +354,37 @@ ln -sf $(pwd)/skill ~/.hermes/skills/research/llm-wiki
 ls ~/.hermes/skills/research/llm-wiki/SKILL.md
 ```
 
+No `llm-wiki` CLI equivalent — this configures the Hermes skill integration.
+
+---
+
 ## Common Workflows
 
 ### Start a new research project
 ```bash
 bash install.sh
-python3 skill/scripts/scaffold.py ~/research-topic "Topic Name" --template research
-python3 skill/scripts/deep_research.py ~/research-topic "key research question"
-python3 skill/scripts/lint_wiki.py ~/research-topic
-python3 skill/scripts/graph_insights.py ~/research-topic
+llm-wiki scaffold ~/research-topic "Topic Name" --template research
+llm-wiki deep-research ~/research-topic "key research question"
+llm-wiki lint ~/research-topic
+llm-wiki insights ~/research-topic
 ```
 
 ### Add a codebase to a software wiki
 ```bash
-python3 skill/scripts/scaffold.py ~/project-wiki "Project Name" --template codebase
-python3 skill/scripts/ingest.py ~/project-wiki raw/articles/architecture.md
-python3 skill/scripts/ingest.py ~/project-wiki raw/articles/api-docs.md
-python3 skill/scripts/link_suggest.py ~/project-wiki --apply
-python3 skill/scripts/lint_wiki.py ~/project-wiki
+llm-wiki scaffold ~/project-wiki "Project Name" --template codebase
+llm-wiki ingest ~/project-wiki raw/articles/architecture.md
+llm-wiki ingest ~/project-wiki raw/articles/api-docs.md
+llm-wiki link-suggest ~/project-wiki --apply
+llm-wiki lint ~/project-wiki
 ```
 
 ### Weekly health check (cron)
 ```bash
-python3 skill/scripts/lint_wiki.py ~/my-wiki
+llm-wiki lint ~/my-wiki
 node graph-engine/dist/index.js --wiki ~/my-wiki --action build
 node graph-engine/dist/index.js --wiki ~/my-wiki --action insights
-python3 skill/scripts/audit_review.py ~/my-wiki --open
-python3 skill/scripts/backup.py ~/my-wiki --auto
+llm-wiki audit ~/my-wiki --open
+llm-wiki backup ~/my-wiki --auto
 ```
 
 ### Full pipeline: source → analyzed wiki
@@ -297,25 +395,25 @@ cd llm-wiki-monorepo
 bash install.sh
 
 # 2. Create wiki
-python3 skill/scripts/scaffold.py ~/quant-wiki "Quant Research" --template algorithmic-trading
+llm-wiki scaffold ~/quant-wiki "Quant Research" --template algorithmic-trading
 
 # 3. Add sources to raw/ (or use browser extension)
 cp ~/research/*.md ~/quant-wiki/raw/articles/
 
 # 4. Ingest (with agent loop — no API key)
-LLM_WIKI_RESPONSE_FILE=~/stage1.txt python3 skill/scripts/ingest.py ~/quant-wiki ~/quant-wiki/raw/articles/strategy.md
-LLM_WIKI_RESPONSE_FILE=~/stage2.txt python3 skill/scripts/ingest.py ~/quant-wiki ~/quant-wiki/raw/articles/strategy.md
+LLM_WIKI_RESPONSE_FILE=~/stage1.txt llm-wiki ingest ~/quant-wiki ~/quant-wiki/raw/articles/strategy.md
+LLM_WIKI_RESPONSE_FILE=~/stage2.txt llm-wiki ingest ~/quant-wiki ~/quant-wiki/raw/articles/strategy.md
 
 # 5. Auto-link
-python3 skill/scripts/link_suggest.py ~/quant-wiki --apply
+llm-wiki link-suggest ~/quant-wiki --apply
 
 # 6. Quality check
-python3 skill/scripts/lint_wiki.py ~/quant-wiki
+llm-wiki lint ~/quant-wiki
 
 # 7. Graph analysis
 node graph-engine/dist/index.js --wiki ~/quant-wiki --action build
 node graph-engine/dist/index.js --wiki ~/quant-wiki --action insights
 
 # 8. Backup
-python3 skill/scripts/backup.py ~/quant-wiki --auto
+llm-wiki backup ~/quant-wiki --auto
 ```

@@ -1,0 +1,7 @@
+# ADR 008: SQLite FTS5 Search with SHA256 Freshness Detection
+
+- **Status:** accepted
+- **Date:** 2026-07-04
+- **Context:** The wiki needed full-text search across all pages. Options considered: grep-based search (too slow for wikis with 500+ pages), Elasticsearch (heavy operational overhead for a file-based wiki), SQLite FTS5 (lightweight, no server, built-in BM25 scoring). The MCP server also needed programmatic search capabilities. Crucially, the search index must stay in sync with the markdown files without requiring a full rebuild on every lookup.
+- **Decision:** A `.index/wiki.db` SQLite database is created per wiki. It contains an FTS5 virtual table `pages` indexed on title and content, and an `index_meta` table storing SHA256 hashes of each page's file content. `llm-wiki index` does incremental updates: it computes SHA256 of each `.md` file, compares against `index_meta`, and only re-indexes changed files. The `--rebuild` flag does a full re-index. Tokenization splits on a regex character class and filters a stop-word list (mirroring the TypeScript MCP server's tokenizer for consistency). BM25 is the scoring algorithm.
+- **Consequences:** Easier: instant search on wikis of any size — FTS5 handles 10,000+ pages comfortably. Incremental indexing is fast (milliseconds when nothing changed). No external service dependency. Harder: the SQLite DB is gitignored binary state that must be rebuilt on clone. The tokenizer regex and stop-word list are duplicated between Python (`index_wiki.py`) and TypeScript (`mcp-server/src/search.ts`).

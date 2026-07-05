@@ -1,0 +1,7 @@
+# ADR 006: Two-Step CoT Ingest with SHA256 Caching
+
+- **Status:** accepted
+- **Date:** 2026-07-04
+- **Context:** Ingesting source documents into a wiki requires both understanding the source content (analysis) and writing well-structured wiki pages (generation). A single LLM call produces worse results because it must hold both analysis and writing context simultaneously. Additionally, re-ingesting the same source should be idempotent and fast — re-running on unchanged documents should skip redundant LLM calls.
+- **Decision:** The ingest pipeline splits into two stages. Stage 1 (Analysis) instructs the LLM to extract entities, concepts, claims, relationships, and contradictions from the source. Stage 2 (Generation) takes the Stage 1 output as context and produces `FILE` blocks (wiki pages) and `REVIEW` blocks (issues). Stage 1 results are cached by SHA256 of the source content; unchanged sources skip re-analysis. The `--force` flag bypasses the cache for manual re-ingestion. Sources larger than 55,000 characters are chunked automatically.
+- **Consequences:** Easier: incremental re-ingest of large source directories is fast — only changed files hit the LLM. The two-step approach produces richer, more structured pages than single-pass ingestion. Harder: the cache directory (`_ingest_cache/`) must be managed. Chunked sources lose cross-chunk context unless the LLM prompt explicitly stitches them.

@@ -142,6 +142,12 @@ async function main() {
 
   // Graph toggle.
   const graphOverlay = document.getElementById("graph-overlay")!;
+  const codeToggle = document.getElementById("code-toggle") as HTMLInputElement;
+  const codeToggleWrap = document.getElementById("code-toggle-wrap")!;
+  const legendCode = document.getElementById("legend-code")!;
+  const legendCross = document.getElementById("legend-cross")!;
+  let codeGraphData: GraphData | null = null;
+
   const openGraph = async () => {
     graphOverlay.classList.remove("hidden");
     // Let layout settle so canvas/svg get their sizes.
@@ -156,17 +162,74 @@ async function main() {
     const particles = new ParticleField(canvas, 95);
     particles.start();
 
-    const teardownGraph = renderGraph(svg, data, {
-      onNodeClick: (node: GraphNode) => {
-        closeGraph();
-        void loadPage(node.path);
-        history.pushState({ page: node.path }, "", `/?page=${encodeURIComponent(node.path)}`);
-      },
-    });
+    // Fetch code graph data (silently fail if unavailable)
+    codeGraphData = null;
+    try {
+      const codeResp = await fetch("/api/graph/code");
+      const codeData = await codeResp.json();
+      if (codeData.available && codeData.nodes?.length > 0) {
+        codeGraphData = codeData as GraphData;
+        codeToggleWrap.classList.remove("hidden");
+        codeToggle.checked = false;
+      } else {
+        codeToggleWrap.classList.add("hidden");
+      }
+    } catch {
+      codeToggleWrap.classList.add("hidden");
+    }
+
+    const renderWithCode = (showCode: boolean) => {
+      const merged: GraphData = {
+        nodes: [...data.nodes],
+        edges: [...data.edges.map((e) => ({ ...e, domain: "wikilink" }))],
+      };
+      if (showCode && codeGraphData) {
+        // Add code nodes that don't already exist
+        const existingIds = new Set(data.nodes.map((n) => n.id));
+        for (const cn of codeGraphData.nodes) {
+          if (!existingIds.has(cn.id)) {
+            merged.nodes.push(cn);
+          }
+        }
+        // Add code edges with domain labels
+        for (const ce of codeGraphData.edges) {
+          merged.edges.push({ ...ce, domain: ce.domain ?? "codestructure" });
+        }
+      }
+      return merged;
+    };
+
+    const renderFn = () => {
+      if (state.graphTeardown) {
+        state.graphTeardown();
+        state.graphTeardown = null;
+      }
+      const graphData = renderWithCode(codeToggle.checked);
+      const teardownGraph = renderGraph(svg, graphData, {
+        onNodeClick: (node: GraphNode) => {
+          closeGraph();
+          void loadPage(node.path);
+          history.pushState({ page: node.path }, "", `/?page=${encodeURIComponent(node.path)}`);
+        },
+      });
+      state.graphTeardown = () => {
+        particles.stop();
+        teardownGraph();
+      };
+      // Show/hide code legend items
+      legendCode.classList.toggle("hidden", !codeToggle.checked);
+      legendCross.classList.toggle("hidden", !codeToggle.checked);
+    };
+
+    renderFn();
+
+    codeToggle.onchange = () => {
+      renderFn();
+    };
 
     state.graphTeardown = () => {
       particles.stop();
-      teardownGraph();
+      // We'll set a new teardown in renderFn
     };
   };
   const closeGraph = () => {

@@ -1,0 +1,7 @@
+# ADR 009: Agent-Native Provider for Zero-API-Key Ingest
+
+- **Status:** accepted
+- **Date:** 2026-07-04
+- **Context:** The ingest pipeline requires an LLM to analyze sources and generate wiki pages. Requiring users to set up API keys (OpenAI, Anthropic, etc.) is a friction point — especially for agent-driven workflows where Hermes, Claude Code, or Codex is already running with its own model. Users wanted `pip install` + `llm-wiki ingest` without any configuration.
+- **Decision:** A new `opencode` provider in `src/llm_wiki/providers/` routes LLM calls through the hosting agent's own model. It auto-detects agent context by checking `HERMES_SESSION_ID`, `CLAUDE_CODE_SESSION`, `CODEX_SESSION`, or `LLM_WIKI_AGENT_MODE=1` environment variables. Communication uses pipe-based IPC: writes the prompt to `/tmp/llm-wiki-opencode/<session>/<request_id>/prompt.json`, signals readiness with a `.ready` marker, and polls for `response.json`. Three fallback strategies ensure robustness: response file → pipe IPC → stderr prompt dump. Cost is tracked as 0.0 — the agent's own compute is not billed per-call.
+- **Consequences:** Easier: zero configuration for agent-driven usage — detect and go. The `detect_default_provider()` function in `providers/__init__.py` forms a priority chain (opencode > openai > anthropic > deepseek > together > litellm > offline). Harder: the pipe-based IPC is filesystem-dependent and slower than direct SDK calls. Stale `.ready`/`.response` files can accumulate in `/tmp/llm-wiki-opencode/` on crash.

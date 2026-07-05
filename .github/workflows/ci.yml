@@ -38,6 +38,12 @@ jobs:
       - name: Build audit-shared
         run: cd audit-shared && npm run build
 
+      - name: Install Python test dependencies
+        run: pip install -e ".[dev,test]"
+
+      - name: Run pytest
+        run: python3 -m pytest tests/ -v
+
       - name: Scaffold test wiki
         run: python3 skill/scripts/scaffold.py /tmp/ci-test "CI Test" --template codebase --force
 

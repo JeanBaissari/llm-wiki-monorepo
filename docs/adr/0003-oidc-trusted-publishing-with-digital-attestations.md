@@ -1,0 +1,7 @@
+# ADR 003: OIDC Trusted Publishing with Digital Attestations
+
+- **Status:** accepted
+- **Date:** 2026-07-04
+- **Context:** The release workflow needs to publish wheels and sdists to PyPI. Traditional username/password or API-token-based publishing creates a secret management burden: tokens must be stored as GitHub secrets, rotated periodically, and protected from exposure. PyPI supports OpenID Connect (OIDC) trusted publishing, where GitHub Actions can authenticate without any stored credentials. PEP 740 additionally specifies digital attestations as package provenance metadata.
+- **Decision:** The release workflow uses `pypa/gh-action-pypi-publish@release/v1` without any username or password. Authentication uses GitHub's OIDC token (`id-token: write`) in a dedicated `pypi` deployment environment. The workflow also sets `attestations: write` to generate PEP 740 signed attestations linking the package to its build commit. A separate build job compiles the artifacts, then the publish job (which requires the higher-trust environment) uploads them.
+- **Consequences:** Easier: zero secret management — no API tokens to store, rotate, or leak. Every published package has verifiable provenance (signed attestation). Harder: the publishing environment must be configured once in PyPI's UI to trust the GitHub repository. The build/publish job split adds a small workflow complexity but keeps secrets isolated to the publish step.

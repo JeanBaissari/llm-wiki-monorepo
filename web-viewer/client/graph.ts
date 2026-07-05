@@ -15,6 +15,10 @@ export interface GraphNode extends d3force.SimulationNodeDatum {
 export interface GraphEdge extends d3force.SimulationLinkDatum<GraphNode> {
   source: string | GraphNode;
   target: string | GraphNode;
+  /** Edge domain: "wikilink" (default), "codestructure", or "cross" */
+  domain?: string;
+  /** Relation label for code edges */
+  relation?: string;
 }
 
 export interface GraphData {
@@ -155,7 +159,7 @@ export function renderGraph(
     .data(links)
     .enter()
     .append("path")
-    .attr("class", "link")
+    .attr("class", (d) => `link link-${(d as GraphEdge).domain ?? "wikilink"}`)
     .attr("fill", "none")
     .attr("stroke-linecap", "round");
 

@@ -943,6 +943,28 @@ article h3:hover .header-anchor { opacity: 0.7; }
   animation: dashflow 22s linear infinite;
   filter: drop-shadow(0 0 4px rgba(180, 190, 254, 0.55));
 }
+/* Code structure edges — green */
+#graph-svg .link-codestructure {
+  stroke: rgba(76, 175, 80, 0.25);
+  stroke-width: 1.1;
+  stroke-dasharray: 4 3;
+}
+#graph-svg .link-codestructure.highlight {
+  stroke: #4caf50;
+  stroke-width: 2.2;
+  stroke-opacity: 0.92;
+}
+/* Cross-graph edges — orange */
+#graph-svg .link-cross {
+  stroke: rgba(255, 152, 0, 0.25);
+  stroke-width: 1.1;
+  stroke-dasharray: 6 4;
+}
+#graph-svg .link-cross.highlight {
+  stroke: #ff9800;
+  stroke-width: 2.2;
+  stroke-opacity: 0.92;
+}
 @keyframes dashflow {
   to { stroke-dashoffset: -1000; }
 }
@@ -1037,6 +1059,44 @@ article h3:hover .header-anchor { opacity: 0.7; }
 .graph-legend .legend-dot.entities  { background: var(--grp-entities); }
 .graph-legend .legend-dot.summaries { background: var(--grp-summaries); }
 .graph-legend .legend-dot.other     { background: var(--grp-other); }
+.graph-legend .legend-row.edge-legend { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+.graph-legend .legend-line {
+  display: inline-block;
+  width: 14px;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
+/* Code graph toggle */
+#code-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+#code-toggle-wrap .toggle-track {
+  width: 32px;
+  height: 16px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  position: relative;
+  transition: background 200ms ease;
+}
+#code-toggle-wrap .toggle-thumb {
+  width: 12px;
+  height: 12px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 200ms ease;
+}
+#code-toggle:checked + .toggle-track { background: #4caf50; }
+#code-toggle:checked + .toggle-track .toggle-thumb { transform: translateX(16px); }
+#code-toggle-wrap .toggle-text { font-size: 12px; opacity: 0.6; }
+#code-toggle-wrap input { display: none; }
 
 .graph-hint {
   position: absolute;

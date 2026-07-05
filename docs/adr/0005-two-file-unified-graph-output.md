@@ -1,0 +1,7 @@
+# ADR 005: Two-File Unified Graph Output (GAP-4 Prerequisite)
+
+- **Status:** accepted
+- **Date:** 2026-07-04
+- **Context:** The graph engine builds a knowledge graph from wikilinks (`graph-data.json`). A planned graph-bridge package will also build a code-structure graph from source code ASTs (`code-graph.json`). Consumers (web-viewer, insights CLI) need both graphs to be queryable separately and mergeable into a unified view. Writing everything into a single file from the start would couple the wikilink and code-analysis pipelines prematurely.
+- **Decision:** The graph engine outputs to `graph-data.json` (wiki-link graph). The future graph-bridge will output to `code-graph.json` (code-analysis graph). Both use the same `GraphData` interface: `nodes`, `edges`, `communities`. A merger action (`--action merged`) in the graph-engine CLI combines them into a unified graph, cross-referencing nodes by ID and coloring edges by source type (blue = wikilink, green = code import, orange = cross-graph). This split-before-merge pattern keeps each pipeline independently testable.
+- **Consequences:** Easier: the wikilink pipeline shipped without waiting for the code-analysis pipeline. Each side can evolve its own `build()` function. Harder: the consumer (web-viewer) must handle two file inputs until the merger is built. Cross-graph edges require both files to be present, adding a coordination step in the build pipeline.

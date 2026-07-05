@@ -88,6 +88,27 @@ python3 skill/scripts/link_suggest.py /tmp/test-wiki --limit 5
 python3 skill/scripts/graph_insights.py /tmp/test-wiki --format json
 ```
 
+## CLI Reference
+
+> All commands use the `llm-wiki` CLI. Both `llm-wiki <cmd>` and `python3 skill/scripts/<cmd>.py` paths are valid — CLI for users and CI, `skill/scripts/` for Hermes skill integration.
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `llm-wiki scaffold` | Bootstrap a new wiki | `llm-wiki scaffold ~/wikis/my-project "My Project" --template codebase` |
+| `llm-wiki ingest` | Two-step CoT source ingestion | `llm-wiki ingest ~/wikis/my-project paper.pdf --llm openai` |
+| `llm-wiki lint` | 15 automated wiki checks | `llm-wiki lint ~/wikis/my-project` |
+| `llm-wiki discover` | Auto-detect wiki layout | `llm-wiki discover ~/wikis/my-project --json` |
+| `llm-wiki insights` | Pure Python graph analysis | `llm-wiki insights ~/wikis/my-project --format json` |
+| `llm-wiki backup` | Snapshot, restore, verify | `llm-wiki backup ~/wikis/my-project --auto` |
+| `llm-wiki index` | Build FTS5 search index | `llm-wiki index ~/wikis/my-project --rebuild` |
+| `llm-wiki link-suggest` | Missing wikilink detection | `llm-wiki link-suggest ~/wikis/my-project --apply` |
+| `llm-wiki benchmark` | Synthetic wiki benchmarks | `llm-wiki benchmark /tmp/results.csv` |
+| `llm-wiki audit` | List/group audit feedback | `llm-wiki audit ~/wikis/my-project --open` |
+| `llm-wiki health` | Subsystem health check | `llm-wiki health ~/wikis/my-project` |
+| `llm-wiki deep-research` | Multi-source research pipeline | `llm-wiki deep-research ~/wikis/my-project "transformer architectures"` |
+
+Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> --help` for command-specific options.
+
 ## Key Files to Know
 
 | File | Why it matters |

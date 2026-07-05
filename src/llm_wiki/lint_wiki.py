@@ -6,9 +6,11 @@ Uses auto-discovered layout (via discover.py) instead of hardcoded paths.
 
 Usage:
     python3 lint_wiki.py <wiki-root>
+    python3 lint_wiki.py --check-templates [path]
 
 Example:
     python3 lint_wiki.py ~/wikis/ai-research
+    python3 lint_wiki.py --check-templates
 
 Checks:
   1. Dead wikilinks   — [[Target]] where Target.md doesn't exist
@@ -25,6 +27,9 @@ Checks:
  12. Page size        — pages over 200 lines flagged for splitting
  13. Log rotation     — total H2 entries across log > 500
  14. Source drift     — SHA256 hash mismatches in raw frontmatter
+ 15. Stale from drift — wiki pages whose sources drifted
+ 16. Conflict files   — merge conflict markers still present
+ 17. Template check   — (--check-templates) validate template structure
 
 Exit codes:
   0 — no issues found
@@ -32,6 +37,7 @@ Exit codes:
 """
 
 import hashlib
+import json
 import os
 import re
 import sys
@@ -570,17 +576,199 @@ def lint(root: str) -> int:
     return 0 if issues == 0 else 1
 
 
+def check_templates(templates_dir: Path) -> int:
+    """Validate all domain template directories for structural integrity.
+
+    Each template must have:
+      - PURPOSE.md (≥10 lines)
+      - SCHEMA.md (covers ≥5 standard sections)
+      - extra-dirs.json (valid, each dir appears in SCHEMA.md tables)
+
+    Returns 0 if all clean, 1 if issues found.
+    """
+    if not templates_dir.exists():
+        print(
+            f"ERROR: templates directory not found at {templates_dir}",
+            file=sys.stderr,
+        )
+        return 2
+
+    # The 5 standard sections every SCHEMA.md should cover.
+    REQUIRED_SECTIONS: list[tuple[str, re.Pattern]] = [
+        ("page types", re.compile(r"page.?type|base.?type|inherited.?base", re.IGNORECASE)),
+        ("frontmatter conventions", re.compile(r"frontmatter", re.IGNORECASE)),
+        ("naming rules", re.compile(r"naming|file.?naming", re.IGNORECASE)),
+        ("wikilinks", re.compile(r"wikilink|linking|cross.?ref", re.IGNORECASE)),
+        ("diagrams", re.compile(r"diagram|mermaid|visual|kroki", re.IGNORECASE)),
+    ]
+
+    issues = 0
+    template_dirs = sorted(
+        d
+        for d in templates_dir.iterdir()
+        if d.is_dir() and d.name != "_shared"
+    )
+
+    for td in template_dirs:
+        name = td.name
+        tpl_issues: list[str] = []
+
+        # — PURPOSE.md —————————————————————————————————————————————————
+        purpose_path = td / "PURPOSE.md"
+        if not purpose_path.exists():
+            tpl_issues.append("missing PURPOSE.md")
+        else:
+            lines = purpose_path.read_text(encoding="utf-8").splitlines()
+            if len(lines) < 10:
+                tpl_issues.append(
+                    f"PURPOSE.md has {len(lines)} lines (need ≥10)"
+                )
+
+        # — SCHEMA.md ———————————————————————————————————————————————————
+        schema_path = td / "SCHEMA.md"
+        schema_text = ""
+        if not schema_path.exists():
+            tpl_issues.append("missing SCHEMA.md")
+        else:
+            schema_text = schema_path.read_text(encoding="utf-8")
+            h2_headings = re.findall(
+                r"^##\s+(.+)", schema_text, re.MULTILINE
+            )
+
+            missing: list[str] = []
+            for label, pattern in REQUIRED_SECTIONS:
+                if not any(pattern.search(h) for h in h2_headings):
+                    missing.append(label)
+
+            if missing:
+                tpl_issues.append(
+                    f"SCHEMA.md missing {len(missing)} standard section(s): "
+                    + ", ".join(missing)
+                )
+
+        # — extra-dirs.json —————————————————————————————————————————————
+        extra_path = td / "extra-dirs.json"
+        if not extra_path.exists():
+            tpl_issues.append("missing extra-dirs.json")
+        else:
+            try:
+                raw = extra_path.read_text(encoding="utf-8")
+                extra_data = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                tpl_issues.append(f"extra-dirs.json is invalid JSON: {exc}")
+                extra_data = None
+
+            if extra_data is not None:
+                # Accept both flat arrays and {"directories": [...]}
+                if isinstance(extra_data, dict):
+                    dirs: list[str] = extra_data.get("directories", [])
+                    if not isinstance(dirs, list):
+                        tpl_issues.append(
+                            "extra-dirs.json 'directories' is not an array"
+                        )
+                        dirs = []
+                elif isinstance(extra_data, list):
+                    dirs = extra_data
+                else:
+                    tpl_issues.append(
+                        "extra-dirs.json is not a JSON array or "
+                        "object with 'directories'"
+                    )
+                    dirs = []
+
+                if dirs and schema_text:
+                    # Extract known directory names from SCHEMA.md tables.
+                    # Paths appear in pipe tables as bare `prefix/name/` or
+                    # backtick-quoted `` `wiki/name/` ``.
+                    _DIR_RE = re.compile(
+                        r"(?:`|[\s|])(?:wiki/)?(?:[\w-]+/)*?([\w-]+)/(?:`|[\s|])"
+                    )
+                    schema_dirs: set[str] = set()
+                    for line in schema_text.splitlines():
+                        for m in _DIR_RE.finditer(line):
+                            dname = m.group(1)
+                            if dname != "wiki":  # skip literal 'wiki/' from overview rows
+                                schema_dirs.add(dname)
+
+                    unmatched = [d for d in dirs if d not in schema_dirs]
+                    if unmatched:
+                        tpl_issues.append(
+                            "extra-dirs.json references dir(s) not in "
+                            "SCHEMA.md: " + ", ".join(unmatched)
+                        )
+
+        # — Report ——————————————————————————————————————————————————————
+        if tpl_issues:
+            print(f"\n🔴 {name} ({len(tpl_issues)} issue(s)):")
+            for ti in tpl_issues:
+                print(f"   {ti}")
+            issues += len(tpl_issues)
+        else:
+            print(f"  ✅ {name}")
+
+    # — Summary ————————————————————————————————————————————————————————
+    print(f"\n{'─' * 40}")
+    if issues == 0:
+        print(f"✅ All {len(template_dirs)} templates valid")
+    else:
+        print(
+            f"⚠️  {issues} issue(s) across "
+            f"{len(template_dirs)} templates"
+        )
+
+    return 0 if issues == 0 else 1
+
+
 def main() -> int:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Comprehensive health check for an LLM Wiki - 15 automated passes.",
+        description="Comprehensive health check for an LLM Wiki — 16 automated passes (+1 template pass).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Examples:\n  python3 lint_wiki.py ~/my-wiki\n  python3 lint_wiki.py ~/my-wiki --json",
+        epilog=(
+            "Examples:\n"
+            "  python3 lint_wiki.py ~/my-wiki\n"
+            "  python3 lint_wiki.py ~/my-wiki --json\n"
+            "  python3 lint_wiki.py --check-templates\n"
+            "  python3 lint_wiki.py --check-templates /path/to/templates\n"
+        ),
     )
-    parser.add_argument("wiki_root", help="Path to the wiki root directory")
-    parser.add_argument("--json", action="store_true", help="Output results as JSON instead of text")
+    parser.add_argument(
+        "wiki_root",
+        nargs="?",
+        help="Path to the wiki root directory (optional when --check-templates is used)",
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="Output results as JSON instead of text"
+    )
+    parser.add_argument(
+        "--check-templates",
+        nargs="?",
+        const="__auto__",
+        default=None,
+        help=(
+            "Validate template structure instead of linting a wiki. "
+            "Optionally provide path to templates directory; "
+            "defaults to auto-detection from script location."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.check_templates:
+        if args.check_templates == "__auto__":
+            # Resolve templates/ relative to repo root (script is in src/llm_wiki/)
+            templates_dir = (
+                Path(__file__).resolve().parent.parent.parent / "templates"
+            )
+        else:
+            templates_dir = Path(args.check_templates).resolve()
+        return check_templates(templates_dir)
+
+    if not args.wiki_root:
+        parser.error(
+            "wiki_root is required unless --check-templates is used"
+        )
+
     return lint(args.wiki_root)
 
 

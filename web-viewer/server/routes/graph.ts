@@ -123,6 +123,38 @@ export function handleGraph(cfg: ServerConfig) {
   };
 }
 
+// ── Code Graph (from graph-engine code-analysis) ────────────────────────────
+
+export function handleCodeGraph(cfg: ServerConfig) {
+  return (_req: Request, res: Response) => {
+    const codeGraphPath = path.join(cfg.wikiRoot, "code-graph.json");
+    if (!fs.existsSync(codeGraphPath)) {
+      res.json({ nodes: [], edges: [], available: false });
+      return;
+    }
+    try {
+      const raw = JSON.parse(fs.readFileSync(codeGraphPath, "utf-8"));
+      const nodes: GraphNode[] = (raw.nodes ?? []).map((n: { id: string; label: string; path: string; type: string }) => ({
+        id: `code:${n.id}`,
+        label: n.label,
+        path: n.path,
+        group: "code",
+        degree: 1,
+        title: n.label,
+      }));
+      const edges: GraphEdge[] = (raw.edges ?? []).map((e: { source: string; target: string; type?: string }) => ({
+        source: `code:${e.source}`,
+        target: `code:${e.target}`,
+        domain: "codestructure",
+        relation: e.type ?? "references",
+      }));
+      res.json({ nodes, edges, available: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load code graph", detail: String(err) });
+    }
+  };
+}
+
 // ── Graph Insights (via graph-engine CLI) ──────────────────────────────────
 
 interface InsightsCache {

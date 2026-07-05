@@ -1,0 +1,7 @@
+# ADR 004: Templates Shipped Inside Python Package
+
+- **Status:** accepted
+- **Date:** 2026-07-04
+- **Context:** The `scaffold.py` command creates new wikis from domain templates (algorithmic-trading, codebase, finance, etc.). These templates need to be available both during development (when running `python3 skill/scripts/scaffold.py`) and after `pip install` (when running `llm-wiki scaffold`). A single template location that works only in development would break installed usage.
+- **Decision:** Templates are stored in two locations resolved at runtime: first the script checks `Path(__file__).resolve().parent / "templates"` (installed package path under `src/llm_wiki/templates/`), then falls back to `parent.parent.parent / "templates"` (monorepo root). Each template directory is self-contained with `PURPOSE.md`, `SCHEMA.md`, and `extra-dirs.json`. The `[tool.setuptools.package-data]` directive ensures `py.typed` is included, and by virtue of being under `src/llm_wiki/`, all template files are bundled into the wheel automatically.
+- **Consequences:** Easier: `pip install` + `llm-wiki scaffold` just works — no extra data file configuration needed. Adding a template directory is a no-code operation. Harder: the two-location fallback adds a minor runtime branch. Template files currently have no structural validation — a missing `SCHEMA.md` silently falls back to the default template.

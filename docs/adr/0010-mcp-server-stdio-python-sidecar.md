@@ -1,0 +1,7 @@
+# ADR 010: MCP Server Architecture — stdio + Python Sidecar
+
+- **Status:** accepted
+- **Date:** 2026-07-04
+- **Context:** The wiki needed a programmatic API for AI agents (MCP clients). Options considered: HTTP server (requires port management, auth, CORS), stdio MCP server (natural for agent tooling, zero config). Several tools (scaffold, ingest, backup, lint) are Python-only and using the TypeScript MCP server would require shelling out to `python3` for every call — slow and fragile.
+- **Decision:** The MCP server uses the `@modelcontextprotocol/sdk` over stdio transport. A `PythonSidecar` class (`mcp-server/src/sidecar.ts`) spawns a long-lived Python child process at server startup. Communication uses JSON-RPC 2.0 over stdio — the sidecar's stdin/stdout are the transport. Python-backed tools (scaffold, ingest, lint, backup, graph insights, link suggest) are delegated to the sidecar, avoiding per-call subprocess overhead. The sidecar auto-restarts on crash (at most one retry). The server serves 11 tools total.
+- **Consequences:** Easier: zero network config — stdio works everywhere. The sidecar pattern eliminated the 500–800ms per-call Python startup overhead. The MCP server is instantly usable by any agent that supports the MCP protocol. Harder: the sidecar doubles memory usage (TS + Python processes). JSON-RPC adds a serialization hop. The sidecar Python process must be kept alive and healthy — zombie detection is manual.

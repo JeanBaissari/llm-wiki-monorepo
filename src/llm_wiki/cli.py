@@ -14,6 +14,7 @@ Usage:
     llm-wiki benchmark <output-csv>
     llm-wiki migrate-log <wiki-root>
     llm-wiki discover <wiki-root> [--json]
+    llm-wiki serve <wiki-root> [--projects <names>]
 """
 
 import sys
@@ -34,6 +35,8 @@ COMMANDS = {
     "discover": "llm_wiki.discover",
     "index": "llm_wiki.index_wiki",
     "health": "llm_wiki.health_check",
+    "serve": "llm_wiki.serve",
+    "claims": "llm_wiki.claims",
 }
 
 

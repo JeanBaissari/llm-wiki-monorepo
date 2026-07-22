@@ -138,6 +138,19 @@ class OperationContext:
         self.ended_at = _iso_now()
         self.duration_ms = (time.monotonic() - self._start_time) * 1000
         emit_event(self, status)
+        self.write_manifest()
+
+    def write_manifest(self) -> None:
+        """Write a full operation manifest to log/operations/manifest-{run_id}.json."""
+        if not self.wiki_root:
+            return
+        manifest_dir = Path(self.wiki_root) / "log" / "operations"
+        manifest_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = manifest_dir / f"manifest-{self.run_id}.json"
+        try:
+            manifest_path.write_text(self.to_json(), encoding="utf-8")
+        except IOError as e:
+            print(f"  ⚠  Failed to write manifest: {e}", file=sys.stderr)
 
     def to_dict(self) -> dict:
         return {

@@ -28,6 +28,8 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
 
+from llm_wiki.frontmatter import parse_frontmatter
+
 
 # ── Logging helpers (prints to stderr so --json output stays clean) ────
 
@@ -38,32 +40,6 @@ def trace(msg: str):
 
 def fmt_trace() -> str:
     return "\n".join(f"  {t}" for t in TRACE)
-
-
-# ── Frontmatter parser (matches lint_wiki.py's implementation) ─────────
-
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
-
-def parse_frontmatter(text: str) -> dict:
-    m = FRONTMATTER_RE.match(text)
-    if not m:
-        return {}
-    result = {}
-    for line in m.group(1).splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or ":" not in line:
-            continue
-        key, _, val = line.partition(":")
-        key = key.strip()
-        val = val.strip()
-        if val.startswith("[") and val.endswith("]"):
-            inner = val[1:-1].strip()
-            result[key] = [x.strip().strip("\"'") for x in inner.split(",") if x.strip()] if inner else []
-        elif val.startswith(('"', "'")):
-            result[key] = val[1:-1]
-        else:
-            result[key] = val
-    return result
 
 
 # ── Date format detection ─────────────────────────────────────────────

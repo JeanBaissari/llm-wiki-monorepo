@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 claims.py — Optional claim/event/contradiction sidecar model for LLM Wiki.
 
@@ -6,8 +7,13 @@ Provides:
   - SidecarStorage for append-only JSONL records in wiki/.llm-wiki/
   - ClaimsManager for high-level operations
   - CLI commands: claims health, claims diff
+
+Usage:
+    python3 -m llm_wiki claims health <wiki-root>
+    python3 -m llm_wiki claims diff <wiki-root-a> <wiki-root-b>
 """
 
+import argparse
 import json
 import os
 import re
@@ -329,3 +335,37 @@ def cmd_diff(wiki_root_a: str, wiki_root_b: str) -> int:
             print(f"    ~ {c['claim_id']}: {c['before'].get('status')} -> {c['after'].get('status')}")
 
     return 1 if diff["added"] > 0 or diff["removed"] > 0 or diff["changed"] > 0 else 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Claim/event/contradiction sidecar management.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  llm-wiki claims health ~/my-wiki\n"
+            "  llm-wiki claims diff ~/my-wiki /tmp/snapshot"
+        ),
+    )
+    subparsers = parser.add_subparsers(dest="subcommand", help="Subcommand")
+
+    health_parser = subparsers.add_parser("health", help="Show claim sidecar health report")
+    health_parser.add_argument("wiki_root", help="Path to the wiki root directory")
+
+    diff_parser = subparsers.add_parser("diff", help="Compare claims between two wiki snapshots")
+    diff_parser.add_argument("wiki_root_a", help="Path to the first wiki root")
+    diff_parser.add_argument("wiki_root_b", help="Path to the second wiki root")
+
+    args = parser.parse_args()
+
+    if args.subcommand == "health":
+        return cmd_health(args.wiki_root)
+    elif args.subcommand == "diff":
+        return cmd_diff(args.wiki_root_a, args.wiki_root_b)
+    else:
+        parser.print_help()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

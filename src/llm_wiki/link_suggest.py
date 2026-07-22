@@ -362,16 +362,12 @@ def main() -> int:
     )
 
     if args.apply:
-        try:
-            from llm_wiki.operation import OperationContext
-            with OperationContext("link_suggest.apply", wiki_root=args.wiki_root,
-                                   inputs={"limit": args.limit, "min_confidence": args.min_confidence}) as ctx:
-                modified = apply_suggestions(pages, suggestions)
-                print(f"Applied {len(suggestions)} suggestions across {modified} page(s)")
-                ctx.succeed()
-        except ImportError:
+        from llm_wiki.operation import OperationContext
+        with OperationContext("link_suggest.apply", wiki_root=args.wiki_root,
+                               inputs={"limit": args.limit, "min_confidence": args.min_confidence}) as ctx:
             modified = apply_suggestions(pages, suggestions)
             print(f"Applied {len(suggestions)} suggestions across {modified} page(s)")
+            ctx.succeed()
     elif args.format == "json":
         output_json(suggestions)
     else:

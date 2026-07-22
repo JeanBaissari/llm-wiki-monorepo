@@ -30,6 +30,10 @@ interface ParsedPage {
 /**
  * Parse YAML frontmatter from markdown content.
  * Returns the frontmatter data and the body content.
+ *
+ * Canonical reference: Python implementation at
+ * src/llm_wiki/frontmatter.py (parse_frontmatter).
+ * Keep logic consistent between TypeScript and Python parsers.
  */
 function parseFrontmatter(content: string): { data: Record<string, unknown>; body: string } {
   const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);

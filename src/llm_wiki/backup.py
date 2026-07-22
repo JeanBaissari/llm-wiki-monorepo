@@ -410,48 +410,33 @@ def main() -> int:
               file=sys.stderr)
         return 1
 
-    try:
-        from llm_wiki.operation import OperationContext
-    except ImportError:
-        OperationContext = None
+    from llm_wiki.operation import OperationContext
 
     if args.snapshot:
-        if OperationContext:
-            with OperationContext("backup.snapshot", wiki_root=str(root)) as ctx:
-                ec = cmd_snapshot(root)
-                ctx.set_status("succeeded" if ec == 0 else "failed")
-        else:
+        with OperationContext("backup.snapshot", wiki_root=str(root)) as ctx:
             ec = cmd_snapshot(root)
+            ctx.set_status("succeeded" if ec == 0 else "failed")
         return ec
     elif args.restore:
-        if OperationContext:
-            with OperationContext("backup.restore", wiki_root=str(root),
-                                   inputs={"timestamp": args.restore}) as ctx:
-                ec = cmd_restore(root, args.restore)
-                ctx.set_status("succeeded" if ec == 0 else "failed")
-        else:
+        with OperationContext("backup.restore", wiki_root=str(root),
+                               inputs={"timestamp": args.restore}) as ctx:
             ec = cmd_restore(root, args.restore)
+            ctx.set_status("succeeded" if ec == 0 else "failed")
         return ec
     elif args.list:
         return cmd_list(root)
     elif args.verify:
         return cmd_verify(root)
     elif args.prune is not None:
-        if OperationContext:
-            with OperationContext("backup.prune", wiki_root=str(root),
-                                   inputs={"keep": args.prune}) as ctx:
-                ec = cmd_prune(root, args.prune)
-                ctx.set_status("succeeded" if ec == 0 else "failed")
-        else:
+        with OperationContext("backup.prune", wiki_root=str(root),
+                               inputs={"keep": args.prune}) as ctx:
             ec = cmd_prune(root, args.prune)
+            ctx.set_status("succeeded" if ec == 0 else "failed")
         return ec
     elif args.auto:
-        if OperationContext:
-            with OperationContext("backup.auto", wiki_root=str(root)) as ctx:
-                ec = cmd_auto(root)
-                ctx.set_status("succeeded" if ec == 0 else "failed")
-        else:
+        with OperationContext("backup.auto", wiki_root=str(root)) as ctx:
             ec = cmd_auto(root)
+            ctx.set_status("succeeded" if ec == 0 else "failed")
         return ec
 
     return 0

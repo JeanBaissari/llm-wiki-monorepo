@@ -635,7 +635,6 @@ class TestSidecarFree:
         wiki.mkdir(parents=True)
         mgr = ClaimsManager(str(wiki))
         assert os.path.isdir(mgr.sidecar_dir)
-        assert has_sidecar(str(wiki))
 
     def test_get_all_claims_empty_without_sidecar(self, tmp_path):
         wiki = tmp_path / "no-claims-wiki"

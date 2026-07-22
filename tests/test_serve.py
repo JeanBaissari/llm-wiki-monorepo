@@ -23,6 +23,14 @@ SRC_DIR = REPO_ROOT / "src"
 sys.path.insert(0, str(SRC_DIR))
 
 
+def _env_with_src():
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = str(SRC_DIR) + (os.pathsep + existing if existing else "")
+    return env
+
+
 SCAFFOLD_SCRIPT = REPO_ROOT / "skill" / "scripts" / "scaffold.py"
 
 
@@ -45,6 +53,7 @@ class TestServeHelp:
             text=True,
             timeout=10,
             cwd=str(REPO_ROOT),
+            env=_env_with_src(),
         )
         assert result.returncode == 0
         assert "Start the MCP server" in result.stdout
@@ -55,31 +64,23 @@ class TestServeStartup:
         wiki = tmp_path / "serve-test-wiki"
         _scaffold_wiki(wiki)
 
-        env = os.environ.copy()
-        env["PYTHONUNBUFFERED"] = "1"
-
         proc = subprocess.Popen(
             [sys.executable, "-m", "llm_wiki", "serve", str(wiki)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             cwd=str(REPO_ROOT),
-            env=env,
+            env=_env_with_src(),
         )
 
         try:
             time.sleep(2)
 
-            try:
-                stdout_data = proc.stdout.read(1024) if proc.stdout else ""
-                stderr_data = proc.stderr.read(1024) if proc.stderr else ""
-            except Exception:
-                stdout_data = ""
-                stderr_data = ""
-
-            assert proc.poll() is None, (
-                f"Serve process exited too early. stderr: {stderr_data[:500]}"
-            )
+            if proc.poll() is not None:
+                stderr_data = proc.stderr.read() if proc.stderr else ""
+                pytest.fail(
+                    f"Serve process exited too early (rc={proc.returncode}). stderr: {stderr_data[:500]}"
+                )
         finally:
             if proc.poll() is None:
                 proc.terminate()
@@ -95,21 +96,20 @@ class TestServeShutdown:
         wiki = tmp_path / "serve-shutdown-wiki"
         _scaffold_wiki(wiki)
 
-        env = os.environ.copy()
-        env["PYTHONUNBUFFERED"] = "1"
-
         proc = subprocess.Popen(
             [sys.executable, "-m", "llm_wiki", "serve", str(wiki)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             cwd=str(REPO_ROOT),
-            env=env,
+            env=_env_with_src(),
         )
 
         time.sleep(2)
 
-        assert proc.poll() is None, "Serve process should be running before SIGTERM"
+        if proc.poll() is not None:
+            stderr_data = proc.stderr.read() if proc.stderr else ""
+            pytest.fail(f"Serve process exited early. stderr: {stderr_data[:500]}")
 
         proc.send_signal(signal.SIGTERM)
 
@@ -126,21 +126,20 @@ class TestServeShutdown:
         wiki = tmp_path / "serve-sigint-wiki"
         _scaffold_wiki(wiki)
 
-        env = os.environ.copy()
-        env["PYTHONUNBUFFERED"] = "1"
-
         proc = subprocess.Popen(
             [sys.executable, "-m", "llm_wiki", "serve", str(wiki)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             cwd=str(REPO_ROOT),
-            env=env,
+            env=_env_with_src(),
         )
 
         time.sleep(2)
 
-        assert proc.poll() is None, "Serve process should be running before SIGINT"
+        if proc.poll() is not None:
+            stderr_data = proc.stderr.read() if proc.stderr else ""
+            pytest.fail(f"Serve process exited early. stderr: {stderr_data[:500]}")
 
         proc.send_signal(signal.SIGINT)
 

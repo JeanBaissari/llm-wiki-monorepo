@@ -9,6 +9,7 @@ All wiki pages must include these fields in YAML frontmatter:
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `schema_version` | string | Schema version hash (first 8 hex chars of SHA256 of canonical schema) |
 | `title` | string | Human-readable page title |
 | `type` | enum | One of: entity, concept, source, comparison, synthesis, overview |
 | `created` | date | YYYY-MM-DD creation date |

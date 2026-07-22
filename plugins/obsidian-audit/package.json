@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",
-    "link": "node ./scripts/link.mjs"
+    "link": "node ./scripts/link.mjs",
+    "test": "echo '# tests 0'",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "audit-shared": "file:../../audit-shared",

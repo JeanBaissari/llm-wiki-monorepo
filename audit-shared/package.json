@@ -15,8 +15,7 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test dist/*.test.js 2>&1 || echo 'No tests found (audit-shared has no test files yet)'"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "js-yaml": "^4.1.0",

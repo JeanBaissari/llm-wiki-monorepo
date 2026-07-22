@@ -1,3 +1,5 @@
+<!-- Generated from schema/versions/v0.2.1/page.schema.json. DO NOT EDIT. -->
+
 # Shared Template Primitives
 
 These are the base building blocks that all domain templates extend.

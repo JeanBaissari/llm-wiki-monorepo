@@ -8,7 +8,9 @@
     "build": "node build-client.mjs",
     "prestart": "npm run build",
     "start": "tsx server/index.ts",
-    "dev": "tsx watch server/index.ts"
+    "dev": "tsx watch server/index.ts",
+    "test": "echo '# tests 0'",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "audit-shared": "file:../audit-shared",

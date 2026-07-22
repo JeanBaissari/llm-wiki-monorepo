@@ -65,7 +65,7 @@ class TestGoldenPath:
 
     def test_full_pipeline(self, integration_wiki, integration_source, monkeypatch):
         """Run the full pipeline with mock LLM responses."""
-        import ingest as ingest_mod
+        import llm_wiki.ingest as ingest_mod
 
         # Mock LLM for both stages
         def mock_llm(system, user, provider="default", total_timeout=None):
@@ -220,7 +220,7 @@ description: Consider adding details about different GC algorithms.
                "Memory Management" in index_content
 
         # Step 8: Run lint on the result
-        import lint_wiki
+        import llm_wiki.lint_wiki as lint_wiki
         lint_result = lint_wiki.lint(str(integration_wiki))
         # Should have no or minimal issues
         # (index might have extra entries, etc.)
@@ -242,7 +242,7 @@ description: Consider adding details about different GC algorithms.
 
     def test_cache_reuse_across_ingests(self, integration_wiki, integration_source, monkeypatch):
         """Second ingest should reuse cached analysis."""
-        import ingest as ingest_mod
+        import llm_wiki.ingest as ingest_mod
 
         stage1_calls = [0]
 

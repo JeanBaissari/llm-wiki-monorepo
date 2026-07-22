@@ -20,9 +20,10 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "skill" / "scripts"))
+SRC_DIR = REPO_ROOT / "src"
+sys.path.insert(0, str(SRC_DIR))
 
-from lint_wiki import (
+from llm_wiki.lint_wiki import (
     lint,
     load_pages,
     extract_wikilinks,

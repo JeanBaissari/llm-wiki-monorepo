@@ -26,16 +26,15 @@ from pathlib import Path
 
 import pytest
 
-# Ensure skill/scripts is on sys.path
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = REPO_ROOT / "skill" / "scripts"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
-from lock_wiki import WikiLock, DEFAULT_LOCK_TIMEOUT, clean_stale_locks
-from atomic_write import atomic_write, cleanup_temp_files
-from content_hash import compute_hash, read_hash, inject_hash, HASH_FIELD
-from ingest import write_wiki, write_file, update_index, read_file
+from llm_wiki.lock_wiki import WikiLock, DEFAULT_LOCK_TIMEOUT, clean_stale_locks
+from llm_wiki.atomic_write import atomic_write, cleanup_temp_files
+from llm_wiki.content_hash import compute_hash, read_hash, inject_hash, HASH_FIELD
+from llm_wiki.ingest import write_wiki, write_file, update_index, read_file
 
 
 # ══════════════════════════════════════════════════════════════════════════

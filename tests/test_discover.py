@@ -16,9 +16,10 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "skill" / "scripts"))
+SRC_DIR = REPO_ROOT / "src"
+sys.path.insert(0, str(SRC_DIR))
 
-from discover import (
+from llm_wiki.discover import (
     discover_layout,
     WikiLayout,
     find_first_dir,

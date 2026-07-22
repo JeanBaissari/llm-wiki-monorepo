@@ -34,10 +34,10 @@ if SIDECAR_TMP and os.path.isdir(SIDECAR_TMP):
     except Exception:
         pass
 
-# Ensure import paths for sibling scripts
-_SCRIPT_DIR = str(Path(__file__).resolve().parent)
-if _SCRIPT_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPT_DIR)
+# Ensure import paths for package modules
+_PACKAGE_DIR = str(Path(__file__).resolve().parents[2] / "src")
+if _PACKAGE_DIR not in sys.path:
+    sys.path.insert(0, _PACKAGE_DIR)
 
 # ── Handler Registry ─────────────────────────────────────────────────────────
 handlers: dict[str, Callable[[dict], Any]] = {}
@@ -63,7 +63,7 @@ def handle_health(params: dict) -> dict:
 def handle_lint_wiki(params: dict) -> dict:
     """Run lint checks on wiki pages. Dynamic import for graceful fallback."""
     try:
-        from lint_wiki import lint_files
+        from llm_wiki.lint_wiki import lint_files
     except ImportError as e:
         return {"error": f"lint_wiki module not available: {e}"}
 
@@ -80,7 +80,7 @@ def handle_lint_wiki(params: dict) -> dict:
 def handle_ingest(params: dict) -> dict:
     """Ingest a source file into the wiki. Dynamic import for graceful fallback."""
     try:
-        from ingest import ingest_source
+        from llm_wiki.ingest import ingest
     except ImportError as e:
         return {"error": f"ingest module not available: {e}"}
 
@@ -90,7 +90,7 @@ def handle_ingest(params: dict) -> dict:
         return {"error": "missing required parameter: source_path"}
 
     options = params.get("options", {})
-    return ingest_source(
+    return ingest(
         wiki_root=wiki_root,
         source_path=source_path,
         **options,
@@ -101,7 +101,7 @@ def handle_ingest(params: dict) -> dict:
 def handle_suggest_links(params: dict) -> dict:
     """Suggest missing wikilinks for wiki pages. Uses link_suggest.py."""
     try:
-        from link_suggest import (
+        from llm_wiki.link_suggest import (
             load_pages,
             build_entity_registry,
             build_inverted_index,
@@ -111,7 +111,7 @@ def handle_suggest_links(params: dict) -> dict:
         return {"error": f"link_suggest module not available: {e}"}
 
     try:
-        from discover import discover_layout
+        from llm_wiki.discover import discover_layout
     except ImportError as e:
         return {"error": f"discover module not available: {e}"}
 
@@ -149,7 +149,7 @@ def handle_suggest_links(params: dict) -> dict:
 
     inverted = build_inverted_index(pages, registry)
     suggestions = generate_suggestions(
-        pages, registry, wiki_dir, limit, threshold, inverted
+        pages, registry, wiki_dir, limit, threshold
     )
 
     # Strip Path objects for JSON serialization
@@ -179,7 +179,7 @@ def handle_backup(params: dict) -> dict:
     import contextlib
 
     try:
-        from backup import cmd_snapshot, snapshot_path, backups_dir
+        from llm_wiki.backup import cmd_snapshot, snapshot_path, backups_dir
     except ImportError as e:
         return {"error": f"backup module not available: {e}"}
 
@@ -239,12 +239,12 @@ def handle_backup(params: dict) -> dict:
 def handle_discover_entities(params: dict) -> dict:
     """Discover all entities registered in the wiki. Uses link_suggest.py registry builder."""
     try:
-        from link_suggest import load_pages, build_entity_registry
+        from llm_wiki.link_suggest import load_pages, build_entity_registry
     except ImportError as e:
         return {"error": f"link_suggest module not available: {e}"}
 
     try:
-        from discover import discover_layout
+        from llm_wiki.discover import discover_layout
     except ImportError as e:
         return {"error": f"discover module not available: {e}"}
 

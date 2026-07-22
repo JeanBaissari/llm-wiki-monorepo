@@ -14,8 +14,8 @@ Requirements:
 import sys
 from collections import defaultdict
 
-# conftest.py adds skill/scripts to sys.path, so louvain is importable
-from louvain import (
+# conftest.py adds src to sys.path, so louvain is importable
+from llm_wiki.louvain import (
     detect_communities,
     louvain,
     _renumber_size_descending,

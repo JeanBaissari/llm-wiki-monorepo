@@ -19,9 +19,11 @@ from pathlib import Path
 
 import pytest
 
-# ── Ensure skill/scripts is importable ────────────────────────────────────
+# ── Ensure src is importable ────────────────────────────────────
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "skill" / "scripts"))
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -57,14 +59,14 @@ class TestMultiMarkerDetection:
 
     def test_hermes_session_id(self, monkeypatch):
         monkeypatch.setenv("HERMES_SESSION_ID", "hs-001")
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         assert p.session_id == "hs-001"
 
     def test_claude_code_session(self, monkeypatch):
         monkeypatch.setenv("CLAUDE_CODE_SESSION", "cc-002")
         monkeypatch.delenv("HERMES_SESSION_ID", raising=False)
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         assert p.session_id == "cc-002"
 
@@ -72,7 +74,7 @@ class TestMultiMarkerDetection:
         monkeypatch.setenv("CODEX_SESSION", "cx-003")
         monkeypatch.delenv("HERMES_SESSION_ID", raising=False)
         monkeypatch.delenv("CLAUDE_CODE_SESSION", raising=False)
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         assert p.session_id == "cx-003"
 
@@ -85,8 +87,8 @@ class TestMultiMarkerDetection:
         monkeypatch.delenv("HERMES_SESSION_ID", raising=False)
         monkeypatch.delenv("CLAUDE_CODE_SESSION", raising=False)
         monkeypatch.delenv("CODEX_SESSION", raising=False)
-        from providers.opencode import OpenCodeProvider
-        from providers import ProviderNotAvailableError
+        from llm_wiki.providers.opencode import OpenCodeProvider
+        from llm_wiki.providers import ProviderNotAvailableError
         # LLM_WIKI_AGENT_MODE alone does NOT set session_id —
         # the provider needs a session marker
         with pytest.raises(ProviderNotAvailableError):
@@ -97,21 +99,21 @@ class TestMultiMarkerDetection:
         monkeypatch.setenv("HERMES_SESSION_ID", "hermes-first")
         monkeypatch.setenv("CLAUDE_CODE_SESSION", "claude-second")
         monkeypatch.setenv("CODEX_SESSION", "codex-third")
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         assert p.session_id == "hermes-first"
 
     def test_model_from_env(self, monkeypatch):
         monkeypatch.setenv("HERMES_SESSION_ID", "test")
         monkeypatch.setenv("HERMES_MODEL", "claude-sonnet-4")
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         assert p.model == "claude-sonnet-4"
 
     def test_model_default(self, monkeypatch):
         monkeypatch.setenv("HERMES_SESSION_ID", "test")
         monkeypatch.delenv("HERMES_MODEL", raising=False)
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         assert p.model == "agent-native"
 
@@ -125,20 +127,20 @@ class TestProviderCapabilities:
 
     def test_supports_streaming(self, monkeypatch):
         monkeypatch.setenv("HERMES_SESSION_ID", "test")
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         assert p.supports_streaming is True
 
     def test_supports_structured_output(self, monkeypatch):
         monkeypatch.setenv("HERMES_SESSION_ID", "test")
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         assert p.supports_structured_output is True
 
     def test_request_counter_increments(self, monkeypatch):
         monkeypatch.setenv("HERMES_SESSION_ID", "test")
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         initial = p._request_counter
         # call() will increment the counter even if it times out
@@ -160,7 +162,7 @@ class TestResponseFileFallback:
         rf.write_text("# Response content\n\nHello world.")
         monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE", str(rf))
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         resp = p.call("sys", "user")
         assert resp is not None
@@ -176,7 +178,7 @@ class TestResponseFileFallback:
         rf.write_text("   \n  ")  # whitespace only → stripped → empty
         monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE", str(rf))
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         resp = p.call("sys", "user")
         # Empty content after strip → falls through to stderr fallback
@@ -191,7 +193,7 @@ class TestResponseFileFallback:
         monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE",
                            str(tmp_path / "nonexistent.txt"))
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         resp = p.call("sys", "user")
         # Falls through to stderr fallback
@@ -215,7 +217,7 @@ class TestPipeIPC:
         monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "5")
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
 
         # We need to write the response BEFORE the provider polls.
@@ -261,7 +263,7 @@ class TestPipeIPC:
             # read the response directly.
             response_path = req_dir / "response.json"
             resp_data = json.loads(response_path.read_text())
-            from providers import LLMResponse
+            from llm_wiki.providers import LLMResponse
             return LLMResponse(
                 text=resp_data.get("response", ""),
                 model=resp_data.get("model", p.model),
@@ -285,7 +287,7 @@ class TestPipeIPC:
         monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(tmp_path / "opencode"))
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         # No response file set, no parent agent → should time out
         # and fall through to stderr fallback
@@ -302,7 +304,7 @@ class TestPipeIPC:
         monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "3")
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
 
         import providers.opencode as oc_module
@@ -332,7 +334,7 @@ class TestPipeIPC:
         monkeypatch.setenv("HERMES_MODEL", "deepseek-v4-pro")
         monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
 
         import providers.opencode as oc_module
@@ -350,7 +352,7 @@ class TestPipeIPC:
         # Write response with explicit model
         write_pipe_response(req_dir, "Hello!", model="response-model-override")
 
-        from providers import LLMResponse
+        from llm_wiki.providers import LLMResponse
         resp_data = json.loads(
             (req_dir / "response.json").read_text())
         resp = LLMResponse(
@@ -378,7 +380,7 @@ class TestStderrFallback:
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         resp = p.call("sys", "user")
         assert resp is not None
@@ -393,7 +395,7 @@ class TestStderrFallback:
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         p.call("SYSTEM INSTRUCTIONS", "USER QUERY")
 
@@ -414,14 +416,14 @@ class TestProviderDetectionPriority:
         monkeypatch.setenv("HERMES_SESSION_ID", "test")
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
-        from providers import detect_default_provider
+        from llm_wiki.providers import detect_default_provider
         assert detect_default_provider() == "opencode"
 
     def test_openai_fallback(self, monkeypatch):
         monkeypatch.delenv("HERMES_SESSION_ID", raising=False)
         monkeypatch.delenv("LLM_WIKI_AGENT_MODE", raising=False)
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
-        from providers import detect_default_provider
+        from llm_wiki.providers import detect_default_provider
         assert detect_default_provider() == "openai"
 
     def test_anthropic_fallback(self, monkeypatch):
@@ -429,7 +431,7 @@ class TestProviderDetectionPriority:
         monkeypatch.delenv("LLM_WIKI_AGENT_MODE", raising=False)
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
-        from providers import detect_default_provider
+        from llm_wiki.providers import detect_default_provider
         assert detect_default_provider() == "anthropic"
 
     def test_default_fallback(self, monkeypatch):
@@ -437,7 +439,7 @@ class TestProviderDetectionPriority:
         monkeypatch.delenv("LLM_WIKI_AGENT_MODE", raising=False)
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-        from providers import detect_default_provider
+        from llm_wiki.providers import detect_default_provider
         assert detect_default_provider() == "default"
 
 
@@ -449,7 +451,7 @@ class TestLLMResponse:
     """LLMResponse data class behavior."""
 
     def test_basic_fields(self):
-        from providers import LLMResponse
+        from llm_wiki.providers import LLMResponse
         r = LLMResponse(
             text="Hello world",
             model="test-model",
@@ -466,17 +468,17 @@ class TestLLMResponse:
         assert r.provider == "test"
 
     def test_total_tokens(self):
-        from providers import LLMResponse
+        from llm_wiki.providers import LLMResponse
         r = LLMResponse(text="x", input_tokens=10, output_tokens=20)
         assert r.total_tokens == 30
 
     def test_str_returns_text(self):
-        from providers import LLMResponse
+        from llm_wiki.providers import LLMResponse
         r = LLMResponse(text="response text")
         assert str(r) == "response text"
 
     def test_defaults(self):
-        from providers import LLMResponse
+        from llm_wiki.providers import LLMResponse
         r = LLMResponse(text="")
         assert r.model == "unknown"
         assert r.input_tokens == 0
@@ -636,7 +638,7 @@ class TestErrorPaths:
         opcode_dir.write_text("blocking file")  # not a directory
         monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         # _call_via_pipe will try mkdir inside a file path → OSError
         resp = p._call_via_pipe("sys", "user", timeout=2)
@@ -650,7 +652,7 @@ class TestErrorPaths:
         monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "3")
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         import providers.opencode as oc_module
         p = OpenCodeProvider()
 
@@ -677,7 +679,7 @@ class TestErrorPaths:
         # Point to a path that exists but is a directory (can't read as text)
         monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE", str(tmp_path))
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         resp = p._call_via_response_file("sys", "user")
         # IOError/OSError → returns None
@@ -699,7 +701,7 @@ class TestErrorPaths:
         import importlib
         importlib.reload(oc_module)
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         # Let it write the prompt, then verify the file exists
         p._call_via_pipe("SYSTEM TEXT", "USER TEXT", timeout=1)
@@ -729,7 +731,7 @@ class TestErrorPaths:
         import importlib
         importlib.reload(oc_module)
 
-        from providers.opencode import OpenCodeProvider
+        from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         p._call_via_pipe("sys", "user", timeout=1)
 

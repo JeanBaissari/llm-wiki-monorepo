@@ -42,3 +42,4 @@ skill/references/opencode-tutorial.md
 Thumbs.db
 _internal/
 .coverage
+reports/release-certification.json

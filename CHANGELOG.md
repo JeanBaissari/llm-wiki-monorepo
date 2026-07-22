@@ -22,7 +22,7 @@
 - Test matrix: Python 3.10–3.12, Node 18–22
 - Coverage: ≥80% Python, ≥70% TypeScript (report-only initially, blocking after 3 consecutive ≥80% runs)
 - Static fixture wikis: empty, minimal, stale, populated (50+ pages with cross-references)
-- Legacy test files (`test_ingest_blocks.py`, `test_ingest_e2e.py`) migrated to pytest and deleted
+- Legacy test files (`test_ingest_blocks.py`, `test_ingest_e2e.py`) migrated to pytest and deleted (completed in v0.2.1)
 - CI caching for pip + npm (~30s with warm cache)
 
 #### LWM_01B: Test Fixture Lifecycle
@@ -151,7 +151,7 @@
 ### Breaking Changes
 - Python stdlib-only constraint removed — `pip install` now required (see `install.sh`)
 - `getNeighbors()` and `getNodeDegree()` removed from graph-engine exports
-- Legacy `test_ingest_blocks.py` and `test_ingest_e2e.py` deleted (migrated to pytest)
+- Legacy `test_ingest_blocks.py` and `test_ingest_e2e.py` deleted in v0.2.1 (previously migrated to pytest)
 - Label propagation algorithm replaced with Louvain (runtime warning on old cached data)
 
 ### Dependencies Added

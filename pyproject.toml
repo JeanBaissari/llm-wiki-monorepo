@@ -62,6 +62,7 @@ llm-wiki-audit = "llm_wiki.audit_review:main"
 llm-wiki-discover = "llm_wiki.discover:main"
 llm-wiki-index = "llm_wiki.index_wiki:main"
 llm-wiki-health = "llm_wiki.health_check:main"
+llm-wiki-serve = "llm_wiki.serve:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-cov>=5.0"]

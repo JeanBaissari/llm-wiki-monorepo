@@ -18,7 +18,7 @@ A complete knowledge base operating system. It takes raw source documents and AI
    Agent Skill          MCP Server           Graph Engine
    (Python + MD)        (TypeScript)         (TypeScript)
    in-conversation      programmatic         relevance model
-   workflows            8 tools via stdio    Louvain communities
+    workflows            14 tools via stdio    Louvain communities
                                              graph insights
 ```
 
@@ -29,7 +29,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 | Dir | Language | What it does | When to touch it |
 |-----|----------|-------------|-----------------|
 | `skill/` | Python + MD | Agent skill: SKILL.md + 13 scripts + 10 references | Agent operations, scripts, docs |
-| `mcp-server/` | TypeScript | MCP server: 8 tools via stdio | Programmatic wiki access |
+| `mcp-server/` | TypeScript | MCP server: 14 tools via stdio | Programmatic wiki access |
 | `graph-engine/` | TypeScript | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
 | `templates/` | MD + JSON | 20 domain templates for scaffold.py | Adding/modifying project templates |
 | `web-viewer/` | TypeScript | Local preview server: mermaid, KaTeX, feedback | UI changes |
@@ -122,7 +122,7 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 | `skill/scripts/backup.py` | Snapshot, restore, integrity verification — `--auto` one-command safe state. |
 | `skill/scripts/link_suggest.py` | Suggests missing wikilinks from entities — `--apply` auto-adds them. |
 | `skill/scripts/benchmark.py` | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages. |
-| `mcp-server/src/index.ts` | MCP server entry. 8 tool handlers. Built with @modelcontextprotocol/sdk. |
+| `mcp-server/src/index.ts` | MCP server entry. 14 tool handlers. Built with @modelcontextprotocol/sdk. |
 | `graph-engine/src/index.ts` | Graph CLI. `--action build|insights|search|relevance`. |
 | `graph-engine/src/relevance.ts` | 4-signal relevance model — ported from nashsu/llm_wiki. |
 | `graph-engine/src/louvain.ts` | Louvain community detection — uses graphology library. |

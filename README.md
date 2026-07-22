@@ -57,13 +57,13 @@ It's a monorepo of everything needed to run a self-building wiki: a Python CLI p
 
 - **Inverted Entity Index** — dual-map entity→pages + page→entities for O(1) link suggestions. 4-signal scoring with automatic wikilink insertion.
 
-- **MCP Server** — 10 stdio tools for programmatic wiki access. Direct Python sidecar with zero subprocess overhead. Integrates with Claude Desktop, Codex, Cursor, and any MCP-compatible client.
+- **MCP Server** — 14 stdio tools for programmatic wiki access. Direct Python sidecar with zero subprocess overhead. Integrates with Claude Desktop, Codex, Cursor, and any MCP-compatible client.
 
 - **Community Verification Suite** — NMI/ARI cross-validation across 5 seeds, statistical similarity metrics, modularity tolerance within 1% relative error.
 
 - **Backup & Recovery** — tar.gz snapshots with restore, integrity verification, and automatic pruning. One-command `--auto` for safe state.
 
-- **19 Domain Templates** — research, codebase, finance, machine learning, cybersecurity, medicine, algorithmic trading, and more. Every template ships with PURPOSE.md, SCHEMA.md → CLAUDE.md, and extra-dirs.json.
+- **20 Domain Templates** — research, codebase, finance, machine learning, cybersecurity, medicine, algorithmic trading, and more. Every template ships with PURPOSE.md, SCHEMA.md → CLAUDE.md, and extra-dirs.json.
 
 - **Deep Research** — web search → fetch → ingest → synthesize. Multi-source compilation into structured wiki pages.
 
@@ -122,13 +122,13 @@ wiki/ directory  ← shared state (Markdown files)
      │                                     index_wiki, louvain, health_check, wiki_logging
      ├── LLM Provider Layer             → openai, anthropic, litellm, opencode
      │   (src/llm_wiki/ + skill/scripts/providers/)
-     ├── MCP Server (stdio)             → programmatic access, 10 tools,
+     ├── MCP Server (stdio)             → programmatic access, 14 tools,
      │                                     direct sidecar (zero subprocess)
      ├── Graph Engine (Node.js)         → relevance model, Louvain, insights,
      │                                     graphology bridge, verification suite
      ├── Web Viewer + Obsidian Plugin   → human browsing + feedback
      ├── Browser Extension              → web clipping + auto-ingest
-     └── templates/                     → 19 domain schemas
+     └── templates/                     → 20 domain schemas
 ```
 
 ## Packages
@@ -137,9 +137,9 @@ wiki/ directory  ← shared state (Markdown files)
 |---------|----------|---------|
 | `skill/` | Python + Markdown | Agent skill (8 operations) + 20+ scripts + 12 reference docs |
 | `src/llm_wiki/` | Python | PyPI package — CLI, LLM providers, concurrency, search, graph insights |
-| `mcp-server/` | TypeScript | MCP server — 10 tools, direct sidecar integration |
+| `mcp-server/` | TypeScript | MCP server — 14 tools, direct sidecar integration |
 | `graph-engine/` | TypeScript | Knowledge graph — relevance, Louvain communities, insights, verification |
-| `templates/` | Markdown + JSON | 19 domain-specific project templates |
+| `templates/` | Markdown + JSON | 20 domain-specific project templates |
 | `tests/` | Python + TypeScript | pytest (ingest, lint, concurrency, search, opencode) + vitest (graph, mcp) |
 | `web-viewer/` | TypeScript | Preview server with search + graph insights panel |
 | `extension/` | JavaScript | Chrome web clipper with auto-ingest |

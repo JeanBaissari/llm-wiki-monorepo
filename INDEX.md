@@ -63,13 +63,13 @@ Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit
 
 ## `mcp-server/` — Standalone MCP Server
 
-TypeScript. 8 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wiki (`--projects`) mode.
+TypeScript. 14 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wiki (`--projects`) mode.
 
 | File | Purpose |
 |------|---------|
 | `package.json` | Dependencies: `@modelcontextprotocol/sdk` |
 | `tsconfig.json` | TypeScript config — ES2022, strict mode |
-| `src/index.ts` | Main server — 8 tool handlers, JSON-RPC via stdio |
+| `src/index.ts` | Main server — 14 tool handlers, JSON-RPC via stdio |
 | `src/types.ts` | Shared types: WikiProject, FileNode, SearchResult, ReviewItem, GraphNode, LintIssue |
 | `src/wiki-fs.ts` | Filesystem adapter — list, read, write, find, fileExists, ensureDir |
 | `src/search.ts` | BM25 search engine — pure TypeScript, no dependencies, ranked results with snippets |
@@ -100,7 +100,7 @@ TypeScript. Relevance model, Louvain communities, graph insights.
 
 ---
 
-## `templates/` — 19 Domain Templates
+## `templates/` — 20 Domain Templates
 
 Each template directory contains:
 

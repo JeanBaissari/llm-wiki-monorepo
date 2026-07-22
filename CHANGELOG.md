@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.1] — 2026-07-22
+
+### Release Integrity (LWM_003 + LWM_004)
+
+- Release manifest (`release-manifest.json`) — machine-readable contract for version, CLI, MCP tools, templates, docs
+- Release manifest validator (`scripts/release_manifest.py`) — checks version consistency across pyproject.toml, __init__.py, package.json, CHANGELOG.md, and console script imports
+- Docs truth checker (`scripts/docs_truth_check.py`) — validates MCP tool counts, template counts, and CLI command claims in README, AGENTS, INDEX, QUICKGUIDE
+- Workspace membership: `graph-bridge` and `plugins/obsidian-audit` added to root npm workspaces
+- Package test gates: `graph-engine` tests run via vitest; `audit-shared` explicitly acknowledges zero-test state
+- Zero-test guard (`scripts/zero_test_guard.py`) — detects package test commands that run zero tests
+- CI matrix: Python 3.10–3.12, Node 18/20/22; TypeScript typecheck + test gate; Python coverage; release manifest validation
+
 ## [0.2.0] — 2026-07-04
 
 ### Phase 1 — Foundation (6 PRDs)

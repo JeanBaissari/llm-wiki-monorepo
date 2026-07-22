@@ -1,0 +1,58 @@
+name: Verify Release
+
+on:
+  pull_request:
+    branches: [main, master, v0.2.1/stabilization]
+    paths:
+      - 'pyproject.toml'
+      - 'src/llm_wiki/__init__.py'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'CHANGELOG.md'
+      - 'release-manifest.json'
+      - 'mcp-server/src/index.ts'
+      - 'templates/**'
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'INDEX.md'
+      - 'QUICKGUIDE.md'
+      - 'VERSIONING.md'
+  workflow_dispatch:
+
+jobs:
+  release-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Run release manifest validation
+        id: manifest
+        run: |
+          python3 scripts/release_manifest.py --json > /tmp/release-manifest-report.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/release-manifest-report.json
+
+      - name: Run docs truth check
+        id: docs
+        run: |
+          python3 scripts/docs_truth_check.py --json > /tmp/docs-truth-report.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/docs-truth-report.json
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-validation-reports
+          path: |
+            /tmp/release-manifest-report.json
+            /tmp/docs-truth-report.json
+
+      - name: Fail on validation errors
+        if: steps.manifest.outputs.exit_code != 0 || steps.docs.outputs.exit_code != 0
+        run: |
+          echo "Release validation failed. Check uploaded artifacts for details."
+          exit 1

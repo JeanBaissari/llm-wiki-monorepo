@@ -7,24 +7,108 @@ on:
     branches: [main, master]
 
 jobs:
-  ci:
+  release-manifest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - uses: actions/setup-node@v3
+      - name: Run release manifest validation
+        id: manifest
+        run: |
+          python3 scripts/release_manifest.py --json > /tmp/release-manifest-report.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/release-manifest-report.json
+
+      - name: Run docs truth check
+        id: docs
+        run: |
+          python3 scripts/docs_truth_check.py --json > /tmp/docs-truth-report.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/docs-truth-report.json
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
         with:
-          node-version: "18"
+          name: release-validation-reports
+          path: |
+            /tmp/release-manifest-report.json
+            /tmp/docs-truth-report.json
+
+      - name: Fail on validation errors
+        if: steps.manifest.outputs.exit_code != 0 || steps.docs.outputs.exit_code != 0
+        run: |
+          echo "Release validation failed"
+          exit 1
+
+  typescript-workspaces:
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Build all packages
+        run: npm run build --workspaces --if-present
+
+      - name: Typecheck all packages
+        run: npm run typecheck --workspaces --if-present
+
+      - name: Run TypeScript tests
+        run: npm run test:ts
+
+      - name: Zero-test guard
+        run: python3 scripts/zero_test_guard.py --test-command "npm test" --packages graph-engine mcp-server audit-shared --allow-zero audit-shared
+
+  python:
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Check Python scripts syntax
         run: |
           for f in skill/scripts/*.py; do
             python3 -c "import py_compile; py_compile.compile('$f', doraise=True)"
           done
+
+      - name: Install Python test dependencies
+        run: pip install -e ".[dev,test]"
+
+      - name: Run pytest with coverage
+        run: python3 -m pytest tests/ -v --cov=src/llm_wiki --cov-report=term --cov-report=xml
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-python-${{ matrix.python-version }}
+          path: coverage.xml
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
 
       - name: Install npm dependencies
         run: npm install
@@ -40,9 +124,6 @@ jobs:
 
       - name: Install Python test dependencies
         run: pip install -e ".[dev,test]"
-
-      - name: Run pytest
-        run: python3 -m pytest tests/ -v
 
       - name: Scaffold test wiki
         run: python3 skill/scripts/scaffold.py /tmp/ci-test "CI Test" --template codebase --force

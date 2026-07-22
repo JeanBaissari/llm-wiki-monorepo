@@ -24,6 +24,8 @@ import {
   readFile,
   findMdFiles,
   fileExists,
+  safeJoin,
+  isBinaryExtension,
 } from "./wiki-fs.js";
 import { buildIndex, search } from "./search.js";
 import { discoverLayout, WikiLayout } from "./discover.js";
@@ -272,6 +274,7 @@ async function handleFiles(args: Record<string, unknown>): Promise<ToolResult> {
 
 /**
  * 3. llm_wiki_read_file — Read a file, truncated at 120KB.
+ * [side_effect: read_only]
  */
 async function handleReadFile(args: Record<string, unknown>): Promise<ToolResult> {
   try {
@@ -281,9 +284,12 @@ async function handleReadFile(args: Record<string, unknown>): Promise<ToolResult
       return errorResult("Missing required argument: path");
     }
 
-    const resolved = path.isAbsolute(filePath)
-      ? filePath
-      : path.join(layout.pages_dir, filePath);
+    // Project-relative path only — safeJoin rejects absolute paths
+    const resolved = safeJoin(layout.root, filePath);
+
+    if (isBinaryExtension(resolved)) {
+      return errorResult(`Binary files are not readable: "${resolved}". Text files only.`);
+    }
 
     const exists = await fileExists(resolved);
     if (!exists) {
@@ -669,9 +675,7 @@ async function handleIngest(args: Record<string, unknown>): Promise<ToolResult> 
       return errorResult("Missing required argument: source_path");
     }
 
-    const resolvedSource = path.isAbsolute(sourcePath)
-      ? sourcePath
-      : path.join(wp, sourcePath);
+    const resolvedSource = safeJoin(wp, sourcePath);
 
     const exists = await fileExists(resolvedSource);
     if (!exists) {
@@ -917,11 +921,18 @@ const PROJECT_PARAM = {
   },
 };
 
+const SIDE_EFFECT = {
+  READ_ONLY: " [side_effect: read_only]",
+  WRITE_PROJECT: " [side_effect: write_project]",
+  WRITE_BACKUP: " [side_effect: write_backup]",
+  EXTERNAL_PROCESS: " [side_effect: external_process]",
+};
+
 const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_status",
     description:
-      "Check wiki status — health, page count, last ingest date, open review count.",
+      `Check wiki status — health, page count, last ingest date, open review count.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: { ...PROJECT_PARAM },
@@ -931,7 +942,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_files",
     description:
-      "List files in the wiki or sources directory as a formatted file tree.",
+      `List files in the wiki or sources directory as a formatted file tree.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -951,14 +962,14 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_read_file",
     description:
-      "Read the contents of a file. Truncated at 120KB. Path relative to wiki root if not absolute.",
+      `Read the contents of a file. Project-relative path only. Truncated at 120KB. Allow-listed directories: wiki, raw, audit, logs, plus PURPOSE.md, CLAUDE.md, SCHEMA.md.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: {
         ...PROJECT_PARAM,
         path: {
           type: "string",
-          description: "Path to the file (absolute or relative to wiki root)",
+          description: "Project-relative path to the file (e.g. wiki/index.md). Absolute paths rejected.",
         },
       },
       required: ["path"],
@@ -967,7 +978,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_reviews",
     description:
-      "List wiki reviews, optionally filtered by status.",
+      `List wiki reviews, optionally filtered by status.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -983,7 +994,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_search",
     description:
-      "FTS5 full-text search over wiki markdown pages. Returns ranked results with snippets.",
+      `FTS5 full-text search over wiki markdown pages. Returns ranked results with snippets.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -1003,7 +1014,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_graph",
     description:
-      "Knowledge graph operations: build, insights, or search. (Backward-compatible wrapper — see llm_wiki_graph_build, _insights, _search for individual tools.)",
+      `Knowledge graph operations: build, insights, or search. (Backward-compatible wrapper — see llm_wiki_graph_build, _insights, _search for individual tools.)${SIDE_EFFECT.WRITE_PROJECT}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -1024,7 +1035,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_graph_build",
     description:
-      "Build the knowledge graph from wiki markdown files. Uses direct graph-engine import — zero subprocess.",
+      `Build the knowledge graph from wiki markdown files. Uses direct graph-engine import — zero subprocess.${SIDE_EFFECT.WRITE_PROJECT}`,
     inputSchema: {
       type: "object",
       properties: { ...PROJECT_PARAM },
@@ -1034,7 +1045,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_graph_insights",
     description:
-      "Get graph insights — surprising connections and knowledge gaps. Uses direct graph-engine import.",
+      `Get graph insights — surprising connections and knowledge gaps. Uses direct graph-engine import.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: { ...PROJECT_PARAM },
@@ -1044,7 +1055,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_graph_search",
     description:
-      "Search the knowledge graph for nodes matching a query. Uses direct graph-engine import.",
+      `Search the knowledge graph for nodes matching a query. Uses direct graph-engine import.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -1060,7 +1071,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_lint",
     description:
-      "Run lint checks on wiki pages via Python sidecar. Reports errors, warnings, and suggestions.",
+      `Run lint checks on wiki pages via Python sidecar. Reports errors, warnings, and suggestions.${SIDE_EFFECT.EXTERNAL_PROCESS}`,
     inputSchema: {
       type: "object",
       properties: { ...PROJECT_PARAM },
@@ -1070,14 +1081,14 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_ingest",
     description:
-      "Trigger ingest of a source file into the wiki via Python sidecar. Zero subprocess — uses long-lived sidecar process.",
+      `Trigger ingest of a source file into the wiki via Python sidecar. Zero subprocess — uses long-lived sidecar process.${SIDE_EFFECT.WRITE_PROJECT}`,
     inputSchema: {
       type: "object",
       properties: {
         ...PROJECT_PARAM,
         source_path: {
           type: "string",
-          description: "Path to the source file to ingest (absolute or relative to wiki root)",
+          description: "Path to the source file to ingest (project-relative). Absolute paths rejected.",
         },
       },
       required: ["source_path"],
@@ -1086,7 +1097,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_suggest_links",
     description:
-      "Suggest missing wikilinks for wiki pages. Analyzes page text against the entity registry and returns link suggestions with confidence scores.",
+      `Suggest missing wikilinks for wiki pages. Analyzes page text against the entity registry and returns link suggestions with confidence scores.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -1110,7 +1121,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_backup",
     description:
-      "Create a timestamped snapshot backup of the wiki. Archives wiki pages, logs, and audits into a tar.gz with integrity verification.",
+      `Create a timestamped snapshot backup of the wiki. Archives wiki pages, logs, and audits into a tar.gz with integrity verification.${SIDE_EFFECT.WRITE_BACKUP}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -1121,7 +1132,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_discover_entities",
     description:
-      "Discover all entities registered in the wiki. Returns the entity registry with names, paths, types, and aliases. Optionally filter by entity type.",
+      `Discover all entities registered in the wiki. Returns the entity registry with names, paths, types, and aliases. Optionally filter by entity type.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: {

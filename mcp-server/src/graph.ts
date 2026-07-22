@@ -8,13 +8,16 @@
 // gracefully even if graph-engine isn't built (Q3).
 
 import { readFile, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import type { GraphNode, GraphEdge } from "./types.js";
 import { fileExists, ensureDir } from "./wiki-fs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const _require = createRequire(import.meta.url);
 
 // ── Graph-engine type imports (mirrors graph-engine's types) ──────────
 
@@ -66,8 +69,7 @@ function resolveGraphEngine(): string {
 
   for (const candidate of candidates) {
     try {
-      // Check if resolvable
-      require.resolve(candidate);
+      _require.resolve(candidate);
       _graphEnginePath = candidate;
       return candidate;
     } catch {
@@ -124,7 +126,6 @@ export async function buildGraph(
   }
 
   // Resolve wiki path: if the passed path contains a wiki/ subdir, use it
-  const { existsSync } = await import("node:fs");
   const wikiSubdir = path.join(wikiPath, "wiki");
   const resolvedPath = existsSync(wikiSubdir) ? wikiSubdir : wikiPath;
 

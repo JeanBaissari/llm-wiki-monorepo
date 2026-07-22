@@ -7,8 +7,9 @@
 // Programmatic usage:
 //   import { findSurprisingConnections, detectKnowledgeGaps, applyGraphSearch } from 'graph-engine';
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // Re-export public API for programmatic use
@@ -253,16 +254,15 @@ async function main(): Promise<void> {
           throw new Error('--node is required for the relevance action');
         }
         const data = loadGraphData(wiki);
-        const relMod = await tryImport('./relevance.js');
+        const relMod = await import('./relevance.js');
         if (
-          !relMod ||
-          typeof (relMod as any).getRelatedNodes !== 'function' ||
-          typeof (relMod as any).buildGraphStructure !== 'function'
+          typeof relMod.getRelatedNodes !== 'function' ||
+          typeof relMod.buildGraphStructure !== 'function'
         ) {
           throw new Error('Relevance action not available — graph-engine relevance module missing.');
         }
-        const structure = (relMod as any).buildGraphStructure(data.edges);
-        result = (relMod as any).getRelatedNodes(nodeId, data.nodes, structure, 10);
+        const structure = relMod.buildGraphStructure(data.edges);
+        result = relMod.getRelatedNodes(nodeId, data.nodes, structure, 10);
         break;
       }
 
@@ -366,4 +366,7 @@ async function main(): Promise<void> {
   }
 }
 
-main();
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
+  main();
+}

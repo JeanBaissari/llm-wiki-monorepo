@@ -5,7 +5,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { GraphNode, GraphEdge, GraphData } from './types.js';
-import { calculateRelevance } from './relevance.js';
+import { calculateRelevance, buildGraphStructure } from './relevance.js';
+import { detectCommunities, buildGraphologyGraph } from './louvain.js';
+
+export { buildGraphologyGraph };
 
 // ============================================================
 // Types
@@ -311,6 +314,9 @@ export async function buildWikiGraph(wikiPath: string): Promise<GraphData> {
     }
   }
 
+  // Precompute graph structure once (replaces repeated edge scans)
+  const graphStructure = buildGraphStructure(edges);
+
   for (const edge of edges) {
     const nodeA = enrichedMap.get(edge.source);
     const nodeB = enrichedMap.get(edge.target);
@@ -319,13 +325,22 @@ export async function buildWikiGraph(wikiPath: string): Promise<GraphData> {
         nodeA,
         nodeB,
         nodes,
-        edges,
+        graphStructure,
         enrichedMap,
       );
     }
   }
 
-  return { nodes, edges, communities: [] };
+  // ── Step 7: Louvain community detection ──────────────────
+  const communityResult = detectCommunities(nodes, edges);
+  for (const node of nodes) {
+    const cid = communityResult.assignments.get(node.id);
+    if (cid !== undefined) {
+      node.community = cid;
+    }
+  }
+
+  return { nodes, edges, communities: communityResult.communities };
 }
 
 /**

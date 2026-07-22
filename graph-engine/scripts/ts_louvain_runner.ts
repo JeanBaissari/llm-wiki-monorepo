@@ -44,17 +44,14 @@ function main(): void {
     label: id,
     linkCount: 0,
     community: 0,
-    x: 0,
-    y: 0,
-    size: 1,
-    color: "#000",
-    type: "circle" as const,
+    path: `${id}.md`,
+    type: "entity",
   }));
 
   const edges = graph.edges;
 
   // Run community detection with seed
-  const result = detectCommunities(nodes, edges, { seed });
+  const result = detectCommunities(nodes as any, edges, { seed });
   const assignmentsObj: Record<string, number> = {};
   for (const [node, community] of result.assignments) {
     assignmentsObj[node] = community;

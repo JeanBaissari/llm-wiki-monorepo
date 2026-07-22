@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "ts": "2026-07-22T12:00:00Z",
+  "lvl": "INFO",
+  "cmp": "ingest",
+  "msg": "Ingest started",
+  "operation_id": "op_01JQ0ABC123",
+  "event_type": "started",
+  "command": "ingest",
+  "wiki_root": "/tmp/test-wiki"
+}

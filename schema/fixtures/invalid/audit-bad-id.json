@@ -1,0 +1,13 @@
+{
+  "id": "bad-id-format",
+  "target": "wiki/concepts/test.md",
+  "target_lines": [1, 5],
+  "anchor_before": "",
+  "anchor_text": "test",
+  "anchor_after": "",
+  "severity": "info",
+  "author": "test",
+  "source": "manual",
+  "created": "2026-07-22",
+  "status": "open"
+}

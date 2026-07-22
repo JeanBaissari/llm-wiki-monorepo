@@ -300,6 +300,12 @@ def main() -> int:
                    help="Total LLM call deadline in seconds (spans retries; budget/cost control)")
     args = p.parse_args()
     llm_timeout = args.llm_timeout
+
+    try:
+        from llm_wiki.operation import OperationContext
+    except ImportError:
+        OperationContext = None
+
     if args.batch:
         if not os.path.isdir(args.batch): print(f"ERROR: batch dir not found: {args.batch}", file=sys.stderr); return 1
         files = sorted(os.path.join(args.batch, f) for f in os.listdir(args.batch)
@@ -307,7 +313,27 @@ def main() -> int:
         if not files: print(f"No source files in {args.batch}", file=sys.stderr); return 1
         print(f"Batch: {len(files)} files", file=sys.stderr)
         for f in files:
-            print(f"\n{'='*60}", file=sys.stderr); ec = ingest(args.wiki_root, f, args.provider, args.force, llm_timeout=llm_timeout)
+            print(f"\n{'='*60}", file=sys.stderr)
+            if OperationContext:
+                with OperationContext("ingest", wiki_root=args.wiki_root,
+                                       inputs={"source": f, "provider": args.provider, "batch": True}) as ctx:
+                    ec = ingest(args.wiki_root, f, args.provider, args.force, llm_timeout=llm_timeout)
+                    if ec != 0:
+                        ctx.fail()
+                    else:
+                        ctx.succeed()
+            else:
+                ec = ingest(args.wiki_root, f, args.provider, args.force, llm_timeout=llm_timeout)
+        return ec
+
+    if OperationContext:
+        with OperationContext("ingest", wiki_root=args.wiki_root,
+                               inputs={"source": args.source_path, "provider": args.provider}) as ctx:
+            ec = ingest(args.wiki_root, args.source_path, args.provider, args.force, llm_timeout=llm_timeout)
+            if ec != 0:
+                ctx.fail()
+            else:
+                ctx.succeed()
         return ec
     return ingest(args.wiki_root, args.source_path, args.provider, args.force, llm_timeout=llm_timeout)
 

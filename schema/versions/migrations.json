@@ -1,0 +1,24 @@
+{
+  "schema": "https://llm-wiki.ai/schemas/v0.2.1/migrations.schema.json",
+  "current_version": "v0.2.1",
+  "migrations": [
+    {
+      "from_version": "v0.2.0",
+      "to_version": "v0.2.1",
+      "scope": "page, audit, operation-event, template, manifest, claim-sidecar",
+      "description": "Initial machine-readable schema contracts for all structured wiki artifacts",
+      "risk": "low",
+      "implementation": null,
+      "fixture": true
+    },
+    {
+      "from_version": "v0.2.1",
+      "to_version": "v0.2.1",
+      "scope": "baseline",
+      "description": "Baseline no-op migration to establish mechanism",
+      "risk": "none",
+      "implementation": null,
+      "fixture": false
+    }
+  ]
+}

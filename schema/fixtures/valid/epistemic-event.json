@@ -1,0 +1,8 @@
+{
+  "event_id": "evt_001",
+  "claim_id": "cl_001",
+  "event_type": "created",
+  "source": "raw/articles/attention.md",
+  "timestamp": "2026-07-22T12:00:00Z",
+  "operation_id": "op_01JQ0ABC123"
+}

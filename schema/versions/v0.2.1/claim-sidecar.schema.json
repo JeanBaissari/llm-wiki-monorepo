@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-wiki.ai/schemas/v0.2.1/claim-sidecar.schema.json",
+  "title": "Claim Sidecar Record",
+  "description": "Schema for optional claim/epistemic-event/contradiction sidecar records",
+  "type": "object",
+  "definitions": {
+    "claim": {
+      "type": "object",
+      "properties": {
+        "claim_id": { "type": "string", "description": "Stable claim identifier" },
+        "schema_version": { "type": "string" },
+        "statement": { "type": "string", "description": "Atomic claim text" },
+        "claim_type": {
+          "type": "string",
+          "enum": ["fact", "interpretation", "definition", "decision", "metric", "hypothesis", "citation", "other"]
+        },
+        "sources": { "type": "array", "items": { "type": "string" } },
+        "pages": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+        "status": {
+          "type": "string",
+          "enum": ["active", "contested", "superseded", "resolved", "retracted", "stale"]
+        },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "first_seen_operation_id": { "type": "string" },
+        "last_seen_operation_id": { "type": "string" },
+        "depends_on": { "type": "array", "items": { "type": "string" } },
+        "contradicted_by": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["claim_id", "statement", "confidence", "status"]
+    },
+    "epistemic_event": {
+      "type": "object",
+      "properties": {
+        "event_id": { "type": "string" },
+        "claim_id": { "type": "string" },
+        "event_type": {
+          "type": "string",
+          "enum": ["created", "reinforced", "challenged", "weakened", "superseded", "resolved", "retracted"]
+        },
+        "source": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "operation_id": { "type": "string" }
+      },
+      "required": ["claim_id", "event_type", "source", "timestamp"]
+    },
+    "contradiction": {
+      "type": "object",
+      "properties": {
+        "contradiction_id": { "type": "string" },
+        "claim_ids": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["open", "investigating", "resolved", "false_positive", "wont_fix"]
+        },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "blocking"] },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "resolution": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["contradiction_id", "claim_ids", "status", "severity"]
+    }
+  },
+  "description": "Container for claim sidecar records — actual files contain one JSON object per line (JSONL)"
+}

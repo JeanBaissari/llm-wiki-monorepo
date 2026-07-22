@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-wiki.ai/schemas/v0.2.1/audit.schema.json",
+  "title": "Audit Entry",
+  "description": "Schema for audit feedback entries with anchor-based text addressing",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version hash"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^\\d{8}-\\d{6}-[0-9a-f]{4}$",
+      "description": "Unique audit entry ID (YYYYMMDD-HHMMSS-XXXX)"
+    },
+    "target": {
+      "type": "string",
+      "description": "Relative path to the target wiki page or file"
+    },
+    "target_lines": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "integer", "minimum": 1 },
+      "description": "Line range [start, end] of the targeted text"
+    },
+    "anchor_before": {
+      "type": "string",
+      "description": "Text immediately before the targeted selection"
+    },
+    "anchor_text": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The exact targeted text"
+    },
+    "anchor_after": {
+      "type": "string",
+      "description": "Text immediately after the targeted selection"
+    },
+    "target_kind": {
+      "type": "string",
+      "enum": ["file", "page", "operation", "wiki"],
+      "description": "Kind of target for unanchored audit entries"
+    },
+    "target_reason": {
+      "type": "string",
+      "description": "Explanation why text anchors are unavailable (required for unanchored entries)"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "suggest", "warn", "error"],
+      "description": "Severity level"
+    },
+    "author": {
+      "type": "string",
+      "description": "Author identifier"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["obsidian-plugin", "web-viewer", "manual", "ingest", "agent"],
+      "description": "Source component that created the audit entry"
+    },
+    "created": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}",
+      "description": "Creation date or timestamp"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "resolved"],
+      "description": "Resolution status"
+    }
+  },
+  "required": ["id", "target", "severity", "author", "source", "created", "status"],
+  "oneOf": [
+    {
+      "description": "Anchored audit: must have line and text anchors",
+      "required": ["target_lines", "anchor_before", "anchor_text", "anchor_after"]
+    },
+    {
+      "description": "Unanchored audit: must declare target_kind and reason",
+      "required": ["target_kind", "target_reason"]
+    }
+  ],
+  "additionalProperties": false
+}

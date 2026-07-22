@@ -46,10 +46,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from llm_wiki.discover import discover_layout
+from llm_wiki.frontmatter import FRONTMATTER_RE, parse_frontmatter
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 LOG_FILENAME_RE = re.compile(r"^(\d{4})(\d{2})(\d{2})\.md$")
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 H2_RE = re.compile(r"^##\s", re.MULTILINE)
 SHA256_RE = re.compile(r"^sha256:\s*([a-f0-9]{64})", re.MULTILINE)
 
@@ -75,54 +75,6 @@ def load_pages(wiki_dir: Path) -> dict[str, Path]:
 
 def extract_wikilinks(text: str) -> list[str]:
     return WIKILINK_RE.findall(text)
-
-
-def parse_frontmatter(text: str) -> dict | None:
-    """Minimal YAML-ish frontmatter parser.
-
-    Handles the flat key:value fields and one-level lists/arrays actually
-    used by wiki and audit files.  Does not handle arbitrary YAML —
-    intentional, to avoid a pyyaml dependency.
-    """
-    m = FRONTMATTER_RE.match(text)
-    if not m:
-        return None
-    body = m.group(1)
-    result: dict = {}
-    i = 0
-    lines = body.split("\n")
-    while i < len(lines):
-        line = lines[i]
-        if not line.strip() or line.lstrip().startswith("#"):
-            i += 1
-            continue
-        if ":" not in line:
-            i += 1
-            continue
-        key, _, rest = line.partition(":")
-        key = key.strip()
-        val = rest.strip()
-        if val.startswith("[") and val.endswith("]"):
-            inner = val[1:-1].strip()
-            if not inner:
-                result[key] = []
-            else:
-                parts = [p.strip() for p in inner.split(",")]
-                parsed: list = []
-                for p in parts:
-                    if p.isdigit() or (p.startswith("-") and p[1:].isdigit()):
-                        parsed.append(int(p))
-                    else:
-                        parsed.append(p.strip('"').strip("'"))
-                result[key] = parsed
-        elif val.startswith('"') and val.endswith('"'):
-            result[key] = val[1:-1].replace("\\n", "\n").replace('\\"', '"')
-        elif val.startswith("'") and val.endswith("'"):
-            result[key] = val[1:-1]
-        else:
-            result[key] = val
-        i += 1
-    return result
 
 
 def lint(root: str) -> int:
@@ -719,6 +671,8 @@ def check_templates(templates_dir: Path) -> int:
 
 
 def main() -> int:
+    # OperationContext is not used here because lint_wiki has no --fix mode
+    # (read-only operation). Will be added when --fix is implemented.
     import argparse
 
     parser = argparse.ArgumentParser(

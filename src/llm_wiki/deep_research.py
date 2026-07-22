@@ -27,6 +27,7 @@ from pathlib import Path
 
 
 from llm_wiki.discover import discover_layout
+from llm_wiki.operation import OperationContext
 
 
 def slugify(text: str) -> str:
@@ -61,89 +62,103 @@ def main() -> int:
     parser.add_argument('--urls', help='Comma-separated URLs to use directly')
 
     args = parser.parse_args()
-    root = Path(args.wiki_root)
-    layout = discover_layout(args.wiki_root)
-    topic = args.topic
-    topic_slug = slugify(topic)
-    now = datetime.now()
-    date_iso = now.strftime('%Y-%m-%d')
-    today = now.strftime('%Y%m%d')
-    now_ts = now.strftime('%H:%M')
 
-    # ── Phase 1: Source discovery ──────────────────────────────────────────
-    urls: list[str] = []
-    if args.urls:
-        urls = [u.strip() for u in args.urls.split(',') if u.strip()]
-    else:
-        print(f'SEARCH: Search the web for: {topic} '
-              f'(depth {args.depth}, up to {args.sources} sources)',
-              flush=True)
-        print('STDIN: Provide URLs now (one per line, then Ctrl+D / EOF):',
-              file=sys.stderr, flush=True)
-        try:
-            for line in sys.stdin:
-                line = line.strip()
-                if line:
-                    urls.append(line)
-        except (EOFError, KeyboardInterrupt):
-            pass
+    with OperationContext("deep-research", wiki_root=args.wiki_root,
+                          inputs={"topic": args.topic, "urls": args.urls,
+                                  "depth": args.depth, "sources": args.sources}) as ctx:
+        root = Path(args.wiki_root)
+        layout = discover_layout(args.wiki_root)
+        topic = args.topic
+        topic_slug = slugify(topic)
+        now = datetime.now()
+        date_iso = now.strftime('%Y-%m-%d')
+        today = now.strftime('%Y%m%d')
+        now_ts = now.strftime('%H:%M')
 
-    if not urls:
-        print('No URLs provided. Re-run with --urls or pipe URLs via stdin.')
-        return 0
-
-    # ── Phase 2: Source fetching instructions ──────────────────────────────
-    raw_dir = Path(layout.raw_dir) / 'articles' if layout.raw_dir else root / 'raw' / 'articles'
-    syn_dir = Path(layout.pages_dir) / 'synthesis'
-    log_dir = Path(layout.log_dir) if layout.log_dir else root / 'log'
-    for d in (raw_dir, syn_dir, log_dir):
-        d.mkdir(parents=True, exist_ok=True)
-
-    fetch_targets: list[tuple[str, str, Path]] = []
-    for i, url in enumerate(urls):
-        slug = derive_slug(url, i)
-        target = raw_dir / f'{slug}.md'
-        fetch_targets.append((url, slug, target))
-        print(f'FETCH: Fetch and save this URL as markdown: '
-              f'{url} → raw/articles/{slug}.md', flush=True)
-
-    # Check which were actually fetched by the agent
-    fetched = [(u, s, t) for u, s, t in fetch_targets if t.exists()]
-    if not fetched:
-        print('WAITING: No sources fetched yet. Run this script again '
-              'after the agent fetches the URLs above.', flush=True)
-        return 0
-
-    # ── Phase 3: Auto-ingest ───────────────────────────────────────────────
-    ingest_script = Path(__file__).resolve().parent / 'ingest.py'
-    ingest_available = ingest_script.exists()
-    ingested: list[str] = []
-
-    for url, slug, target in fetched:
-        if not ingest_available:
-            print(f'INFO: ingest.py not found — please run manually:\n'
-                  f'  python3 skill/scripts/ingest.py {root} {target}')
-            ingested.append(slug)
-            continue
-
-        print(f'INGEST: python3 {ingest_script} {root} {target}', flush=True)
-        result = subprocess.run(
-            [sys.executable, str(ingest_script), str(root), str(target)],
-            capture_output=True, text=True,
-        )
-        if result.returncode == 0:
-            ingested.append(slug)
-            print(f'  ✓ Ingested: {slug}', flush=True)
+        # ── Phase 1: Source discovery ──────────────────────────────────────────
+        urls: list[str] = []
+        if args.urls:
+            urls = [u.strip() for u in args.urls.split(',') if u.strip()]
         else:
-            print(f'  ✗ Ingest failed (exit {result.returncode}): '
-                  f'{result.stderr[:200]}', flush=True)
+            print(f'SEARCH: Search the web for: {topic} '
+                  f'(depth {args.depth}, up to {args.sources} sources)',
+                  flush=True)
+            print('STDIN: Provide URLs now (one per line, then Ctrl+D / EOF):',
+                  file=sys.stderr, flush=True)
+            try:
+                for line in sys.stdin:
+                    line = line.strip()
+                    if line:
+                        urls.append(line)
+            except (EOFError, KeyboardInterrupt):
+                pass
 
-    # ── Phase 4: Synthesis page ────────────────────────────────────────────
-    syn_path = syn_dir / f'{topic_slug}.md'
-    source_bullets = '\n'.join(
-        f'- [[raw/articles/{s}|{s}]]' for _, s, _ in fetched
-    )
-    syn_content = f'''---
+        if not urls:
+            print('No URLs provided. Re-run with --urls or pipe URLs via stdin.')
+            ctx.succeed()
+            return 0
+
+        # ── Phase 2: Source fetching instructions ──────────────────────────────
+        raw_dir = Path(layout.raw_dir) / 'articles' if layout.raw_dir else root / 'raw' / 'articles'
+        syn_dir = Path(layout.pages_dir) / 'synthesis'
+        log_dir = Path(layout.log_dir) if layout.log_dir else root / 'log'
+        for d in (raw_dir, syn_dir, log_dir):
+            d.mkdir(parents=True, exist_ok=True)
+
+        fetch_targets: list[tuple[str, str, Path]] = []
+        for i, url in enumerate(urls):
+            slug = derive_slug(url, i)
+            target = raw_dir / f'{slug}.md'
+            fetch_targets.append((url, slug, target))
+            print(f'FETCH: Fetch and save this URL as markdown: '
+                  f'{url} → raw/articles/{slug}.md', flush=True)
+
+        # Check which were actually fetched by the agent
+        fetched = [(u, s, t) for u, s, t in fetch_targets if t.exists()]
+        if not fetched:
+            print('WAITING: No sources fetched yet. Run this script again '
+                  'after the agent fetches the URLs above.', flush=True)
+            for _, _, target in fetch_targets:
+                ctx.add_touched("read", str(target))
+            ctx.succeed()
+            return 0
+
+        for _, _, target in fetched:
+            ctx.add_touched("read", str(target))
+
+        # ── Phase 3: Auto-ingest ───────────────────────────────────────────────
+        ingest_script = Path(__file__).resolve().parent / 'ingest.py'
+        ingest_available = ingest_script.exists()
+        ingested: list[str] = []
+
+        for url, slug, target in fetched:
+            if not ingest_available:
+                print(f'INFO: ingest.py not found — please run manually:\n'
+                      f'  python3 skill/scripts/ingest.py {root} {target}')
+                ingested.append(slug)
+                continue
+
+            print(f'INGEST: python3 {ingest_script} {root} {target}', flush=True)
+            result = subprocess.run(
+                [sys.executable, str(ingest_script), str(root), str(target)],
+                capture_output=True, text=True,
+            )
+            if result.returncode == 0:
+                ingested.append(slug)
+                print(f'  ✓ Ingested: {slug}', flush=True)
+            else:
+                print(f'  ✗ Ingest failed (exit {result.returncode}): '
+                      f'{result.stderr[:200]}', flush=True)
+                ctx.add_error("ingest-failed",
+                              result.stderr[:500] if result.stderr else "Unknown error",
+                              path=str(target), recoverable=True)
+
+        # ── Phase 4: Synthesis page ────────────────────────────────────────────
+        syn_path = syn_dir / f'{topic_slug}.md'
+        source_bullets = '\n'.join(
+            f'- [[raw/articles/{s}|{s}]]' for _, s, _ in fetched
+        )
+        syn_content = f'''---
 title: "Research Synthesis: {topic}"
 type: synthesis
 created: {date_iso}
@@ -172,30 +187,32 @@ tags: [research, synthesis]
 
 <!-- Agent: what remains unanswered or needs further research? -->
 '''
-    from llm_wiki.atomic_write import atomic_write
-    syn_path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write(str(syn_path), syn_content)
-    print(f'SYNTHESIS: Created stub → {syn_path}', flush=True)
-    print(f'SYNTHESIS_INSTRUCT: Fill in the synthesis content at '
-          f'wiki/synthesis/{topic_slug}.md', flush=True)
+        from llm_wiki.atomic_write import atomic_write
+        syn_path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write(str(syn_path), syn_content)
+        ctx.add_touched("created", str(syn_path))
+        print(f'SYNTHESIS: Created stub → {syn_path}', flush=True)
+        print(f'SYNTHESIS_INSTRUCT: Fill in the synthesis content at '
+              f'wiki/synthesis/{topic_slug}.md', flush=True)
 
-    # ── Phase 5: Log ──────────────────────────────────────────────────────
-    log_file = log_dir / f'{today}.md'
-    log_entry = (
-        f'## [{now_ts}] research | {topic}\n'
-        f'- URLs: {len(urls)} found, {len(fetched)} fetched, '
-        f'{len(ingested)} ingested\n'
-        f'- Synthesis: [[synthesis/{topic_slug}]]\n'
-    )
-    if log_file.exists():
-        current = log_file.read_text(encoding='utf-8')
-        atomic_write(str(log_file), current + log_entry)
-    else:
-        atomic_write(str(log_file), f'# {date_iso}\n\n{log_entry}')
-    print(f'LOG: Appended to {log_file}', flush=True)
+        # ── Phase 5: Log ──────────────────────────────────────────────────────
+        log_file = log_dir / f'{today}.md'
+        log_entry = (
+            f'## [{now_ts}] research | {topic}\n'
+            f'- URLs: {len(urls)} found, {len(fetched)} fetched, '
+            f'{len(ingested)} ingested\n'
+            f'- Synthesis: [[synthesis/{topic_slug}]]\n'
+        )
+        if log_file.exists():
+            current = log_file.read_text(encoding='utf-8')
+            atomic_write(str(log_file), current + log_entry)
+        else:
+            atomic_write(str(log_file), f'# {date_iso}\n\n{log_entry}')
+        ctx.add_touched("updated", str(log_file))
+        print(f'LOG: Appended to {log_file}', flush=True)
 
-    # ── Phase 6: Report ────────────────────────────────────────────────────
-    print(f'''
+        # ── Phase 6: Report ────────────────────────────────────────────────────
+        print(f'''
 {'=' * 55}
  DEEP RESEARCH SUMMARY
 {'=' * 55}
@@ -208,7 +225,8 @@ tags: [research, synthesis]
 {'=' * 55}
 ''', flush=True)
 
-    return 0
+        ctx.succeed()
+        return 0
 
 
 if __name__ == '__main__':

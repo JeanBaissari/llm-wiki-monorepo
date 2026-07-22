@@ -1,4 +1,4 @@
-schema_version: 8857edf6
+schema_version: 994a2b71
 description: Contains known issues to verify lint_wiki.py detection
 template: codebase
 wiki_name: Stale Test Wiki

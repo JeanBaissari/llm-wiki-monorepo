@@ -2,6 +2,23 @@
 
 > Thanks for wanting to help. This guide tells you how.
 
+## Release Blocker: GPL Provenance Review
+
+> **🚨 BLOCKER — Public release is blocked until resolved.**
+
+This project includes code ported from [nashsu/llm_wiki](https://github.com/nashsu/llm_wiki) which is licensed under **GPL-3.0**. Specifically:
+- `graph-engine/src/relevance.ts` — 4-signal relevance model (comments state "Ported from nashsu/llm_wiki")
+- `graph-engine/src/insights.ts` — Surprising connections and knowledge gap detection (comments state "Port of nashsu's graph-insights.ts")
+
+These files are classified as **P — Ported code** in `THIRD_PARTY.md` and their disposition is `clean_room_replace`. **Before any public release**, these components must be:
+1. Replaced with clean-room implementations based only on public algorithm descriptions, OR
+2. Isolated with explicit GPL-3.0 licensing and packaging boundaries, OR
+3. Removed or deferred from the release.
+
+The provenance scan (`python3 skill/scripts/provenance_scan.py`) must pass with zero unresolved items before any package publication or release tagging.
+
+See [THIRD_PARTY.md](./THIRD_PARTY.md) for the full provenance ledger.
+
 ## Project Structure
 
 ```

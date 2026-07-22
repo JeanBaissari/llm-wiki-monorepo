@@ -174,9 +174,26 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 
 ## Credits
 
-The foundational methodology comes from **Andrej Karpathy**'s [llm-wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern — using LLMs to incrementally build and maintain a personal wiki from raw sources. This project is a production-grade implementation with concurrency control, multi-provider LLM support, FTS5 search, MCP integration, and community detection.
+### Inspirations
 
-Also see the [desktop application fork](https://github.com/JeanBaissari/llm_wiki) by [nashsu](https://github.com/nashsu/llm_wiki) — a cross-platform Tauri app with graph visualization, vector search, and a rich chat interface built on the same foundational pattern.
+The foundational methodology is **inspired by** **Andrej Karpathy**'s [llm-wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern (MIT) — using LLMs to incrementally build and maintain a personal wiki from raw sources. This project is an independent, production-grade implementation with concurrency control, multi-provider LLM support, FTS5 search, MCP integration, and community detection. No code from Karpathy's gist is used.
+
+Additional design patterns and API methodology were informed by [nashsu/llm_wiki](https://github.com/nashsu/llm_wiki) (GPL-3.0) and [nashsu/llm_wiki_skill](https://github.com/nashsu/llm_wiki_skill) (GPL-3.0). Concepts from [anzal1/quicky-wiki](https://github.com/anzal1/quicky-wiki) (MIT) influenced linting and claim-management design.
+
+### Code Derivations
+
+- **`graph-engine/src/relevance.ts`** — Contains code ported from `nashsu/llm_wiki` (GPL-3.0). See [THIRD_PARTY.md](./THIRD_PARTY.md) for disposition status.
+- **`graph-engine/src/insights.ts`** — Contains code ported from `nashsu/llm_wiki` (GPL-3.0). See [THIRD_PARTY.md](./THIRD_PARTY.md) for disposition status.
+- **`graph-engine/src/louvain.ts`** — Implements the Louvain community detection algorithm (Blondel et al. 2008) via the MIT-licensed `graphology-communities-louvain` library.
+
+### Related Projects
+
+- [nashsu/llm_wiki](https://github.com/nashsu/llm_wiki) — Cross-platform Tauri desktop app with graph visualization, vector search, and rich chat interface. Licensed GPL-3.0.
+- [anzal1/quicky-wiki](https://github.com/anzal1/quicky-wiki) — MIT-licensed CLI/dashboard for claim extraction, confidence scoring, and metabolism.
+
+### Upstream License Notice
+
+This project may include code derived from GPL-3.0-licensed upstream sources (`graph-engine/src/relevance.ts`, `graph-engine/src/insights.ts`). A **provenance review** is required before public release. See [CONTRIBUTING.md](./CONTRIBUTING.md#release-blocker-gpl-provenance-review) and the full [THIRD_PARTY.md](./THIRD_PARTY.md) ledger for details.
 
 ## License
 

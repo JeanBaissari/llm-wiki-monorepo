@@ -1,8 +1,8 @@
 ---
 title: Empty Test Wiki
 type: index
-created: 2026-07-04
-updated: 2026-07-04
+created: 2026-07-22
+updated: 2026-07-22
 wiki_config:
   schema: codebase
   page_dirs: [concepts, entities, summaries, comparisons, graphs, synthesis]

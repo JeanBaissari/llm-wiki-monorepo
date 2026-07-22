@@ -1,0 +1,121 @@
+{
+  "certification": {
+    "timestamp": "2026-07-22T11:26:40.619662+00:00",
+    "overall_status": "FAIL",
+    "gates_total": 7,
+    "gates_passed": 4,
+    "gates_failed": 3,
+    "gates_skipped": 0,
+    "gates_timeout": 0,
+    "gates_error": 0
+  },
+  "gates": [
+    {
+      "gate": "release_manifest",
+      "command": "/usr/bin/python3 /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/scripts/release_manifest.py --json-only",
+      "exit_code": 0,
+      "stdout": "{\n  \"ok\": false,\n  \"version\": \"0.2.1\",\n  \"checked_surfaces\": 5,\n  \"pass_count\": 1,\n  \"fail_count\": 4,\n  \"checks\": [\n    {\n      \"check\": \"pyproject.toml version\",\n      \"expected\": \"0.2.1\",\n      \"actual\": \"0.2.1\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"__init__.py __version__\",\n      \"expected\": \"0.2.1\",\n      \"actual\": \"/tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/src/llm_wiki/__init__.py: expected 0.2.1, got 0.1.1\",\n      \"status\": \"FAIL\"\n    },\n    {\n      \"check\": \"root package.json version\",\n      \"expected\": \"0.2.1\",\n      \"actual\": \"0.1.1\",\n      \"status\": \"FAIL\"\n    },\n    {\n      \"check\": \"CHANGELOG.md entry\",\n      \"expected\": \"0.2.1\",\n      \"actual\": \"No entry for [0.2.1] in CHANGELOG.md\",\n      \"status\": \"FAIL\"\n    },\n    {\n      \"check\": \"console script imports\",\n      \"expected\": \"all importable\",\n      \"actual\": \"llm-wiki-health: missing dependency 'llm_wiki.health_check' \\u2014 install project dependencies first\",\n      \"status\": \"FAIL\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "duration_s": 0.193,
+      "status": "PASS"
+    },
+    {
+      "gate": "docs_truth_check",
+      "command": "/usr/bin/python3 /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/scripts/docs_truth_check.py --json-only",
+      "exit_code": 0,
+      "stdout": "{\n  \"ok\": false,\n  \"registries\": {\n    \"mcp_tools\": {\n      \"count\": 14,\n      \"names\": [\n        \"llm_wiki_status\",\n        \"llm_wiki_files\",\n        \"llm_wiki_read_file\",\n        \"llm_wiki_reviews\",\n        \"llm_wiki_search\",\n        \"llm_wiki_graph\",\n        \"llm_wiki_graph_build\",\n        \"llm_wiki_graph_insights\",\n        \"llm_wiki_graph_search\",\n        \"llm_wiki_lint\",\n        \"llm_wiki_ingest\",\n        \"llm_wiki_suggest_links\",\n        \"llm_wiki_backup\",\n        \"llm_wiki_discover_entities\"\n      ]\n    },\n    \"cli_commands\": {\n      \"count\": 11,\n      \"names\": [\n        \"scaffold\",\n        \"lint\",\n        \"ingest\",\n        \"insights\",\n        \"link-suggest\",\n        \"backup\",\n        \"deep-research\",\n        \"audit\",\n        \"benchmark\",\n        \"migrate-log\",\n        \"discover\"\n      ]\n    },\n    \"templates\": {\n      \"count\": 20,\n      \"names\": [\n        \"algorithmic-trading\",\n        \"algorithmic-trading-mql4\",\n        \"architecture\",\n        \"business\",\n        \"codebase\",\n        \"commodities\",\n        \"copywriting\",\n        \"crypto\",\n        \"cybersecurity\",\n        \"decompilers\",\n        \"design-systems\",\n        \"developer-tools\",\n        \"finance\",\n        \"machine-learning\",\n        \"marketing\",\n        \"medicine\",\n        \"personal-growth\",\n        \"prompt-engineering\",\n        \"reading\",\n        \"research\"\n      ]\n    }\n  },\n  \"doc_checks\": [\n    {\n      \"file\": \"README.md\",\n      \"expected_count\": 14,\n      \"issues\": [\n        \"Claims 10 MCP tools, actual is 14\"\n      ]\n    },\n    {\n      \"file\": \"README.md\",\n      \"expected_count\": 20,\n      \"issues\": [\n        \"Claims 19 templates, actual is 20\"\n      ]\n    },\n    {\n      \"file\": \"AGENTS.md\",\n      \"expected_count\": 14,\n      \"issues\": [\n        \"Claims 8 MCP tools, actual is 14\"\n      ]\n    },\n    {\n      \"file\": \"INDEX.md\",\n      \"expected_count\": 14,\n      \"issues\": [\n        \"Claims 8 MCP tools, actual is 14\"\n      ]\n    },\n    {\n      \"file\": \"INDEX.md\",\n      \"expected_count\": 20,\n      \"issues\": [\n        \"Claims 19 templates, actual is 20\"\n      ]\n    },\n    {\n      \"file\": \"QUICKGUIDE.md\",\n      \"expected_count\": 14,\n      \"issues\": [\n        \"Claims 10 MCP tools, actual is 14\"\n      ]\n    }\n  ],\n  \"failures\": [\n    \"Claims 10 MCP tools, actual is 14\",\n    \"Claims 19 templates, actual is 20\",\n    \"Claims 8 MCP tools, actual is 14\",\n    \"Claims 8 MCP tools, actual is 14\",\n    \"Claims 19 templates, actual is 20\",\n    \"Claims 10 MCP tools, actual is 14\"\n  ]\n}\n",
+      "stderr": "",
+      "duration_s": 0.105,
+      "status": "PASS"
+    },
+    {
+      "gate": "pytest",
+      "command": "/usr/bin/python3 -m pytest tests/ -q --tb=short",
+      "exit_code": 1,
+      "stdout": "opagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign2, _ = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_deterministic_output\n  /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/tests/test_louvain.py:131: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign3, _ = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_different_seeds_may_differ\n  /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/tests/test_louvain.py:158: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign_seed42, communities42 = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_different_seeds_may_differ\n  /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/tests/test_louvain.py:159: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign_seed99, communities99 = detect_communities(nodes, edges, seed=99)\n\ntests/test_louvain.py::test_four_disconnected_cliques\n  /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/tests/test_louvain.py:186: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assignments, communities = detect_communities(nodes, edges, seed=42)\n\ntests/test_verification.py::test_community_verification\ntests/test_verification.py::test_community_verification\ntests/test_verification.py::test_community_verification\ntests/test_verification.py::test_community_verification\ntests/test_verification.py::test_community_verification\n  /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/tests/verification/run_verification.py:80: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assignments, _ = detect_communities(nodes_py, edges_py, seed=seed)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/test_concurrency.py::TestWriteWikiConcurrency::test_lock_timeout_failure\nFAILED tests/test_link_suggest.py::TestGenerateSuggestionsWithInvertedIndex::test_accepts_inverted_index_parameter\nFAILED tests/test_link_suggest.py::TestGenerateSuggestionsWithInvertedIndex::test_builds_index_internally_when_none_passed\nFAILED tests/test_link_suggest.py::TestGenerateSuggestionsWithInvertedIndex::test_for_entity_in_registry_not_used\nFAILED tests/test_link_suggest.py::TestGenerateSuggestionsWithInvertedIndex::test_empty_wiki_no_crash\nFAILED tests/test_link_suggest.py::TestGenerateSuggestionsWithInvertedIndex::test_empty_registry_no_crash\nFAILED tests/test_link_suggest.py::TestGenerateSuggestionsWithInvertedIndex::test_min_confidence_filters_correctly\nFAILED tests/test_link_suggest.py::TestGenerateSuggestionsWithInvertedIndex::test_limit_caps_suggestions\nFAILED tests/test_link_suggest.py::TestSuggestionOutputParity::test_suggestion_structure\nFAILED tests/test_link_suggest.py::TestSuggestionOutputParity::test_no_self_links\nFAILED tests/test_link_suggest.py::TestSuggestionOutputParity::test_scores_in_valid_range\nFAILED tests/test_link_suggest.py::TestSuggestionOutputParity::test_suggestions_sorted_by_score_desc\nFAILED tests/test_link_suggest.py::TestSuggestionOutputParity::test_suggestion_entity_in_registry\nFAILED tests/test_link_suggest_benchmark.py::test_generate_csv_artifact - Typ...\nFAILED tests/test_mcp_benchmark.py::TestSidecarVsDirect::test_sidecar_reuse_benefit\nFAILED tests/test_mcp_benchmark.py::TestSubprocessSpawnBaseline::test_sidecar_vs_subprocess_ratio\nFAILED tests/test_mcp_integration.py::TestSidecarIngest::test_ingest_dispatch_calls_handler\nFAILED tests/test_mcp_integration.py::TestSidecarIngest::test_ingest_missing_source_path\nFAILED tests/test_mcp_integration.py::TestSidecarIngest::test_ingest_invalid_wiki_root\nFAILED tests/test_mcp_integration.py::TestSidecarIngest::test_ingest_result_structure_on_error\nFAILED tests/test_mcp_integration.py::TestSidecarIngest::test_ingest_source_in_process_with_mock\nFAILED tests/test_verification.py::test_community_verification - sklearn.util...\nERROR tests/test_mcp_benchmark.py::TestSidecarDispatchOverhead::test_dispatch_overhead_under_50ms\nERROR tests/test_mcp_benchmark.py::TestSidecarDispatchOverhead::test_dispatch_stable_under_load\n22 failed, 303 passed, 6 deselected, 26 warnings, 2 errors in 146.74s (0:02:26)\n",
+      "stderr": "",
+      "duration_s": 148.447,
+      "status": "FAIL"
+    },
+    {
+      "gate": "ts_typecheck",
+      "status": "PASS",
+      "packages": [
+        {
+          "package": "mcp-server",
+          "command": "npx tsc --noEmit",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "",
+          "duration_s": 6.285,
+          "status": "PASS"
+        },
+        {
+          "package": "graph-engine",
+          "command": "npx tsc --noEmit",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "",
+          "duration_s": 4.653,
+          "status": "PASS"
+        },
+        {
+          "package": "audit-shared",
+          "command": "npx tsc --noEmit",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "",
+          "duration_s": 4.093,
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "ts_tests",
+      "status": "FAIL",
+      "packages": [
+        {
+          "package": "mcp-server",
+          "command": "npm run test",
+          "exit_code": 1,
+          "stdout": "\n> mcp-server@1.0.0 test\n> vitest run\n\n\n RUN  v2.1.9 /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/mcp-server\n\n \u2713 test/test_review.test.ts (11 tests) 209ms\n \u2713 test/test_wiki_fs.test.ts (13 tests) 119ms\n \u276f test/test_stdio_e2e.test.ts (7 tests | 2 failed) 2393ms\n   \u00d7 MCP Stdio E2E > llm_wiki_read_file > reads a valid wiki page 53ms\n     \u2192 expected 'Error: File not found: /tmp/mcp-e2e-t\u2026' to contain 'Test Page'\n   \u00d7 MCP Stdio E2E > llm_wiki_read_file > rejects absolute path traversal 29ms\n     \u2192 expected undefined to be true // Object.is equality\n \u2713 test/test_search.test.ts (7 tests) 2861ms\n   \u2713 search \u2014 buildIndex + search > returns ranked results for a query 459ms\n   \u2713 search \u2014 buildIndex + search > returns results with snippets 387ms\n   \u2713 search \u2014 buildIndex + search > returns empty for no match 459ms\n   \u2713 search \u2014 buildIndex + search > returns empty for empty wiki 557ms\n   \u2713 search \u2014 buildIndex + search > respects the topK limit 318ms\n   \u2713 search \u2014 clearIndex > clears the connection cache for fresh reopen 381ms\n\n Test Files  1 failed | 3 passed (4)\n      Tests  2 failed | 36 passed (38)\n   Start at  08:26:29\n   Duration  4.10s (transform 650ms, setup 0ms, collect 994ms, tests 5.58s, environment 5ms, prepare 1.25s)\n\n",
+          "stderr": "stderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Search index ready for project: default\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Starting Python sidecar...\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [sidecar] [sidecar] JSON-RPC sidecar started\n[startup] Python sidecar ready\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [shutdown] MCP server shutting down...\n[sidecar] [sidecar] Received signal 15, shutting down\n[sidecar] Shutdown complete\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [sidecar] Process exited (code=0, signal=null)\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af Failed Tests 2 \u23af\u23af\u23af\u23af\u23af\u23af\u23af\n\n FAIL  test/test_stdio_e2e.test.ts > MCP Stdio E2E > llm_wiki_read_file > reads a valid wiki page\nAssertionError: expected 'Error: File not found: /tmp/mcp-e2e-t\u2026' to contain 'Test Page'\n\nExpected: \"Test Page\"\nReceived: \"Error: File not found: /tmp/mcp-e2e-test-JLeIMS/wiki/wiki/concepts/test_page.md\"\n\n \u276f test/test_stdio_e2e.test.ts:285:20\n    283| \n    284|       const text = response.result!.content?.find((c) => c.type === 't\u2026\n    285|       expect(text).toContain('Test Page');\n       |                    ^\n    286|       expect(text).toContain('E2E testing');\n    287|     }, 15000);\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/2]\u23af\n\n FAIL  test/test_stdio_e2e.test.ts > MCP Stdio E2E > llm_wiki_read_file > rejects absolute path traversal\nAssertionError: expected undefined to be true // Object.is equality\n\n- Expected: \ntrue\n\n+ Received: \nundefined\n\n \u276f test/test_stdio_e2e.test.ts:298:23\n    296|       const isError = response.error !== undefined ||\n    297|         (response.result && (response.result as Record<string, unknown\u2026\n    298|       expect(isError).toBe(true);\n       |                       ^\n    299|     }, 15000);\n    300|   });\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[2/2]\u23af\n\nnpm error Lifecycle script `test` failed with error:\nnpm error code 1\nnpm error path /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/mcp-server\nnpm error workspace mcp-server@1.0.0\nnpm error location /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/mcp-server\nnpm error command failed\nnpm error command sh -c vitest run\n",
+          "duration_s": 5.6,
+          "status": "FAIL"
+        },
+        {
+          "package": "graph-engine",
+          "command": "npm run test",
+          "exit_code": 0,
+          "stdout": "\n> graph-engine@1.0.0 test\n> node --import tsx --test src/**/*.test.ts\n\nTAP version 13\n1..0\n# tests 0\n# suites 0\n# pass 0\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 22.952933\n",
+          "stderr": "ZERO-TEST: Node TAP reported 0 tests",
+          "duration_s": 0.546,
+          "status": "FAIL"
+        }
+      ]
+    },
+    {
+      "gate": "fixture_validation",
+      "command": "/usr/bin/python3 /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/skill/scripts/validate_fixtures.py --json",
+      "exit_code": 0,
+      "stdout": "{\n  \"schema_version\": \"8857edf6\",\n  \"exit_code\": 0,\n  \"report\": {\n    \"passes\": [\n      \"All 4 fixtures match schema version 8857edf6\",\n      \"Frontmatter OK in 'minimal': 5 page(s)\",\n      \"Frontmatter OK in 'stale': 10 page(s)\",\n      \"Frontmatter OK in 'populated': 53 page(s)\",\n      \"Wikilinks OK in 'empty': 1 page(s) checked\",\n      \"Wikilinks OK in 'minimal': 6 page(s) checked\",\n      \"Wikilinks OK in 'populated': 54 page(s) checked\",\n      \"Stale fixture lint check: all 8 expected issues detected\"\n    ],\n    \"warnings\": [\n      \"Fixture 'empty' has no wiki pages to check\"\n    ],\n    \"errors\": [],\n    \"has_errors\": false\n  }\n}\n",
+      "stderr": "",
+      "duration_s": 0.475,
+      "status": "PASS"
+    },
+    {
+      "gate": "mcp_stdio_e2e",
+      "command": "npm run test -- --run",
+      "exit_code": 1,
+      "stdout": "\n> mcp-server@1.0.0 test\n> vitest run --run\n\n\n RUN  v2.1.9 /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/mcp-server\n\n \u2713 test/test_review.test.ts (11 tests) 159ms\n \u2713 test/test_wiki_fs.test.ts (13 tests) 81ms\n \u276f test/test_stdio_e2e.test.ts (7 tests | 2 failed) 2033ms\n   \u00d7 MCP Stdio E2E > llm_wiki_read_file > reads a valid wiki page 44ms\n     \u2192 expected 'Error: File not found: /tmp/mcp-e2e-t\u2026' to contain 'Test Page'\n   \u00d7 MCP Stdio E2E > llm_wiki_read_file > rejects absolute path traversal 9ms\n     \u2192 expected undefined to be true // Object.is equality\n \u2713 test/test_search.test.ts (7 tests) 2714ms\n   \u2713 search \u2014 buildIndex + search > returns ranked results for a query 499ms\n   \u2713 search \u2014 buildIndex + search > returns results with snippets 390ms\n   \u2713 search \u2014 buildIndex + search > returns empty for no match 395ms\n   \u2713 search \u2014 buildIndex + search > returns empty for empty wiki 522ms\n   \u2713 search \u2014 clearIndex > clears the connection cache for fresh reopen 378ms\n\n Test Files  1 failed | 3 passed (4)\n      Tests  2 failed | 36 passed (38)\n   Start at  08:26:36\n   Duration  4.15s (transform 726ms, setup 0ms, collect 1.27s, tests 4.99s, environment 2ms, prepare 1.43s)\n\n",
+      "stderr": "stderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Search index ready for project: default\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Starting Python sidecar...\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [sidecar] [sidecar] JSON-RPC sidecar started\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Python sidecar ready\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [shutdown] MCP server shutting down...\n[MCP stderr] [sidecar] [sidecar] Received signal 15, shutting down\n[sidecar] Shutdown complete\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af Failed Tests 2 \u23af\u23af\u23af\u23af\u23af\u23af\u23af\n\n FAIL  test/test_stdio_e2e.test.ts > MCP Stdio E2E > llm_wiki_read_file > reads a valid wiki page\nAssertionError: expected 'Error: File not found: /tmp/mcp-e2e-t\u2026' to contain 'Test Page'\n\nExpected: \"Test Page\"\nReceived: \"Error: File not found: /tmp/mcp-e2e-test-m3lLMF/wiki/wiki/concepts/test_page.md\"\n\n \u276f test/test_stdio_e2e.test.ts:285:20\n    283| \n    284|       const text = response.result!.content?.find((c) => c.type === 't\u2026\n    285|       expect(text).toContain('Test Page');\n       |                    ^\n    286|       expect(text).toContain('E2E testing');\n    287|     }, 15000);\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/2]\u23af\n\n FAIL  test/test_stdio_e2e.test.ts > MCP Stdio E2E > llm_wiki_read_file > rejects absolute path traversal\nAssertionError: expected undefined to be true // Object.is equality\n\n- Expected: \ntrue\n\n+ Received: \nundefined\n\n \u276f test/test_stdio_e2e.test.ts:298:23\n    296|       const isError = response.error !== undefined ||\n    297|         (response.result && (response.result as Record<string, unknown\u2026\n    298|       expect(isError).toBe(true);\n       |                       ^\n    299|     }, 15000);\n    300|   });\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[2/2]\u23af\n\nnpm error Lifecycle script `test` failed with error:\nnpm error code 1\nnpm error path /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/mcp-server\nnpm error workspace mcp-server@1.0.0\nnpm error location /tmp/opencode/llm-wiki-worktrees/phase-05/llm-wiki-monorepo/mcp-server\nnpm error command failed\nnpm error command sh -c vitest run --run\n",
+      "duration_s": 5.611,
+      "status": "FAIL"
+    }
+  ],
+  "failures": [
+    "pytest",
+    "ts_tests",
+    "mcp_stdio_e2e"
+  ]
+}

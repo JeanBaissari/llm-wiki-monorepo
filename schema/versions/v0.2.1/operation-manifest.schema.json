@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-wiki.ai/schemas/v0.2.1/operation-manifest.schema.json",
+  "title": "Operation Manifest",
+  "description": "Schema for operation manifest files recording multi-step operation evidence",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version hash"
+    },
+    "operation_id": {
+      "type": "string",
+      "description": "Stable ULID-style operation identifier"
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Groups retries or subprocess spans under one run"
+    },
+    "parent_operation_id": {
+      "type": "string",
+      "description": "Optional parent operation for sub-operations"
+    },
+    "component": {
+      "type": "string",
+      "enum": ["cli", "skill", "mcp-server", "sidecar", "graph-engine", "web-viewer", "obsidian-plugin", "agent"],
+      "description": "Component that created the manifest"
+    },
+    "command": {
+      "type": "string",
+      "description": "Canonical operation name"
+    },
+    "wiki_root": {
+      "type": "string",
+      "description": "Resolved wiki root path"
+    },
+    "inputs": {
+      "type": "object",
+      "description": "Normalized arguments with secrets redacted"
+    },
+    "input_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Source path → SHA256 map"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["started", "running", "succeeded", "failed", "blocked", "cancelled"],
+      "description": "Final operation status"
+    },
+    "started_at": {
+      "type": "string",
+      "description": "ISO 8601 start timestamp"
+    },
+    "ended_at": {
+      "type": "string",
+      "description": "ISO 8601 end timestamp"
+    },
+    "duration_ms": {
+      "type": "number",
+      "description": "Wall-clock duration in milliseconds"
+    },
+    "touched_paths": {
+      "type": "object",
+      "properties": {
+        "created": { "type": "array", "items": { "type": "string" } },
+        "updated": { "type": "array", "items": { "type": "string" } },
+        "deleted": { "type": "array", "items": { "type": "string" } },
+        "read": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "artifact_refs": {
+      "type": "object",
+      "properties": {
+        "audit_ids": { "type": "array", "items": { "type": "string" } },
+        "claim_refs": { "type": "array", "items": { "type": "string" } },
+        "cache_paths": { "type": "array", "items": { "type": "string" } },
+        "backup_paths": { "type": "array", "items": { "type": "string" } },
+        "graph_outputs": { "type": "array", "items": { "type": "string" } },
+        "index_outputs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "path": { "type": "string" },
+          "recoverable": { "type": "boolean" }
+        }
+      }
+    }
+  },
+  "required": ["operation_id", "command", "status", "started_at"],
+  "additionalProperties": true
+}

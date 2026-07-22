@@ -1,0 +1,23 @@
+{
+  "schema_version": "v0.2.1",
+  "operation_id": "op_01JQ0ABC123",
+  "run_id": "run_01JQ0ABC456",
+  "component": "cli",
+  "command": "ingest",
+  "wiki_root": "/tmp/test-wiki",
+  "inputs": {
+    "source_path": "raw/test.md",
+    "provider": "default"
+  },
+  "input_hashes": {
+    "raw/test.md": "abc123def456"
+  },
+  "status": "succeeded",
+  "started_at": "2026-07-22T12:00:00Z",
+  "ended_at": "2026-07-22T12:05:00Z",
+  "duration_ms": 300000,
+  "touched_paths": {
+    "created": ["wiki/concepts/test.md"],
+    "read": ["raw/test.md"]
+  }
+}

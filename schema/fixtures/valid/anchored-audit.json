@@ -1,0 +1,13 @@
+{
+  "id": "20260722-120000-abcd",
+  "target": "wiki/concepts/mock_concept.md",
+  "target_lines": [10, 12],
+  "anchor_before": "## Overview\n",
+  "anchor_text": "A mock concept for integration testing.",
+  "anchor_after": "\n\n## Links",
+  "severity": "suggest",
+  "author": "test-agent",
+  "source": "web-viewer",
+  "created": "2026-07-22",
+  "status": "open"
+}

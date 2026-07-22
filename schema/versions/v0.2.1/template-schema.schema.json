@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-wiki.ai/schemas/v0.2.1/template.schema.json",
+  "title": "Template Metadata",
+  "description": "Schema for wiki template metadata (PURPOSE.md, SCHEMA.md, extra-dirs.json)",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version hash"
+    },
+    "name": {
+      "type": "string",
+      "description": "Template name (directory name)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable template description"
+    },
+    "page_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["entity", "concept", "source", "comparison", "synthesis", "overview"]
+      },
+      "description": "Page types used by this template"
+    },
+    "extra_dirs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Extra wiki/ subdirectories created by this template"
+    },
+    "source_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["pdf", "docx", "epub", "md", "txt", "json", "yaml", "html", "url"]
+      },
+      "description": "Accepted source document types"
+    }
+  },
+  "required": ["name", "description"],
+  "additionalProperties": true
+}

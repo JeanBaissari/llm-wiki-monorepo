@@ -38,11 +38,17 @@ def _read_schema_version(wiki_root: Path) -> str | None:
 
 
 def _compute_current_schema_version() -> str:
-    """Derive schema version from SHA256 of base-schema.md."""
+    """Derive schema version from SHA256 of canonical schema files."""
+    hasher = hashlib.sha256()
+    schema_dir = REPO_ROOT / "schema" / "versions" / "v0.2.1"
+    if schema_dir.exists():
+        for f in sorted(schema_dir.glob("*.json")):
+            hasher.update(f.read_bytes())
+    # Fallback: include base-schema.md for backward compatibility
     schema_file = REPO_ROOT / "templates" / "_shared" / "base-schema.md"
     if schema_file.exists():
-        return hashlib.sha256(schema_file.read_bytes()).hexdigest()[:8]
-    return "00000000"
+        hasher.update(schema_file.read_bytes())
+    return hasher.hexdigest()[:8]
 
 
 def _check_fixture_fresh(fixture_path: Path, fixture_name: str) -> None:

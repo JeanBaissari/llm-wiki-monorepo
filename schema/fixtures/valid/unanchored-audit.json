@@ -1,0 +1,11 @@
+{
+  "id": "20260722-120001-ef01",
+  "target": "operations/ingest-20260722-120000",
+  "target_kind": "operation",
+  "target_reason": "Audit applies to the entire operation, not a specific text location",
+  "severity": "warn",
+  "author": "test-agent",
+  "source": "ingest",
+  "created": "2026-07-22",
+  "status": "open"
+}

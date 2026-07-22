@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-wiki.ai/schemas/v0.2.1/log-event.schema.json",
+  "title": "Operation Log Event",
+  "description": "Structured JSONL event record for operation tracking",
+  "type": "object",
+  "properties": {
+    "v": {
+      "type": "integer",
+      "const": 1,
+      "description": "Log format version"
+    },
+    "ts": {
+      "type": "string",
+      "description": "ISO 8601 timestamp with timezone"
+    },
+    "lvl": {
+      "type": "string",
+      "enum": ["DEBUG", "INFO", "WARN", "ERROR", "PANIC"],
+      "description": "Severity level"
+    },
+    "cmp": {
+      "type": "string",
+      "description": "Component identifier"
+    },
+    "msg": {
+      "type": "string",
+      "description": "Human-readable log message"
+    },
+    "operation_id": {
+      "type": "string",
+      "description": "Stable operation ID for event correlation"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["started", "running", "succeeded", "failed", "blocked", "cancelled"],
+      "description": "Lifecycle event type"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["started", "running", "succeeded", "failed", "blocked", "cancelled"],
+      "description": "Operation status"
+    },
+    "command": {
+      "type": "string",
+      "description": "Canonical command name"
+    },
+    "wiki_root": {
+      "type": "string",
+      "description": "Canonical wiki root path"
+    },
+    "touched_paths": {
+      "type": "object",
+      "properties": {
+        "created": { "type": "array", "items": { "type": "string" } },
+        "updated": { "type": "array", "items": { "type": "string" } },
+        "deleted": { "type": "array", "items": { "type": "string" } },
+        "read": { "type": "array", "items": { "type": "string" } }
+      },
+      "description": "File paths affected by the operation"
+    },
+    "duration_ms": {
+      "type": "number",
+      "description": "Elapsed time in milliseconds"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      },
+      "description": "Error records"
+    }
+  },
+  "required": ["v", "ts", "lvl", "cmp", "msg"],
+  "additionalProperties": true
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://llm-wiki.ai/schemas/v0.2.1/page.schema.json",
+  "title": "Wiki Page",
+  "description": "Frontmatter schema for LLM Wiki markdown pages",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version hash (first 8 hex chars of SHA256 of canonical schema)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable page title"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["entity", "concept", "source", "comparison", "synthesis", "overview"],
+      "description": "Page type taxonomy"
+    },
+    "created": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Page creation date (YYYY-MM-DD)"
+    },
+    "updated": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Page last-updated date (YYYY-MM-DD)"
+    },
+    "sources": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Source file paths or URLs"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Freeform tags for categorization"
+    },
+    "authors": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Author names (source pages only)"
+    },
+    "year": {
+      "type": "string",
+      "pattern": "^\\d{4}$",
+      "description": "Publication year (source pages only)"
+    },
+    "url": {
+      "type": "string",
+      "description": "External URL (source pages only)"
+    },
+    "venue": {
+      "type": "string",
+      "description": "Publication venue (source pages only)"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "Overall page confidence level"
+    },
+    "contested": {
+      "type": "boolean",
+      "description": "Whether the page content is contested"
+    },
+    "contradictions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of page slugs that contradict this page"
+    },
+    "related": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of related page slugs"
+    }
+  },
+  "required": ["title", "type", "created", "updated", "sources", "tags"],
+  "additionalProperties": true
+}

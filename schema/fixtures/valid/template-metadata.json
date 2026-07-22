@@ -1,0 +1,8 @@
+{
+  "schema_version": "v0.2.1",
+  "name": "codebase",
+  "description": "Template for software project wikis",
+  "page_types": ["entity", "concept", "source", "comparison", "synthesis", "overview"],
+  "extra_dirs": [],
+  "source_types": ["md", "txt", "json", "yaml"]
+}

@@ -34,8 +34,7 @@ import shutil
 from pathlib import Path
 from datetime import date, datetime
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from discover import discover_layout, WikiLayout, format_json
+from llm_wiki.discover import discover_layout, WikiLayout, format_json
 
 
 # Try multiple locations: installed package, then dev repo

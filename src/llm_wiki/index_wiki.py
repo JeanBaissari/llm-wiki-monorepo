@@ -32,11 +32,7 @@ import time
 from pathlib import Path
 
 # ── Import discover.py from sibling package directory ────────────────────
-_SCRIPT_DIR = Path(__file__).resolve().parent
-if str(_SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPT_DIR))
-
-from discover import discover_layout  # type: ignore
+from llm_wiki.discover import discover_layout
 
 
 # ── Constants ───────────────────────────────────────────────────────────

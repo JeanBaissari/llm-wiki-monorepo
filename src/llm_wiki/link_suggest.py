@@ -25,8 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from discover import discover_layout
+from llm_wiki.discover import discover_layout
 
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
@@ -290,7 +289,8 @@ def apply_suggestions(pages: dict, suggestions: list[dict]) -> int:
             new_text = new_text[:start] + link + new_text[end:]
 
         if new_text != source_text:
-            source_path.write_text(new_text, encoding="utf-8")
+            from llm_wiki.atomic_write import atomic_write
+            atomic_write(str(source_path), new_text)
             modified += 1
 
     return modified

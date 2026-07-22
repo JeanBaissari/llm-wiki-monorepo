@@ -36,8 +36,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from discover import discover_layout
+from llm_wiki.discover import discover_layout
 
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
@@ -307,16 +306,9 @@ def cmd_verify(root: Path) -> int:
 
     # ── c. No empty files ──────────────────────────────────────────────────
     empty_issues: list[str] = []
-    patterns = []
     pages_rel = Path(layout.pages_dir).relative_to(root_resolved)
-    patterns.append(f"{pages_rel}/**/*.md")
-    if layout.audit_dir:
-        audit_rel = Path(layout.audit_dir).relative_to(root_resolved)
-        patterns.append(f"{audit_rel}/**/*.md")
-    if layout.log_dir:
-        log_rel = Path(layout.log_dir).relative_to(root_resolved)
-        patterns.append(f"{log_rel}/**/*.md")
-    for pattern in patterns:
+    for pattern_dir in [pages_rel] + ([Path(layout.audit_dir).relative_to(root_resolved)] if layout.audit_dir else []) + ([Path(layout.log_dir).relative_to(root_resolved)] if layout.log_dir else []):
+        for p in root_resolved.glob(f"{pattern_dir}/**/*.md"):
             if p.stat().st_size == 0:
                 empty_issues.append(str(p.relative_to(root_resolved)))
     if empty_issues:

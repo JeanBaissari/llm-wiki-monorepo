@@ -12,10 +12,8 @@ import argparse, hashlib, json, os, re, sys, subprocess
 from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from discover import discover_layout
-from llm import call_llm  # SDK-based LLM dispatch with retry + timeout support
+from llm_wiki.discover import discover_layout
+from llm_wiki.llm import call_llm
 
 CHUNK_SIZE = 55_000
 STAGE1_SYSTEM = "You are analyzing a source document for a knowledge base. Extract key entities, concepts, claims, relationships, and contradictions. Be thorough and structured."
@@ -118,26 +116,38 @@ def write_wiki(root: str, rpath: str, content: str, pages_dir: str = None,
     try:
         from llm_wiki.atomic_write import atomic_write
         from llm_wiki.content_hash import read_hash, inject_hash
-        current = read_file(fp)
-        if current and not force:
-            if current.strip() == content.strip():
-                return "skipped", True
-            expected = read_hash(content)
-            current_hash = read_hash(current) if current else ""
-            if expected and current_hash and expected != current_hash:
-                conflict_path = fp.replace(".md", " (conflict).md")
-                if atomic_write(conflict_path, content):
-                    print(f"  ⚠  CONFLICT: {rpath} was modified. Changes saved to {os.path.basename(conflict_path)}.", file=sys.stderr)
-                    return "conflict", True
-                return "error", False
-        final = inject_hash(content)
-        ok = atomic_write(fp, final)
-        status = "updated" if current else "created"
-        return (status, True) if ok else ("error", False)
+        from llm_wiki.lock_wiki import WikiLock, DEFAULT_LOCK_TIMEOUT
+        lock = WikiLock(fp, timeout=lock_timeout or DEFAULT_LOCK_TIMEOUT)
+        try:
+            lock.__enter__()
+        except TimeoutError:
+            return ("locked", False)
+        try:
+            current = read_file(fp)
+            if current and not force:
+                if current.strip() == content.strip():
+                    return ("skipped", True)
+                expected = read_hash(content)
+                current_hash = read_hash(current) if current else ""
+                if expected and current_hash and expected != current_hash:
+                    conflict_path = fp.replace(".md", " (conflict).md")
+                    if atomic_write(conflict_path, content):
+                        print(f"  ⚠  CONFLICT: {rpath} was modified. Changes saved to {os.path.basename(conflict_path)}.", file=sys.stderr)
+                        return ("conflict", True)
+                    return ("error", False)
+            final = inject_hash(content)
+            ok = atomic_write(fp, final)
+            status = "updated" if current else "created"
+            return (status, True) if ok else ("error", False)
+        finally:
+            try:
+                lock.__exit__(None, None, None)
+            except Exception:
+                pass
     except ImportError:
         if os.path.exists(fp):
-            if read_file(fp) and read_file(fp).strip() == content.strip(): return "skipped", True
-            print(f"  ⚠  Skipping {rpath} — exists (use --force to overwrite)", file=sys.stderr); return "skipped", True
+            if read_file(fp) and read_file(fp).strip() == content.strip(): return ("skipped", True)
+            print(f"  ⚠  Skipping {rpath} — exists (use --force to overwrite)", file=sys.stderr); return ("skipped", True)
         return ("created", True) if write_file(fp, content) else ("error", False)
 
 def write_review(root: str, rtype: str, body: str, slug: str, audit_dir: str = None) -> Optional[str]:
@@ -149,6 +159,7 @@ def write_review(root: str, rtype: str, body: str, slug: str, audit_dir: str = N
     return fname if write_file(os.path.join(target_dir, fname), content) else None
 
 def update_index(root: str, pages: list, layout=None) -> int:
+    from llm_wiki.atomic_write import atomic_write
     if layout and layout.index_file:
         ip = layout.index_file
     elif layout:
@@ -161,16 +172,24 @@ def update_index(root: str, pages: list, layout=None) -> int:
         with open(ip, "r", encoding="utf-8") as f:
             existing = set(re.findall(r'\[\[([^\]|#]+)', f.read()))
     added = 0
-    with open(ip, "a", encoding="utf-8") as f:
-        for p in pages:
-            link = p[:-3]
-            if link in existing: continue
-            existing.add(link)
-            display = re.sub(r"\.md$", "", p.split("/")[-1]).replace("_"," ").replace("-"," ").title()
-            f.write(f"- [[{link}|{display}]] — (auto-added by ingest)\n"); added += 1
+    lines_to_add = []
+    for p in pages:
+        link = p[:-3]
+        if link in existing: continue
+        existing.add(link)
+        display = re.sub(r"\.md$", "", p.split("/")[-1]).replace("_"," ").replace("-"," ").title()
+        lines_to_add.append(f"- [[{link}|{display}]] — (auto-added by ingest)\n"); added += 1
+    if lines_to_add:
+        current = read_file(ip) or ""
+        if not current.endswith("\n"):
+            current += "\n"
+        current += "".join(lines_to_add)
+        atomic_write(ip, current)
     return added
 
+
 def append_log(root: str, slug: str, created: int, updated: int, reviews: int, log_dir: str = None) -> None:
+    from llm_wiki.atomic_write import atomic_write
     if log_dir:
         lp = os.path.join(log_dir, f"{tcomp()}.md")
     else:
@@ -178,9 +197,10 @@ def append_log(root: str, slug: str, created: int, updated: int, reviews: int, l
     os.makedirs(os.path.dirname(lp) or ".", exist_ok=True)
     entry = f"\n## [{datetime.now().strftime('%H:%M')}] ingest | {slug}\n- Pages created: {created}, updated: {updated}, reviews: {reviews}\n- Timestamp: {ts()}\n"
     if os.path.exists(lp):
-        with open(lp, "a", encoding="utf-8") as f: f.write(entry)
+        current = read_file(lp) or ""
+        atomic_write(lp, current + entry)
     else:
-        with open(lp, "w", encoding="utf-8") as f: f.write(f"# {tiso()}\n\n{entry}")
+        atomic_write(lp, f"# {tiso()}\n\n{entry}")
 
 def ingest(wiki_root: str, source_path: str, provider: str = "default", force: bool = False,
            llm_timeout: Optional[int] = None) -> int:
@@ -231,9 +251,9 @@ def ingest(wiki_root: str, source_path: str, provider: str = "default", force: b
         else:
             analysis = stage1_analyze(source_text, orient, provider, slug, llm_timeout=llm_timeout)
         if analysis:
+            from llm_wiki.atomic_write import atomic_write
             try:
-                with open(cache_path, "w") as f:
-                    json.dump({"source_hash": s_hash, "source_slug": slug, "analysis": analysis, "timestamp": ts()}, f)
+                atomic_write(cache_path, json.dumps({"source_hash": s_hash, "source_slug": slug, "analysis": analysis, "timestamp": ts()}))
                 print(f"  Cached analysis", file=sys.stderr)
             except IOError as e: print(f"  ⚠  Cache write failed: {e}", file=sys.stderr)
     

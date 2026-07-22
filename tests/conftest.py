@@ -17,11 +17,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Ensure skill/scripts is on sys.path for all tests
+# Ensure src is on sys.path for all tests (canonical package imports)
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = REPO_ROOT / "skill" / "scripts"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 import pytest
 
@@ -64,7 +64,7 @@ def _check_fixture_fresh(fixture_path: Path, fixture_name: str) -> None:
 def _run_scaffold(wiki_root: Path, name: str = "Test Wiki", template: str = "codebase") -> None:
     """Run scaffold.py to create a fresh wiki."""
     cmd = [
-        sys.executable, str(SCRIPTS_DIR / "scaffold.py"),
+        sys.executable, str(SRC_DIR.parent / "skill" / "scripts" / "scaffold.py"),
         str(wiki_root), name,
         "--template", template,
         "--force",
@@ -198,10 +198,9 @@ title: Add Examples
 description: Consider adding examples to this concept page.
 """
 
-    monkeypatch.setattr("ingest.call_llm", _mock)
-    # Also patch in the module namespace where it's used
-    import ingest
-    monkeypatch.setattr(ingest, "call_llm", _mock)
+    monkeypatch.setattr("llm_wiki.ingest.call_llm", _mock)
+    import llm_wiki.ingest
+    monkeypatch.setattr(llm_wiki.ingest, "call_llm", _mock)
     return _mock
 
 
@@ -236,9 +235,9 @@ tags: [chunked]
 Generated from a multi-chunk source document.
 """
 
-    monkeypatch.setattr("ingest.call_llm", _mock)
-    import ingest
-    monkeypatch.setattr(ingest, "call_llm", _mock)
+    monkeypatch.setattr("llm_wiki.ingest.call_llm", _mock)
+    import llm_wiki.ingest
+    monkeypatch.setattr(llm_wiki.ingest, "call_llm", _mock)
     return _mock
 
 
@@ -249,9 +248,9 @@ def mock_llm_failure(monkeypatch):
               total_timeout: int | None = None) -> None:
         return None
 
-    monkeypatch.setattr("ingest.call_llm", _mock)
-    import ingest
-    monkeypatch.setattr(ingest, "call_llm", _mock)
+    monkeypatch.setattr("llm_wiki.ingest.call_llm", _mock)
+    import llm_wiki.ingest
+    monkeypatch.setattr(llm_wiki.ingest, "call_llm", _mock)
     return _mock
 
 
@@ -288,9 +287,9 @@ This page has proper frontmatter.
 this should be skipped
 """
 
-    monkeypatch.setattr("ingest.call_llm", _mock)
-    import ingest
-    monkeypatch.setattr(ingest, "call_llm", _mock)
+    monkeypatch.setattr("llm_wiki.ingest.call_llm", _mock)
+    import llm_wiki.ingest
+    monkeypatch.setattr(llm_wiki.ingest, "call_llm", _mock)
     return _mock
 
 

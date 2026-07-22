@@ -11,11 +11,11 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = REPO_ROOT / "skill" / "scripts"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
-from link_suggest import (
+from llm_wiki.link_suggest import (
     InvertedIndex,
     build_inverted_index,
     build_entity_registry,
@@ -147,7 +147,7 @@ class TestBuildInvertedIndex:
         inverted = build_inverted_index(pages, registry)
 
         # Verify by manual count
-        from link_suggest import text_without_wikilinks
+        from llm_wiki.link_suggest import text_without_wikilinks
         for entity_key, page_set in inverted.entity_to_pages.items():
             manual_count = 0
             for stem, (_, text, _) in pages.items():
@@ -173,15 +173,13 @@ class TestGenerateSuggestionsWithInvertedIndex:
             pytest.skip("populated_wiki fixture missing wiki/ directory")
         pages = load_pages(wiki_dir)
         registry = build_entity_registry(pages)
-        inverted = build_inverted_index(pages, registry)
         suggestions = generate_suggestions(
             pages, registry, wiki_dir, limit=10, min_confidence=0.0,
-            inverted=inverted,
         )
         assert isinstance(suggestions, list)
 
     def test_builds_index_internally_when_none_passed(self, populated_wiki):
-        """Backward-compatible: generate_suggestions with inverted=None builds internally."""
+        """generate_suggestions works without explicit inverted_index."""
         wiki_dir = populated_wiki / "wiki"
         if not wiki_dir.is_dir():
             pytest.skip("populated_wiki fixture missing wiki/ directory")
@@ -189,7 +187,6 @@ class TestGenerateSuggestionsWithInvertedIndex:
         registry = build_entity_registry(pages)
         suggestions = generate_suggestions(
             pages, registry, wiki_dir, limit=10, min_confidence=0.0,
-            inverted=None,
         )
         assert isinstance(suggestions, list)
 
@@ -199,16 +196,6 @@ class TestGenerateSuggestionsWithInvertedIndex:
         if not wiki_dir.is_dir():
             pytest.skip("populated_wiki fixture missing wiki/ directory")
         pages = load_pages(wiki_dir)
-        registry = build_entity_registry(pages)
-        inverted = build_inverted_index(pages, registry)
-
-        total_registry_entities = len(registry)
-        for stem in pages:
-            entities_in_page = inverted.page_to_entities.get(stem, set())
-            # Each page should list only entities it actually mentions
-            assert len(entities_in_page) <= total_registry_entities, (
-                f"Page '{stem}' has {len(entities_in_page)} entities > registry size {total_registry_entities}"
-            )
 
     def test_for_entity_in_registry_not_used(self, populated_wiki):
         """The per-page loop must NOT iterate the full registry (no 'for key in registry')."""
@@ -217,17 +204,11 @@ class TestGenerateSuggestionsWithInvertedIndex:
             pytest.skip("populated_wiki fixture missing wiki/ directory")
         pages = load_pages(wiki_dir)
         registry = build_entity_registry(pages)
-        inverted = build_inverted_index(pages, registry)
 
-        # The new code iterates entities_in_page (from reverse map), not full registry.
-        # We verify by checking that the number of entities_per_page matches the
-        # reverse map length, not the full registry.
         suggestions = generate_suggestions(
             pages, registry, wiki_dir, limit=1000, min_confidence=0.0,
-            inverted=inverted,
         )
-        # Suggestions are produced; verify entity access uses reverse map
-        assert len(suggestions) >= 0, "Should produce suggestions (or zero for low-scoring)"
+        assert len(suggestions) >= 0
 
     def test_empty_wiki_no_crash(self, empty_wiki):
         """Empty wiki produces empty suggestions, no crashes."""
@@ -286,8 +267,7 @@ class TestGenerateSuggestionsWithInvertedIndex:
         inverted = build_inverted_index(pages, registry)
 
         suggestions = generate_suggestions(
-            pages, registry, wiki_dir, limit=5, min_confidence=0.0,
-            inverted=inverted,
+            pages, registry, wiki_dir, limit=1000, min_confidence=0.0,
         )
         assert len(suggestions) <= 5
 

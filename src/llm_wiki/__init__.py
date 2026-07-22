@@ -4,4 +4,25 @@ AI agents compile raw sources into persistent, cross-linked Markdown wikis.
 Knowledge compounds over time. No database. No API lock-in. Just files.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.1"
+
+__all__ = [
+    "scaffold",
+    "ingest",
+    "lint_wiki",
+    "discover",
+    "graph_insights",
+    "backup",
+    "index_wiki",
+    "link_suggest",
+    "benchmark",
+    "audit_review",
+    "deep_research",
+    "migrate_log",
+    "health_check",
+    "wiki_logging",
+    "cli",
+    "atomic_write",
+    "lock_wiki",
+    "content_hash",
+]

@@ -18,6 +18,7 @@ Exit codes:
   0 — done (always, regardless of audit count)
 """
 
+import argparse
 import os
 import re
 import sys
@@ -25,8 +26,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from discover import discover_layout
+from llm_wiki.discover import discover_layout
 
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
@@ -79,9 +79,18 @@ def extract_comment_one_line(text: str) -> str:
 SEVERITY_ORDER = {"error": 0, "warn": 1, "suggest": 2, "info": 3}
 
 
-def main(root: str, mode: str) -> int:
-    root_path = Path(root)
-    layout = discover_layout(root)
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="List and group audit feedback for an LLM Wiki."
+    )
+    parser.add_argument("wiki_root", help="Path to the wiki root directory")
+    parser.add_argument("--open", action="store_true", help="Show open audit files (default)")
+    parser.add_argument("--resolved", action="store_true", help="Show resolved audit files")
+    parser.add_argument("--all", action="store_true", help="Show both open and resolved")
+    args = parser.parse_args()
+
+    root_path = Path(args.wiki_root)
+    layout = discover_layout(args.wiki_root)
     if layout.audit_dir is None:
         print("No audit directory found", file=sys.stderr)
         return 1
@@ -91,6 +100,12 @@ def main(root: str, mode: str) -> int:
         return 1
 
     files: list[Path] = []
+    mode = "open"
+    if args.all:
+        mode = "all"
+    elif args.resolved:
+        mode = "resolved"
+
     if mode in ("open", "all"):
         files.extend(sorted(p for p in audit_dir.glob("*.md") if p.name != ".gitkeep"))
     if mode in ("resolved", "all"):
@@ -127,7 +142,7 @@ def main(root: str, mode: str) -> int:
             sev = e.get("severity", "?")
             aid = e.get("id", "?")
             author = e.get("author", "?")
-            created = e.get("created", "?")[:10]  # date only
+            created = e.get("created", "?")[:10]
             line = e.get("_one_liner", "")
             print(f"   [{aid}] {sev}: {line}  —  {author}, {created}")
         print()
@@ -136,20 +151,5 @@ def main(root: str, mode: str) -> int:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(__doc__)
-        sys.exit(1)
-    root = sys.argv[1]
-    mode = "open"
-    for arg in sys.argv[2:]:
-        if arg == "--open":
-            mode = "open"
-        elif arg == "--resolved":
-            mode = "resolved"
-        elif arg == "--all":
-            mode = "all"
-        else:
-            print(f"Unknown flag: {arg}", file=sys.stderr)
-            sys.exit(1)
-    sys.exit(main(root, mode))
+    sys.exit(main())
 

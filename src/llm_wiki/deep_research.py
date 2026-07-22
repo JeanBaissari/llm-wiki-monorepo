@@ -26,8 +26,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from discover import discover_layout
+from llm_wiki.discover import discover_layout
 
 
 def slugify(text: str) -> str:
@@ -173,7 +172,9 @@ tags: [research, synthesis]
 
 <!-- Agent: what remains unanswered or needs further research? -->
 '''
-    syn_path.write_text(syn_content)
+    from llm_wiki.atomic_write import atomic_write
+    syn_path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write(str(syn_path), syn_content)
     print(f'SYNTHESIS: Created stub → {syn_path}', flush=True)
     print(f'SYNTHESIS_INSTRUCT: Fill in the synthesis content at '
           f'wiki/synthesis/{topic_slug}.md', flush=True)
@@ -187,10 +188,10 @@ tags: [research, synthesis]
         f'- Synthesis: [[synthesis/{topic_slug}]]\n'
     )
     if log_file.exists():
-        with open(log_file, 'a', encoding='utf-8') as f:
-            f.write(log_entry)
+        current = log_file.read_text(encoding='utf-8')
+        atomic_write(str(log_file), current + log_entry)
     else:
-        log_file.write_text(f'# {date_iso}\n\n{log_entry}')
+        atomic_write(str(log_file), f'# {date_iso}\n\n{log_entry}')
     print(f'LOG: Appended to {log_file}', flush=True)
 
     # ── Phase 6: Report ────────────────────────────────────────────────────

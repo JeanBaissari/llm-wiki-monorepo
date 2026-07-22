@@ -71,5 +71,9 @@ graph = ["networkx>=3.0"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.pytest.ini_options]
+markers = ["slow: slow benchmark tests"]
+addopts = "-m 'not slow'"
+
 [tool.setuptools.package-data]
 llm_wiki = ["py.typed"]

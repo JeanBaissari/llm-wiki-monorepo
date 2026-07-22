@@ -2,7 +2,7 @@
 title: Transfer Learning
 type: concept
 created: 2026-01-15
-updated: 2026-07-04
+updated: 2026-07-22
 sources: [ml-textbook]
 tags: [ml, technique]
 confidence: high

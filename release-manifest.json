@@ -1,0 +1,177 @@
+{
+  "schema_version": "1",
+  "release": {
+    "version": "0.2.1",
+    "canonical_version_source": "pyproject.toml:project.version"
+  },
+  "python": {
+    "package_name": "baissarienterprises-llm-wiki",
+    "runtime_version_import": "llm_wiki.__version__",
+    "console_scripts": [
+      "llm-wiki = llm_wiki.cli:main",
+      "llm-wiki-scaffold = llm_wiki.scaffold:main",
+      "llm-wiki-ingest = llm_wiki.ingest:main",
+      "llm-wiki-lint = llm_wiki.lint_wiki:main",
+      "llm-wiki-insights = llm_wiki.graph_insights:main",
+      "llm-wiki-link-suggest = llm_wiki.link_suggest:main",
+      "llm-wiki-backup = llm_wiki.backup:main",
+      "llm-wiki-benchmark = llm_wiki.benchmark:main",
+      "llm-wiki-deep-research = llm_wiki.deep_research:main",
+      "llm-wiki-audit = llm_wiki.audit_review:main",
+      "llm-wiki-discover = llm_wiki.discover:main",
+      "llm-wiki-index = llm_wiki.index_wiki:main",
+      "llm-wiki-health = llm_wiki.health_check:main"
+    ],
+    "unified_cli_commands": [
+      "scaffold", "lint", "ingest", "insights", "link-suggest",
+      "backup", "deep-research", "audit", "benchmark",
+      "migrate-log", "discover"
+    ]
+  },
+  "npm": {
+    "packages": [
+      {
+        "path": ".",
+        "name": "llm-wiki-monorepo",
+        "version": "0.2.1",
+        "role": "root-workspace"
+      },
+      {
+        "path": "mcp-server",
+        "name": "mcp-server",
+        "version": "1.0.0",
+        "role": "first-class"
+      },
+      {
+        "path": "graph-engine",
+        "name": "graph-engine",
+        "version": "1.0.0",
+        "role": "first-class"
+      },
+      {
+        "path": "graph-bridge",
+        "name": "@baissari/llm-wiki-graph-bridge",
+        "version": "0.2.5",
+        "role": "first-class"
+      },
+      {
+        "path": "web-viewer",
+        "name": "llm-wiki-web",
+        "version": "0.1.0",
+        "role": "first-class"
+      },
+      {
+        "path": "audit-shared",
+        "name": "audit-shared",
+        "version": "0.1.0",
+        "role": "first-class"
+      },
+      {
+        "path": "plugins/obsidian-audit",
+        "name": "obsidian-audit",
+        "version": "0.1.0",
+        "role": "first-class"
+      }
+    ]
+  },
+  "mcp": {
+    "tool_registry": "mcp-server/src/index.ts",
+    "expected_tool_count": 14,
+    "expected_tool_names": [
+      "llm_wiki_status",
+      "llm_wiki_files",
+      "llm_wiki_read_file",
+      "llm_wiki_reviews",
+      "llm_wiki_search",
+      "llm_wiki_graph",
+      "llm_wiki_graph_build",
+      "llm_wiki_graph_insights",
+      "llm_wiki_graph_search",
+      "llm_wiki_lint",
+      "llm_wiki_ingest",
+      "llm_wiki_suggest_links",
+      "llm_wiki_backup",
+      "llm_wiki_discover_entities"
+    ]
+  },
+  "templates": {
+    "source": "templates/",
+    "expected_count": 20,
+    "expected_names": [
+      "algorithmic-trading",
+      "algorithmic-trading-mql4",
+      "architecture",
+      "business",
+      "codebase",
+      "commodities",
+      "copywriting",
+      "crypto",
+      "cybersecurity",
+      "decompilers",
+      "design-systems",
+      "developer-tools",
+      "finance",
+      "machine-learning",
+      "marketing",
+      "medicine",
+      "personal-growth",
+      "prompt-engineering",
+      "reading",
+      "research"
+    ]
+  },
+  "changelog": {
+    "required_entry": "0.2.1",
+    "file": "CHANGELOG.md"
+  },
+  "docs": {
+    "contracts": [
+      {
+        "file": "README.md",
+        "claims": [
+          "mcp_tool_count",
+          "template_count",
+          "cli_commands"
+        ]
+      },
+      {
+        "file": "AGENTS.md",
+        "claims": [
+          "mcp_tool_count",
+          "template_count",
+          "python_script_count",
+          "package_map"
+        ]
+      },
+      {
+        "file": "INDEX.md",
+        "claims": [
+          "template_count",
+          "mcp_tool_count",
+          "package_map"
+        ]
+      },
+      {
+        "file": "QUICKGUIDE.md",
+        "claims": [
+          "mcp_tool_count",
+          "template_count",
+          "cli_commands"
+        ]
+      },
+      {
+        "file": "VERSIONING.md",
+        "claims": [
+          "current_version"
+        ]
+      },
+      {
+        "file": "CHANGELOG.md",
+        "claims": [
+          "version_entry"
+        ]
+      }
+    ]
+  },
+  "generated_fragments": []
+}

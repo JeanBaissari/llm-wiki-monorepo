@@ -15,7 +15,7 @@ import sys
 from collections import defaultdict
 
 # conftest.py adds src to sys.path, so louvain is importable
-from llm_wiki.louvain import (
+from llm_wiki.graph.louvain import (
     detect_communities,
     louvain,
     _renumber_size_descending,

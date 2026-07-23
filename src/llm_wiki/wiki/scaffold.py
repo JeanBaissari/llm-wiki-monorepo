@@ -39,7 +39,7 @@ from llm_wiki.core.layout import discover_layout, WikiLayout, format_json
 
 # Try multiple locations: installed package, then dev repo
 _T = Path(__file__).resolve().parent / "templates"
-TEMPLATES_DIR = _T if _T.is_dir() else Path(__file__).resolve().parent.parent.parent / "templates"
+TEMPLATES_DIR = _T if _T.is_dir() else Path(__file__).resolve().parent.parent.parent.parent / "templates"
 DEFAULT_TEMPLATE = "research"
 
 

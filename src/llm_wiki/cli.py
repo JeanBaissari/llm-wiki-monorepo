@@ -22,20 +22,20 @@ from importlib import import_module
 
 
 COMMANDS = {
-    "scaffold": "llm_wiki.scaffold",
+    "scaffold": "llm_wiki.wiki.scaffold",
     "lint": "llm_wiki.quality.lint",
     "ingest": "llm_wiki.ingest.pipeline",
-    "insights": "llm_wiki.graph_insights",
-    "link-suggest": "llm_wiki.link_suggest",
-    "backup": "llm_wiki.backup",
-    "deep-research": "llm_wiki.deep_research",
+    "insights": "llm_wiki.graph.insights",
+    "link-suggest": "llm_wiki.graph.suggest",
+    "backup": "llm_wiki.wiki.backup",
+    "deep-research": "llm_wiki.research.deep_research",
     "audit": "llm_wiki.quality.audit",
-    "benchmark": "llm_wiki.benchmark",
-    "migrate-log": "llm_wiki.migrate_log",
+    "benchmark": "llm_wiki.ops.benchmark",
+    "migrate-log": "llm_wiki.ops.migrate",
     "discover": "llm_wiki.core.layout",
-    "index": "llm_wiki.index_wiki",
-    "health": "llm_wiki.health_check",
-    "serve": "llm_wiki.serve",
+    "index": "llm_wiki.search",
+    "health": "llm_wiki.ops.health",
+    "serve": "llm_wiki.ops.serve",
     "claims": "llm_wiki.quality.claims",
 }
 

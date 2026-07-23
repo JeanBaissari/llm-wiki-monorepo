@@ -8,7 +8,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from llm_wiki.migrate_log import main
+from llm_wiki.ops.migrate import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -68,7 +68,7 @@ def run_python_louvain(
     """Run Python Louvain via skill/scripts/louvain.py and return assignments."""
     # Import the louvain module (conftest adds skill/scripts to path)
     sys.path.insert(0, os.path.join(_REPO_ROOT, "skill", "scripts"))
-    from llm_wiki.louvain import detect_communities
+    from llm_wiki.graph.louvain import detect_communities
 
     # Convert to the format expected by louvain.detect_communities
     nodes_py = [{"id": nid} for nid in node_ids]

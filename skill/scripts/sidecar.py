@@ -101,7 +101,7 @@ def handle_ingest(params: dict) -> dict:
 def handle_suggest_links(params: dict) -> dict:
     """Suggest missing wikilinks for wiki pages. Uses link_suggest.py."""
     try:
-        from llm_wiki.link_suggest import (
+        from llm_wiki.graph.suggest import (
             load_pages,
             build_entity_registry,
             build_inverted_index,
@@ -179,7 +179,7 @@ def handle_backup(params: dict) -> dict:
     import contextlib
 
     try:
-        from llm_wiki.backup import cmd_snapshot, snapshot_path, backups_dir
+        from llm_wiki.wiki.backup import cmd_snapshot, snapshot_path, backups_dir
     except ImportError as e:
         return {"error": f"backup module not available: {e}"}
 
@@ -239,7 +239,7 @@ def handle_backup(params: dict) -> dict:
 def handle_discover_entities(params: dict) -> dict:
     """Discover all entities registered in the wiki. Uses link_suggest.py registry builder."""
     try:
-        from llm_wiki.link_suggest import load_pages, build_entity_registry
+        from llm_wiki.graph.suggest import load_pages, build_entity_registry
     except ImportError as e:
         return {"error": f"link_suggest module not available: {e}"}
 

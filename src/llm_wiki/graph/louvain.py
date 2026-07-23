@@ -160,7 +160,7 @@ def _louvain(
         loops: Self-loop weight of each node.
         total_weight: Total weight of all edges (m).
         resolution: Resolution parameter (default 1.0).
-        seed: Random seed for shuffling node order (default 42).
+        seed: Random seed for reproducibility (default 42).
 
     Returns:
         nodeId -> communityId (pre-renumbering).

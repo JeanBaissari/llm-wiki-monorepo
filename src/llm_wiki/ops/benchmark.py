@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 
-REPO_DIR = Path(__file__).resolve().parent.parent.parent
+REPO_DIR = Path(__file__).resolve().parent.parent.parent.parent
 GRAPH_ENGINE = REPO_DIR / "graph-engine" / "dist" / "index.js"
 LINT_SCRIPT = REPO_DIR / "skill" / "scripts" / "lint_wiki.py"
 INSIGHTS_SCRIPT = REPO_DIR / "skill" / "scripts" / "graph_insights.py"

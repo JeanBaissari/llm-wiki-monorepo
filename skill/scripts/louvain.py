@@ -8,7 +8,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from llm_wiki.louvain import (
+from llm_wiki.graph.louvain import (
     detect_communities,
     louvain,
     _renumber_size_descending,

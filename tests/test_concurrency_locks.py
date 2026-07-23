@@ -24,7 +24,7 @@ if str(SRC_DIR) not in sys.path:
 
 from llm_wiki.core.locking import WikiLock
 from llm_wiki.ingest.writer import write_wiki, update_index, read_file
-from llm_wiki.backup import cmd_verify
+from llm_wiki.wiki.backup import cmd_verify
 
 
 class TestWriteWikiLockEnforcement:

@@ -15,7 +15,7 @@ SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from llm_wiki.link_suggest import (
+from llm_wiki.graph.suggest import (
     InvertedIndex,
     build_inverted_index,
     build_entity_registry,
@@ -147,7 +147,7 @@ class TestBuildInvertedIndex:
         inverted = build_inverted_index(pages, registry)
 
         # Verify by manual count
-        from llm_wiki.link_suggest import text_without_wikilinks
+        from llm_wiki.graph.suggest import text_without_wikilinks
         for entity_key, page_set in inverted.entity_to_pages.items():
             manual_count = 0
             for stem, (_, text, _) in pages.items():

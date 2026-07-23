@@ -50,19 +50,19 @@ Issues = "https://github.com/JeanBaissari/llm-wiki-monorepo/issues"
 
 [project.scripts]
 llm-wiki = "llm_wiki.cli:main"
-llm-wiki-scaffold = "llm_wiki.scaffold:main"
+llm-wiki-scaffold = "llm_wiki.wiki.scaffold:main"
 llm-wiki-ingest = "llm_wiki.ingest.pipeline:main"
 llm-wiki-lint = "llm_wiki.quality.lint:main"
-llm-wiki-insights = "llm_wiki.graph_insights:main"
-llm-wiki-link-suggest = "llm_wiki.link_suggest:main"
-llm-wiki-backup = "llm_wiki.backup:main"
-llm-wiki-benchmark = "llm_wiki.benchmark:main"
-llm-wiki-deep-research = "llm_wiki.deep_research:main"
+llm-wiki-insights = "llm_wiki.graph.insights:main"
+llm-wiki-link-suggest = "llm_wiki.graph.suggest:main"
+llm-wiki-backup = "llm_wiki.wiki.backup:main"
+llm-wiki-benchmark = "llm_wiki.ops.benchmark:main"
+llm-wiki-deep-research = "llm_wiki.research.deep_research:main"
 llm-wiki-audit = "llm_wiki.quality.audit:main"
 llm-wiki-discover = "llm_wiki.core.layout:main"
-llm-wiki-index = "llm_wiki.index_wiki:main"
-llm-wiki-health = "llm_wiki.health_check:main"
-llm-wiki-serve = "llm_wiki.serve:main"
+llm-wiki-index = "llm_wiki.search.index:main"
+llm-wiki-health = "llm_wiki.ops.health:main"
+llm-wiki-serve = "llm_wiki.ops.serve:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-cov>=5.0"]

@@ -27,7 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # Import from the package module
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from llm_wiki.index_wiki import (
+from llm_wiki.search.index import (
     index_wiki,
     init_schema,
     tokenize,

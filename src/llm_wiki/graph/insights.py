@@ -9,27 +9,10 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from llm_wiki.core.layout import discover_layout
+from llm_wiki.core.frontmatter import parse_frontmatter
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 SKIP_STEMS = frozenset({"index", "log", "overview"})
-
-def parse_fm(text: str) -> dict:
-    m = FRONTMATTER_RE.match(text)
-    if not m: return {}
-    result = {}
-    for line in m.group(1).splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or ":" not in line: continue
-        k, _, v = line.partition(":")
-        k, v = k.strip(), v.strip()
-        if v.startswith("[") and v.endswith("]"):
-            result[k] = [x.strip().strip("\"'") for x in v[1:-1].split(",") if x.strip()]
-        elif v.startswith(('"', "'")):
-            result[k] = v[1:-1]
-        else:
-            result[k] = v
-    return result
 
 def load_md(wiki_root: Path) -> list[Path]:
     if not wiki_root.is_dir():
@@ -52,7 +35,7 @@ def build_graph(files, wiki_root):
         stem_to_id[pid.lower()] = pid
     for fp in files:
         text = fp.read_text(encoding="utf-8", errors="replace")
-        fm = parse_fm(text)
+        fm = parse_frontmatter(text) or {}
         title, ntype = fm.get("title", fp.stem), fm.get("type", "page")
         sources = fm.get("sources", [])
         rel = fp.relative_to(wiki_root)
@@ -207,6 +190,36 @@ def fmt_md(connections, gaps, nc, ec, cc):
     else: lines.append("*None.*\n")
     return "\n".join(lines)
 
+def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10, fmt: str = "markdown"):
+    layout = discover_layout(wiki_root)
+    root = Path(layout.pages_dir)
+    if not root.is_dir():
+        empty = {"summary": {"nodeCount": 0, "edgeCount": 0, "communityCount": 0},
+                 "surprisingConnections": [], "knowledgeGaps": {}}
+        if fmt == "json":
+            return empty
+        return "# Wiki Graph Insights\n\n*No content pages found to analyze.*"
+    files = load_md(root)
+    if not files:
+        empty = {"summary": {"nodeCount": 0, "edgeCount": 0, "communityCount": 0},
+                 "surprisingConnections": [], "knowledgeGaps": {}}
+        if fmt == "json":
+            return empty
+        return "# Wiki Graph Insights\n\n*No content pages found to analyze.*"
+    nodes, edges = build_graph(files, root)
+    adj = {nid: set() for nid in nodes}
+    for s, t in edges: adj[s].add(t); adj[t].add(s)
+    comm = communities(adj)
+    cstats = comm_stats(edges, comm)
+    top_conns = score_connections(nodes, edges, comm, cstats, connections)
+    ks = find_gaps(nodes, edges, adj, comm, cstats, gaps)
+    if fmt == "json":
+        return {
+            "summary": {"nodeCount": len(nodes), "edgeCount": len(edges), "communityCount": len(cstats)},
+            "surprisingConnections": top_conns, "knowledgeGaps": ks,
+        }
+    return fmt_md(top_conns, ks, len(nodes), len(edges), len(cstats))
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Analyze a wiki's wikilink graph for surprising connections and knowledge gaps.")
@@ -218,33 +231,11 @@ def main() -> int:
     parser.add_argument("--format", choices=["json", "markdown"], default="markdown",
                         help="Output format (default: markdown)")
     args = parser.parse_args()
-    layout = discover_layout(args.wiki_root)
-    wiki_root = Path(layout.pages_dir)
-    if not wiki_root.is_dir():
-        print(f"Error: pages directory not found at {layout.pages_dir}", file=sys.stderr); return 1
-    files = load_md(wiki_root)
-    if not files:
-        empty = {"summary": {"nodeCount": 0, "edgeCount": 0, "communityCount": 0},
-                 "surprisingConnections": [], "knowledgeGaps": {}}
-        if args.format == "json":
-            print(json.dumps(empty, indent=2))
-        else:
-            print("# Wiki Graph Insights\n\n*No content pages found to analyze.*")
-        return 0
-    nodes, edges = build_graph(files, wiki_root)
-    adj = {nid: set() for nid in nodes}
-    for s, t in edges: adj[s].add(t); adj[t].add(s)
-    comm = communities(adj)
-    cstats = comm_stats(edges, comm)
-    top_conns = score_connections(nodes, edges, comm, cstats, args.connections)
-    gaps = find_gaps(nodes, edges, adj, comm, cstats, args.gaps)
-    if args.format == "json":
-        print(json.dumps({
-            "summary": {"nodeCount": len(nodes), "edgeCount": len(edges), "communityCount": len(cstats)},
-            "surprisingConnections": top_conns, "knowledgeGaps": gaps,
-        }, indent=2, default=str))
+    result = compute_insights(args.wiki_root, args.connections, args.gaps, args.format)
+    if isinstance(result, dict):
+        print(json.dumps(result, indent=2, default=str))
     else:
-        print(fmt_md(top_conns, gaps, len(nodes), len(edges), len(cstats)))
+        print(result)
     return 0
 
 if __name__ == "__main__":

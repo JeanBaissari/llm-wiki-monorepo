@@ -230,7 +230,7 @@ class TestPipeIPC:
         # Approach: override _call_via_pipe to use a shorter poll and
         # have a side-effect that writes the response after .ready
         # is created.
-        import providers.opencode as oc_module
+        from llm_wiki.providers import opencode as oc_module
 
         original_call_via_pipe = p._call_via_pipe
 
@@ -307,7 +307,7 @@ class TestPipeIPC:
         from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
 
-        import providers.opencode as oc_module
+        from llm_wiki.providers import opencode as oc_module
 
         p._request_counter += 1
         from datetime import datetime
@@ -337,7 +337,7 @@ class TestPipeIPC:
         from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
 
-        import providers.opencode as oc_module
+        from llm_wiki.providers import opencode as oc_module
 
         p._request_counter += 1
         from datetime import datetime
@@ -589,7 +589,7 @@ class TestEdgeCases:
 
     def test_opencode_dir_env_override(self, monkeypatch):
         """LLM_WIKI_OPCODE_DIR env var changes the IPC directory."""
-        import providers.opencode as oc_module
+        from llm_wiki.providers import opencode as oc_module
         monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", "/custom/opencode/path")
         # Reload the module constant by re-evaluating
         from pathlib import Path
@@ -653,7 +653,7 @@ class TestErrorPaths:
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "3")
 
         from llm_wiki.providers.opencode import OpenCodeProvider
-        import providers.opencode as oc_module
+        from llm_wiki.providers import opencode as oc_module
         p = OpenCodeProvider()
 
         p._request_counter += 1
@@ -697,7 +697,7 @@ class TestErrorPaths:
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
 
         # Force reimport to pick up the new OPCODE_DIR
-        import providers.opencode as oc_module
+        from llm_wiki.providers import opencode as oc_module
         import importlib
         importlib.reload(oc_module)
 
@@ -727,7 +727,7 @@ class TestErrorPaths:
         monkeypatch.setenv("HERMES_SESSION_ID", session)
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
 
-        import providers.opencode as oc_module
+        from llm_wiki.providers import opencode as oc_module
         import importlib
         importlib.reload(oc_module)
 

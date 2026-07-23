@@ -62,23 +62,30 @@ def handle_health(params: dict) -> dict:
 @register("lint_wiki")
 def handle_lint_wiki(params: dict) -> dict:
     """Run lint checks on wiki pages. Dynamic import for graceful fallback."""
+    import io
+    import contextlib
+
     try:
-        from llm_wiki.lint_wiki import lint_files
+        from llm_wiki.quality.lint import lint
     except ImportError as e:
         return {"error": f"lint_wiki module not available: {e}"}
 
     root = params.get("wiki_root", WIKI_ROOT)
-    return lint_files(
-        root=root,
-        paths=params.get("paths", []),
-        fix=params.get("fix", False),
-        check_broken_links=params.get("check_broken_links", True),
-    )
+    stdout_capture = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout_capture):
+            result = lint(root)
+        return {"issues": result > 0, "exit_code": result, "output": stdout_capture.getvalue()}
+    except Exception as e:
+        return {"error": f"lint failed: {e}"}
 
 
 @register("ingest_source")
 def handle_ingest(params: dict) -> dict:
     """Ingest a source file into the wiki. Dynamic import for graceful fallback."""
+    import io
+    import contextlib
+
     try:
         from llm_wiki.ingest.pipeline import ingest
     except ImportError as e:
@@ -90,11 +97,21 @@ def handle_ingest(params: dict) -> dict:
         return {"error": "missing required parameter: source_path"}
 
     options = params.get("options", {})
-    return ingest(
-        wiki_root=wiki_root,
-        source_path=source_path,
-        **options,
-    )
+    stdout_capture = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout_capture):
+            result = ingest(
+                wiki_root=wiki_root,
+                source_path=source_path,
+                **options,
+            )
+        return {
+            "success": result == 0,
+            "exit_code": result,
+            "output": stdout_capture.getvalue(),
+        }
+    except Exception as e:
+        return {"error": f"ingest failed: {e}"}
 
 
 @register("suggest_links")

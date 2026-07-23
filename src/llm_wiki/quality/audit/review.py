@@ -1,23 +1,4 @@
-#!/usr/bin/env python3
-"""
-audit_review.py — List and group audit feedback by target file.
-
-Usage:
-    python3 audit_review.py <wiki-root> [--open|--resolved|--all]
-
-Examples:
-    python3 audit_review.py ~/wikis/ai-research --open
-    python3 audit_review.py ~/wikis/ai-research --resolved
-    python3 audit_review.py ~/wikis/ai-research --all
-
-Reads every file under `<wiki-root>/audit/` (open) and `<wiki-root>/audit/resolved/`
-(resolved), parses the YAML frontmatter, and prints a report grouped by target
-file. Use this at the start of an `audit` operation to decide processing order.
-
-Exit codes:
-  0 — done (always, regardless of audit count)
-"""
-
+"""List and group audit feedback by target file."""
 import argparse
 import os
 import re
@@ -25,13 +6,11 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-
 from llm_wiki.core.layout import discover_layout
 from llm_wiki.core.frontmatter import FRONTMATTER_RE, parse_frontmatter
 
 
 def extract_comment_one_line(text: str) -> str:
-    """Pull the first non-empty line of the # Comment section."""
     in_comment = False
     for line in text.splitlines():
         stripped = line.strip()
@@ -52,9 +31,7 @@ SEVERITY_ORDER = {"error": 0, "warn": 1, "suggest": 2, "info": 3}
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="List and group audit feedback for an LLM Wiki."
-    )
+    parser = argparse.ArgumentParser(description="List and group audit feedback for an LLM Wiki.")
     parser.add_argument("wiki_root", help="Path to the wiki root directory")
     parser.add_argument("--open", action="store_true", help="Show open audit files (default)")
     parser.add_argument("--resolved", action="store_true", help="Show resolved audit files")
@@ -105,10 +82,7 @@ def main() -> int:
 
     for target in sorted(grouped.keys()):
         entries = grouped[target]
-        entries.sort(key=lambda e: (
-            SEVERITY_ORDER.get(e.get("severity", "info"), 99),
-            e.get("created", ""),
-        ))
+        entries.sort(key=lambda e: (SEVERITY_ORDER.get(e.get("severity", "info"), 99), e.get("created", "")))
         print(f"{target}  ({len(entries)} {mode})")
         for e in entries:
             sev = e.get("severity", "?")
@@ -124,4 +98,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

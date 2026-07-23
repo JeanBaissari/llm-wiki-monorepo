@@ -220,8 +220,8 @@ description: Consider adding details about different GC algorithms.
                "Memory Management" in index_content
 
         # Step 8: Run lint on the result
-        import llm_wiki.lint_wiki as lint_wiki
-        lint_result = lint_wiki.lint(str(integration_wiki))
+        from llm_wiki.quality.lint import lint
+        lint_result = lint(str(integration_wiki))
         # Should have no or minimal issues
         # (index might have extra entries, etc.)
         assert lint_result in (0, 1)

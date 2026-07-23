@@ -285,7 +285,7 @@ class TestAuditWriter:
 
     def test_write_anchored(self, tmp_path):
         """Anchored audit write creates a valid audit file."""
-        from llm_wiki.audit_writer import AuditWriter
+        from llm_wiki.quality.audit.writer import AuditWriter
 
         wiki_root = str(tmp_path / "wiki")
         target_dir = os.path.join(wiki_root, "wiki", "concepts")
@@ -317,7 +317,7 @@ class TestAuditWriter:
 
     def test_write_unanchored(self, tmp_path):
         """Unanchored audit write creates a valid audit file."""
-        from llm_wiki.audit_writer import AuditWriter
+        from llm_wiki.quality.audit.writer import AuditWriter
 
         wiki_root = str(tmp_path / "wiki")
         audit_dir = os.path.join(wiki_root, "audit")
@@ -342,7 +342,7 @@ class TestAuditWriter:
 
     def test_resolve_audit(self, tmp_path):
         """Resolve moves audit from audit/ to audit/resolved/."""
-        from llm_wiki.audit_writer import AuditWriter
+        from llm_wiki.quality.audit.writer import AuditWriter
 
         wiki_root = str(tmp_path / "wiki")
         audit_dir = os.path.join(wiki_root, "audit")
@@ -376,7 +376,7 @@ class TestClaims:
 
     def test_sidecar_free_wiki(self, tmp_path):
         """A wiki without claim sidecar files works normally."""
-        from llm_wiki.claims import has_sidecar
+        from llm_wiki.quality.claims import has_sidecar
 
         wiki_root = str(tmp_path / "wiki")
         os.makedirs(wiki_root, exist_ok=True)
@@ -384,7 +384,7 @@ class TestClaims:
 
     def test_create_claim(self, tmp_path):
         """Creating a claim writes to claims.jsonl."""
-        from llm_wiki.claims import ClaimsManager, Claim
+        from llm_wiki.quality.claims import ClaimsManager, Claim
 
         wiki_root = str(tmp_path / "wiki")
         os.makedirs(wiki_root, exist_ok=True)
@@ -410,7 +410,7 @@ class TestClaims:
 
     def test_health_report(self, tmp_path):
         """Health report provides correct summary stats."""
-        from llm_wiki.claims import ClaimsManager, Claim, Contradiction
+        from llm_wiki.quality.claims import ClaimsManager, Claim, Contradiction
 
         wiki_root = str(tmp_path / "wiki")
         mgr = ClaimsManager(wiki_root)
@@ -436,7 +436,7 @@ class TestClaims:
 
     def test_diff(self, tmp_path):
         """Diff between two claim snapshots shows changes."""
-        from llm_wiki.claims import ClaimsManager, Claim
+        from llm_wiki.quality.claims import ClaimsManager, Claim
 
         wiki_a = str(tmp_path / "wiki_a")
         wiki_b = str(tmp_path / "wiki_b")
@@ -455,7 +455,7 @@ class TestClaims:
 
     def test_get_claims_by_status(self, tmp_path):
         """Filter claims by status."""
-        from llm_wiki.claims import ClaimsManager, Claim
+        from llm_wiki.quality.claims import ClaimsManager, Claim
 
         wiki_root = str(tmp_path / "wiki")
         mgr = ClaimsManager(wiki_root)

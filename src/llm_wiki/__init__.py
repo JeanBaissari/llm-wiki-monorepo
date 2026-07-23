@@ -8,16 +8,17 @@ __version__ = "0.2.1"
 
 __all__ = [
     "scaffold",
-    "lint_wiki",
     "graph_insights",
     "backup",
     "index_wiki",
     "link_suggest",
     "benchmark",
-    "audit_review",
     "deep_research",
     "migrate_log",
     "health_check",
     "cli",
     "core",
+    "quality",
+    "providers",
+    "ingest",
 ]

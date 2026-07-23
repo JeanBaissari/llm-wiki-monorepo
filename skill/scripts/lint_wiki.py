@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thin wrapper — delegates to llm_wiki.lint_wiki."""
+"""Thin wrapper — delegates to llm_wiki.quality.lint."""
 from pathlib import Path
 import sys
 
@@ -8,7 +8,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from llm_wiki.lint_wiki import main
+from llm_wiki.quality.lint import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

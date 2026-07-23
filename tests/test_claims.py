@@ -25,19 +25,15 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = REPO_ROOT / "src"
 sys.path.insert(0, str(SRC_DIR))
 
-from llm_wiki.claims import (
+from llm_wiki.quality.claims import (
     Claim,
     EpistemicEvent,
     Contradiction,
     ClaimsManager,
     has_sidecar,
-    _ensure_sidecar_dir,
-    _jsonl_append,
-    _jsonl_read_all,
-    SIDECAR_DIR,
-    cmd_health,
-    cmd_diff,
 )
+from llm_wiki.quality.claims.storage import _ensure_sidecar_dir, _jsonl_append, _jsonl_read_all, SIDECAR_DIR
+from llm_wiki.quality.claims.cli import cmd_health, cmd_diff
 
 
 # ── Claim ──────────────────────────────────────────────────────────────────

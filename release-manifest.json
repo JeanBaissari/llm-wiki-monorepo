@@ -20,12 +20,13 @@
       "llm-wiki-audit = llm_wiki.audit_review:main",
       "llm-wiki-discover = llm_wiki.discover:main",
       "llm-wiki-index = llm_wiki.index_wiki:main",
-      "llm-wiki-health = llm_wiki.health_check:main"
+      "llm-wiki-health = llm_wiki.health_check:main",
+      "llm-wiki-serve = llm_wiki.serve:main"
     ],
     "unified_cli_commands": [
       "scaffold", "lint", "ingest", "insights", "link-suggest",
       "backup", "deep-research", "audit", "benchmark",
-      "migrate-log", "discover"
+      "migrate-log", "discover", "index", "health", "serve", "claims"
     ]
   },
   "npm": {

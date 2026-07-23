@@ -35,6 +35,7 @@ WRAPPER_COMMANDS = frozenset({
     "deep_research.py",
     "migrate_log.py",
     "health_check.py",
+    "serve.py",
 })
 
 # Library-only files that may have business logic (not commands)
@@ -42,8 +43,6 @@ LIBRARY_FILES = frozenset({
     "wiki_logging.py",
     "sidecar.py",
     "validate_fixtures.py",
-    "test_ingest_blocks.py",
-    "test_ingest_e2e.py",
     "regenerate_fixtures.py",
     "atomic_write.py",
     "content_hash.py",
@@ -160,6 +159,8 @@ def test_wrapper_and_package_produce_same_help(command):
         cli_name = "deep-research"
     elif module_name == "health_check":
         cli_name = "health"
+    elif module_name == "serve":
+        cli_name = "serve"
     else:
         cli_name = module_name
 

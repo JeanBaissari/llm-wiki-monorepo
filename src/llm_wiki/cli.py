@@ -24,7 +24,7 @@ from importlib import import_module
 COMMANDS = {
     "scaffold": "llm_wiki.scaffold",
     "lint": "llm_wiki.lint_wiki",
-    "ingest": "llm_wiki.ingest",
+    "ingest": "llm_wiki.ingest.pipeline",
     "insights": "llm_wiki.graph_insights",
     "link-suggest": "llm_wiki.link_suggest",
     "backup": "llm_wiki.backup",

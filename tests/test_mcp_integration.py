@@ -307,7 +307,7 @@ class TestSidecarIngest:
 
     def test_ingest_result_structure_on_error(self, tmp_path: Path):
         """ingest_source() returns structured error dict (in-process test)."""
-        from llm_wiki.ingest import ingest_source
+        from llm_wiki.ingest.pipeline import ingest_source
 
         result = ingest_source(
             wiki_root="/nonexistent/wiki",
@@ -322,7 +322,7 @@ class TestSidecarIngest:
     def test_ingest_source_in_process_with_mock(self, fresh_wiki_for_ingest: Path,
                                                   tmp_path: Path, monkeypatch):
         """ingest_source() works with mock LLM in-process."""
-        import llm_wiki.ingest as ingest_mod
+        import llm_wiki.ingest.pipeline as ingest_mod
 
         def _mock(system: str, user: str, provider: str = "default",
                   total_timeout=None) -> str | None:

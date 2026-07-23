@@ -18,7 +18,6 @@ Providers:
     litellm   — LiteLLM unified interface
 """
 
-import os
 from typing import Optional
 
 
@@ -48,46 +47,4 @@ class ProviderNotAvailableError(Exception):
     pass
 
 
-def detect_default_provider() -> str:
-    """Detect the best available LLM provider based on environment.
-
-    Multi-marker detection: any AI-managed terminal can opt in via
-    the generic LLM_WIKI_AGENT_MODE env var, or platform-specific
-    markers (HERMES_SESSION_ID, CLAUDE_CODE_SESSION, CODEX_SESSION).
-
-    Priority order:
-        1. opencode (if running inside an AI agent session)
-        2. openai (if OPENAI_API_KEY is set)
-        3. anthropic (if ANTHROPIC_API_KEY is set)
-        4. deepseek (if DEEPSEEK_API_KEY is set)
-        5. together (if TOGETHER_API_KEY is set)
-        6. litellm (if any API key is set — LiteLLM reads from env)
-        7. default (offline mode — prompts to stderr)
-    """
-    # Agent-native context: use the agent's own model
-    if (
-        os.environ.get("HERMES_SESSION_ID")
-        or os.environ.get("CLAUDE_CODE_SESSION")
-        or os.environ.get("CODEX_SESSION")
-        or os.environ.get("LLM_WIKI_AGENT_MODE") == "1"
-    ):
-        return "opencode"
-
-    # Check for configured API keys
-    if os.environ.get("OPENAI_API_KEY"):
-        return "openai"
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        return "anthropic"
-    if os.environ.get("DEEPSEEK_API_KEY"):
-        return "deepseek"
-    if os.environ.get("TOGETHER_API_KEY"):
-        return "together"
-    # LiteLLM works with any key — check last
-    if (
-        os.environ.get("OPENAI_API_KEY")
-        or os.environ.get("ANTHROPIC_API_KEY")
-    ):
-        return "litellm"
-
-    # No provider available — fall back to offline mode
-    return "default"
+from llm_wiki.providers.registry import call_llm, detect_default_provider

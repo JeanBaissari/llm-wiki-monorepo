@@ -34,7 +34,7 @@ if str(SRC_DIR) not in sys.path:
 from llm_wiki.core.locking import WikiLock, DEFAULT_LOCK_TIMEOUT, clean_stale_locks
 from llm_wiki.core.atomic import atomic_write, cleanup_temp_files
 from llm_wiki.core.hashing import compute_hash, read_hash, inject_hash, HASH_FIELD
-from llm_wiki.ingest import write_wiki, write_file, update_index, read_file
+from llm_wiki.ingest.writer import write_wiki, write_file, update_index, read_file
 
 
 # ══════════════════════════════════════════════════════════════════════════

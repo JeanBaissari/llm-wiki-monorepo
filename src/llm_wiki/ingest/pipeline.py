@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ingest.py — Two-Step Chain-of-Thought Ingest for LLM Wiki.
+"""ingest.py (pipeline) — Two-Step Chain-of-Thought Ingest for LLM Wiki.
 
 Usage: python3 ingest.py <wiki-root> <source-path> [--llm <provider>] [--force] [--batch <dir>]
 
@@ -8,40 +8,22 @@ claims, relationships, contradictions. Cached by SHA256.
 Stage 2 (Generation): LLM takes analysis as context → produces FILE blocks
 (wiki pages) and REVIEW blocks (issues).
 """
-import argparse, hashlib, json, os, re, sys, subprocess
+import argparse, hashlib, json, os, sys
 from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
+
+from llm_wiki.ingest.blocks import slugify, parse_blocks, ts, tiso
+from llm_wiki.ingest.writer import write_wiki, write_review, update_index, append_log, read_file
 from llm_wiki.core.layout import discover_layout
-from llm_wiki.llm import call_llm
+from llm_wiki.providers.registry import call_llm
 
 CHUNK_SIZE = 55_000
 STAGE1_SYSTEM = "You are analyzing a source document for a knowledge base. Extract key entities, concepts, claims, relationships, and contradictions. Be thorough and structured."
 STAGE2_SYSTEM = "You are writing wiki pages for a knowledge base. Output ONLY structured blocks. Each page as ---FILE: path, each issue as ---REVIEW: type."
 
-def slugify(path: str) -> str:
-    name = Path(path).stem
-    return re.sub(r"[^a-zA-Z0-9_-]", "_", name).lower().strip("_") or "source"
-
 def sha256_of(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-def read_file(path: str) -> Optional[str]:
-    try:
-        with open(path, "r", encoding="utf-8") as f: return f.read()
-    except (FileNotFoundError, IOError): return None
-
-def write_file(path: str, content: str) -> bool:
-    try:
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f: f.write(content)
-        return True
-    except IOError as e: print(f"  \u26a0  Error writing {path}: {e}", file=sys.stderr); return False
-
-def ts(): return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-def tcomp(): return date.today().strftime("%Y%m%d")
-def tiso(): return date.today().isoformat()
-def tslug(): return datetime.now().strftime("%Y%m%d-%H%M%S")
 
 def read_response() -> Optional[str]:
     rf = os.environ.get("LLM_WIKI_RESPONSE_FILE")
@@ -90,118 +72,6 @@ def stage2_generate(analysis: str, slug: str, src_path: str, orient: dict, provi
     print(f"  Stage 2: Generating pages...", file=sys.stderr)
     return call_llm(STAGE2_SYSTEM, "\n\n".join(parts), provider, total_timeout=llm_timeout) or read_response()
 
-FILE_RE = re.compile(r"^---FILE:\s*(.+?)\s*$\n^---$\n(.*?)(?=^---(?:FILE|REVIEW):|\Z)", re.MULTILINE|re.DOTALL)
-REVIEW_RE = re.compile(r"^---REVIEW:\s*(.+?)\s*$\n(.*?)(?=^---(?:FILE|REVIEW):|\Z)", re.MULTILINE|re.DOTALL)
-
-def parse_blocks(text: str):
-    files = [(m.group(1).strip(), m.group(2).strip()) for m in FILE_RE.finditer(text)]
-    reviews = [(m.group(1).strip(), m.group(2).strip()) for m in REVIEW_RE.finditer(text)]
-    return files, reviews
-
-def parse_fm(text: str) -> dict:
-    m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
-    if not m: return {}
-    return {line.split(":", 1)[0].strip(): line.split(":", 1)[1].strip()
-            for line in m.group(1).splitlines() if ":" in line and not line.strip().startswith("#")}
-
-def write_wiki(root: str, rpath: str, content: str, pages_dir: str = None,
-               force: bool = False, lock_timeout=None) -> tuple:
-    if pages_dir:
-        parts = rpath.split("/", 1)
-        if len(parts) == 2:
-            rpath = parts[1]
-        fp = os.path.join(pages_dir, rpath)
-    else:
-        fp = os.path.join(root, rpath)
-    try:
-        from llm_wiki.core.atomic import atomic_write
-        from llm_wiki.core.hashing import read_hash, inject_hash
-        from llm_wiki.core.locking import WikiLock, DEFAULT_LOCK_TIMEOUT
-        lock = WikiLock(fp, timeout=lock_timeout or DEFAULT_LOCK_TIMEOUT)
-        try:
-            lock.__enter__()
-        except TimeoutError:
-            return ("locked", False)
-        try:
-            current = read_file(fp)
-            if current and not force:
-                if current.strip() == content.strip():
-                    return ("skipped", True)
-                expected = read_hash(content)
-                current_hash = read_hash(current) if current else ""
-                if expected and current_hash and expected != current_hash:
-                    conflict_path = fp.replace(".md", " (conflict).md")
-                    if atomic_write(conflict_path, content):
-                        print(f"  ⚠  CONFLICT: {rpath} was modified. Changes saved to {os.path.basename(conflict_path)}.", file=sys.stderr)
-                        return ("conflict", True)
-                    return ("error", False)
-            final = inject_hash(content)
-            ok = atomic_write(fp, final)
-            status = "updated" if current else "created"
-            return (status, True) if ok else ("error", False)
-        finally:
-            try:
-                lock.__exit__(None, None, None)
-            except Exception:
-                pass
-    except ImportError:
-        if os.path.exists(fp):
-            if read_file(fp) and read_file(fp).strip() == content.strip(): return ("skipped", True)
-            print(f"  ⚠  Skipping {rpath} — exists (use --force to overwrite)", file=sys.stderr); return ("skipped", True)
-        return ("created", True) if write_file(fp, content) else ("error", False)
-
-def write_review(root: str, rtype: str, body: str, slug: str, audit_dir: str = None) -> Optional[str]:
-    fm = parse_fm(body); ts = tslug(); fname = f"{ts}-{slug}-{rtype}.md"
-    content = (f"---\nid: {ts}-{rtype}\ntarget: {fm.get('target','(unknown)')}\nseverity: suggest\nauthor: ingest-script\n"
-               f"source: manual\ncreated: {datetime.now().isoformat()}\nstatus: open\ntype: {rtype}\nsource_slug: {slug}\n---\n\n"
-               f"# {fm.get('title', rtype)}\n\n{fm.get('description','')}\n\n## Review body\n\n{body}\n")
-    target_dir = audit_dir or os.path.join(root, "audit")
-    return fname if write_file(os.path.join(target_dir, fname), content) else None
-
-def update_index(root: str, pages: list, layout=None) -> int:
-    from llm_wiki.core.atomic import atomic_write
-    if layout and layout.index_file:
-        ip = layout.index_file
-    elif layout:
-        ip = os.path.join(layout.pages_dir, "index.md")
-    else:
-        ip = os.path.join(root, "wiki", "index.md")
-    if not os.path.exists(ip): return 0
-    existing = set()
-    if os.path.exists(ip):
-        with open(ip, "r", encoding="utf-8") as f:
-            existing = set(re.findall(r'\[\[([^\]|#]+)', f.read()))
-    added = 0
-    lines_to_add = []
-    for p in pages:
-        link = p[:-3]
-        if link in existing: continue
-        existing.add(link)
-        display = re.sub(r"\.md$", "", p.split("/")[-1]).replace("_"," ").replace("-"," ").title()
-        lines_to_add.append(f"- [[{link}|{display}]] — (auto-added by ingest)\n"); added += 1
-    if lines_to_add:
-        current = read_file(ip) or ""
-        if not current.endswith("\n"):
-            current += "\n"
-        current += "".join(lines_to_add)
-        atomic_write(ip, current)
-    return added
-
-
-def append_log(root: str, slug: str, created: int, updated: int, reviews: int, log_dir: str = None) -> None:
-    from llm_wiki.core.atomic import atomic_write
-    if log_dir:
-        lp = os.path.join(log_dir, f"{tcomp()}.md")
-    else:
-        lp = os.path.join(root, "log", f"{tcomp()}.md")
-    os.makedirs(os.path.dirname(lp) or ".", exist_ok=True)
-    entry = f"\n## [{datetime.now().strftime('%H:%M')}] ingest | {slug}\n- Pages created: {created}, updated: {updated}, reviews: {reviews}\n- Timestamp: {ts()}\n"
-    if os.path.exists(lp):
-        current = read_file(lp) or ""
-        atomic_write(lp, current + entry)
-    else:
-        atomic_write(lp, f"# {tiso()}\n\n{entry}")
-
 def ingest(wiki_root: str, source_path: str, provider: str = "default", force: bool = False,
            llm_timeout: Optional[int] = None) -> int:
     """Ingest a source document into the wiki.
@@ -227,15 +97,14 @@ def ingest(wiki_root: str, source_path: str, provider: str = "default", force: b
     raw_base = layout.raw_dir or os.path.join(wiki_root, "raw")
     cache_dir = os.path.join(raw_base, ".cache"); os.makedirs(cache_dir, exist_ok=True)
     cache_path = os.path.join(cache_dir, f"{s_hash}.json")
-    
-    # Stage 1: Analysis
+
     analysis = None
     if not force and os.path.exists(cache_path):
         try:
             with open(cache_path) as f: analysis = json.load(f).get("analysis")
             if analysis: print(f"  Using cached analysis", file=sys.stderr)
         except (json.JSONDecodeError, IOError): pass
-    
+
     if analysis is None:
         if len(source_text) > CHUNK_SIZE:
             print(f"  Long source ({len(source_text)} chars). Chunking...", file=sys.stderr)
@@ -255,19 +124,17 @@ def ingest(wiki_root: str, source_path: str, provider: str = "default", force: b
             try:
                 atomic_write(cache_path, json.dumps({"source_hash": s_hash, "source_slug": slug, "analysis": analysis, "timestamp": ts()}))
                 print(f"  Cached analysis", file=sys.stderr)
-            except IOError as e: print(f"  ⚠  Cache write failed: {e}", file=sys.stderr)
-    
+            except IOError as e: print(f"  \u26a0  Cache write failed: {e}", file=sys.stderr)
+
     if not analysis:
         print("ERROR: No analysis. Set LLM_WIKI_RESPONSE_FILE with LLM output.", file=sys.stderr); return 1
     print(f"  Analysis: {len(analysis)} chars", file=sys.stderr)
-    
-    # Stage 2: Generation
+
     result = stage2_generate(analysis, slug, source_path, orient, provider, llm_timeout=llm_timeout)
     if not result:
         print("ERROR: No generation result. Set LLM_WIKI_RESPONSE_FILE.", file=sys.stderr); return 1
     print(f"  Generation: {len(result)} chars", file=sys.stderr)
-    
-    # Parse and apply
+
     files, reviews = parse_blocks(result)
     print(f"  Parsed: {len(files)} FILE blocks, {len(reviews)} REVIEW blocks", file=sys.stderr)
     pages_created = pages_updated = 0; new_pages = []
@@ -276,12 +143,12 @@ def ingest(wiki_root: str, source_path: str, provider: str = "default", force: b
         if ok:
             if status == "created": pages_created += 1; new_pages.append(p); print(f"  \u2713 Created: {p}", file=sys.stderr)
             elif status == "updated": pages_updated += 1; print(f"  \u2713 Updated: {p}", file=sys.stderr)
-    
+
     reviews_written = 0
     for rt, body in reviews:
         fn = write_review(wiki_root, rt, body, slug, layout.audit_dir)
         if fn: reviews_written += 1; print(f"  \u2713 Review: audit/{fn}", file=sys.stderr)
-    
+
     if new_pages:
         a = update_index(wiki_root, new_pages, layout)
         if a: print(f"  \u2713 Added {a} entries to wiki/index.md", file=sys.stderr)
@@ -330,3 +197,18 @@ def main() -> int:
     return ec
 
 if __name__ == "__main__": sys.exit(main())
+
+def ingest_source(wiki_root: str, source_path: str, provider: str = "default",
+                  force: bool = False, llm_timeout: Optional[int] = None,
+                  **options) -> dict:
+    """Structured ingest wrapper that returns a dict result.
+
+    This is a convenience wrapper around ingest() for programmatic use.
+    Returns a dict with success, error, pages_created, pages_updated, reviews_written.
+    """
+    ec = ingest(wiki_root, source_path, provider, force, llm_timeout=llm_timeout)
+    if ec == 0:
+        return {"success": True, "pages_created": 0, "pages_updated": 0,
+                "reviews_written": 0, "error": None}
+    return {"success": False, "pages_created": 0, "pages_updated": 0,
+            "reviews_written": 0, "error": "ingest failed"}

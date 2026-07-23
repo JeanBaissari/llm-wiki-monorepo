@@ -19,21 +19,25 @@ import re
 import sys
 from pathlib import Path
 
-from llm_wiki.ingest import (
+from llm_wiki.ingest.blocks import (
     parse_blocks,
     parse_fm,
     slugify,
-    sha256_of,
-    read_file,
-    write_file,
-    CHUNK_SIZE,
     FILE_RE,
     REVIEW_RE,
-    ingest,
+)
+from llm_wiki.ingest.writer import (
+    read_file,
+    write_file,
     write_wiki,
     write_review,
     update_index,
     append_log,
+)
+from llm_wiki.ingest.pipeline import (
+    sha256_of,
+    CHUNK_SIZE,
+    ingest,
 )
 
 
@@ -349,7 +353,7 @@ tags: [test]
 # Cached Test Page
 """
 
-        import llm_wiki.ingest as ingest_mod
+        import llm_wiki.ingest.pipeline as ingest_mod
         monkeypatch.setattr(ingest_mod, "call_llm", mock_llm)
 
         # First ingest — should call LLM for both stages
@@ -606,10 +610,10 @@ class TestCallLlmProviderRouting:
         """Without --llm flag in Hermes, default → opencode."""
         monkeypatch.setenv("HERMES_SESSION_ID", "test-session")
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
-        import llm_wiki.ingest
+        from llm_wiki.providers.registry import call_llm
         # call_llm with provider=None triggers detect_default_provider
         # which should return "opencode" in this context
-        result = llm_wiki.ingest.call_llm("sys", "user", provider=None)
+        result = call_llm("sys", "user", provider=None)
         # In Hermes without a real agent, opencode will fail gracefully
         # The key is it tried opencode (not a CLI provider)
         assert result is None  # No real agent → no response
@@ -631,10 +635,10 @@ class TestCallLlmProviderRouting:
         """--llm opencode triggers OpenCodeProvider."""
         monkeypatch.setenv("HERMES_SESSION_ID", "test-session")
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
-        import llm_wiki.ingest
+        from llm_wiki.providers.registry import call_llm
         # Explicit opencode with HERMES_SESSION_ID — provider initializes
         # but has no real agent to talk to, so returns None (graceful)
-        result = llm_wiki.ingest.call_llm("sys", "user", provider="opencode")
+        result = call_llm("sys", "user", provider="opencode")
         assert result is None  # No pipe response → fallback
 
     def test_llm_opencode_prints_prompts_on_failure(self, tmp_wiki,
@@ -658,9 +662,9 @@ class TestCallLlmProviderRouting:
         monkeypatch.setenv("HERMES_SESSION_ID", "test-session")
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
-        import llm_wiki.ingest
+        from llm_wiki.providers.registry import call_llm
         # call_llm with opencode — no real agent, should gracefully return None
-        result = llm_wiki.ingest.call_llm("sys", "user", provider="opencode")
+        result = call_llm("sys", "user", provider="opencode")
         assert result is None  # Graceful degradation
 
     def test_llm_wiki_response_file_fallback(self, tmp_path, monkeypatch):
@@ -700,23 +704,23 @@ class TestLlmTimeout:
 
     def test_call_llm_total_timeout_passed_to_provider(self, monkeypatch):
         """call_llm passes total_timeout kwarg when set."""
-        import llm_wiki.llm
+        from llm_wiki.providers.registry import call_llm
 
-        result = llm_wiki.llm.call_llm("sys", "user", provider="default", total_timeout=30)
+        result = call_llm("sys", "user", provider="default", total_timeout=30)
         assert result is None
 
     def test_call_llm_timeout_aborts_on_deadline(self, monkeypatch):
         """call_llm with total_timeout=1 aborts slow calls with clear message."""
-        import llm_wiki.llm
+        from llm_wiki.providers.registry import call_llm
 
-        result = llm_wiki.llm.call_llm("sys", "user", provider="default", total_timeout=1)
+        result = call_llm("sys", "user", provider="default", total_timeout=1)
         assert result is None
 
     def test_call_llm_no_timeout_completes_normally(self, monkeypatch):
         """call_llm without total_timeout completes normally (no wrapping)."""
-        import llm_wiki.llm
+        from llm_wiki.providers.registry import call_llm
 
-        result = llm_wiki.llm.call_llm("sys", "user", provider="default")
+        result = call_llm("sys", "user", provider="default")
         assert result is None
 
     def test_ingest_accepts_llm_timeout_param(self, tmp_wiki, mock_llm_success, short_source):

@@ -51,7 +51,7 @@ Issues = "https://github.com/JeanBaissari/llm-wiki-monorepo/issues"
 [project.scripts]
 llm-wiki = "llm_wiki.cli:main"
 llm-wiki-scaffold = "llm_wiki.scaffold:main"
-llm-wiki-ingest = "llm_wiki.ingest:main"
+llm-wiki-ingest = "llm_wiki.ingest.pipeline:main"
 llm-wiki-lint = "llm_wiki.lint_wiki:main"
 llm-wiki-insights = "llm_wiki.graph_insights:main"
 llm-wiki-link-suggest = "llm_wiki.link_suggest:main"

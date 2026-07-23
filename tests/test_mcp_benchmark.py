@@ -328,7 +328,7 @@ class TestIngestLatency:
     @pytest.fixture(autouse=True)
     def mock_llm(self, monkeypatch):
         """Mock LLM for ingest benchmarks."""
-        import llm_wiki.ingest as ingest_mod
+        import llm_wiki.ingest.pipeline as ingest_mod
 
         def _mock(system: str, user: str, provider: str = "default",
                   total_timeout=None) -> str | None:

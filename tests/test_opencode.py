@@ -2,7 +2,7 @@
 
 Covers:
     - skill/scripts/providers/opencode.py (OpenCodeProvider class)
-    - src/llm_wiki/llm.py (_call_opencode function)
+    - src/llm_wiki/providers/registry.py (_call_opencode function)
     - Multi-marker env detection (HERMES_SESSION_ID, CLAUDE_CODE_SESSION,
       CODEX_SESSION, LLM_WIKI_AGENT_MODE)
     - Pipe-based IPC flow (write prompt, signal ready, poll response)
@@ -495,15 +495,15 @@ class TestCallOpencodeFunction:
     """The _call_opencode() function in the unified LLM module."""
 
     def test_call_opencode_imports(self):
-        """Verify _call_opencode exists in llm_wiki.llm."""
+        """Verify _call_opencode exists in llm_wiki.providers.registry."""
         sys.path.insert(0, str(REPO_ROOT / "src"))
-        from llm_wiki.llm import _call_opencode
+        from llm_wiki.providers.registry import _call_opencode
         assert callable(_call_opencode)
 
     def test_call_opencode_signature(self):
         """_call_opencode accepts system, user, model, **kwargs."""
         sys.path.insert(0, str(REPO_ROOT / "src"))
-        from llm_wiki.llm import _call_opencode
+        from llm_wiki.providers.registry import _call_opencode
         import inspect
         sig = inspect.signature(_call_opencode)
         params = list(sig.parameters.keys())
@@ -518,7 +518,7 @@ class TestCallOpencodeFunction:
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         monkeypatch.setenv("HERMES_SESSION_ID", "test-call-func")
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
-        from llm_wiki.llm import _call_opencode
+        from llm_wiki.providers.registry import _call_opencode
         result = _call_opencode("sys", "user")
         # No pipe response, no response file → returns None
         assert result is None
@@ -531,7 +531,7 @@ class TestCallOpencodeFunction:
         rf = tmp_path / "llm_response.txt"
         rf.write_text("Function-based response!")
         monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE", str(rf))
-        from llm_wiki.llm import _call_opencode
+        from llm_wiki.providers.registry import _call_opencode
         result = _call_opencode("sys", "user")
         assert result is not None
         assert "Function-based response" in result
@@ -543,15 +543,15 @@ class TestCallOpencodeFunction:
         monkeypatch.setenv("CLAUDE_CODE_SESSION", "claude-func-test")
         monkeypatch.delenv("HERMES_SESSION_ID", raising=False)
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
-        from llm_wiki.llm import _call_opencode
+        from llm_wiki.providers.registry import _call_opencode
         # Should detect Claude session and try IPC (which will time out)
         result = _call_opencode("sys", "user")
         assert result is None  # No real agent
 
     def test_llm_module_has_provider_map(self):
-        """PROVIDER_MAP in llm_wiki.llm includes opencode."""
+        """PROVIDER_MAP in llm_wiki.providers.registry includes opencode."""
         sys.path.insert(0, str(REPO_ROOT / "src"))
-        from llm_wiki.llm import PROVIDER_MAP
+        from llm_wiki.providers.registry import PROVIDER_MAP
         assert "opencode" in PROVIDER_MAP
         assert callable(PROVIDER_MAP["opencode"])
 
@@ -563,7 +563,7 @@ class TestCallOpencodeFunction:
         rf = tmp_path / "route_response.txt"
         rf.write_text("Routed response!")
         monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE", str(rf))
-        from llm_wiki.llm import call_llm
+        from llm_wiki.providers.registry import call_llm
         result = call_llm("sys", "user", provider="opencode")
         assert result is not None
         assert "Routed response" in result
@@ -574,7 +574,7 @@ class TestCallOpencodeFunction:
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         monkeypatch.setenv("HERMES_SESSION_ID", "test-default-detect")
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
-        from llm_wiki.llm import call_llm
+        from llm_wiki.providers.registry import call_llm
         # default → detects opencode → tries IPC → fails gracefully
         result = call_llm("sys", "user")
         assert result is None  # No real agent

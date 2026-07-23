@@ -127,20 +127,13 @@ def main() -> int:
             ctx.add_touched("read", str(target))
 
         # ── Phase 3: Auto-ingest ───────────────────────────────────────────────
-        ingest_script = Path(__file__).resolve().parent / 'ingest.py'
-        ingest_available = ingest_script.exists()
+        ingest_mod_path = 'llm_wiki.ingest.pipeline'
         ingested: list[str] = []
 
         for url, slug, target in fetched:
-            if not ingest_available:
-                print(f'INFO: ingest.py not found — please run manually:\n'
-                      f'  python3 skill/scripts/ingest.py {root} {target}')
-                ingested.append(slug)
-                continue
-
-            print(f'INGEST: python3 {ingest_script} {root} {target}', flush=True)
+            print(f'INGEST: python3 -m {ingest_mod_path} {root} {target}', flush=True)
             result = subprocess.run(
-                [sys.executable, str(ingest_script), str(root), str(target)],
+                [sys.executable, '-m', ingest_mod_path, str(root), str(target)],
                 capture_output=True, text=True,
             )
             if result.returncode == 0:

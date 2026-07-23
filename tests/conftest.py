@@ -204,9 +204,9 @@ title: Add Examples
 description: Consider adding examples to this concept page.
 """
 
-    monkeypatch.setattr("llm_wiki.ingest.call_llm", _mock)
-    import llm_wiki.ingest
-    monkeypatch.setattr(llm_wiki.ingest, "call_llm", _mock)
+    monkeypatch.setattr("llm_wiki.ingest.pipeline.call_llm", _mock)
+    import llm_wiki.ingest.pipeline
+    monkeypatch.setattr(llm_wiki.ingest.pipeline, "call_llm", _mock)
     return _mock
 
 
@@ -241,9 +241,9 @@ tags: [chunked]
 Generated from a multi-chunk source document.
 """
 
-    monkeypatch.setattr("llm_wiki.ingest.call_llm", _mock)
-    import llm_wiki.ingest
-    monkeypatch.setattr(llm_wiki.ingest, "call_llm", _mock)
+    monkeypatch.setattr("llm_wiki.ingest.pipeline.call_llm", _mock)
+    import llm_wiki.ingest.pipeline
+    monkeypatch.setattr(llm_wiki.ingest.pipeline, "call_llm", _mock)
     return _mock
 
 
@@ -254,9 +254,9 @@ def mock_llm_failure(monkeypatch):
               total_timeout: int | None = None) -> None:
         return None
 
-    monkeypatch.setattr("llm_wiki.ingest.call_llm", _mock)
-    import llm_wiki.ingest
-    monkeypatch.setattr(llm_wiki.ingest, "call_llm", _mock)
+    monkeypatch.setattr("llm_wiki.ingest.pipeline.call_llm", _mock)
+    import llm_wiki.ingest.pipeline
+    monkeypatch.setattr(llm_wiki.ingest.pipeline, "call_llm", _mock)
     return _mock
 
 
@@ -293,9 +293,9 @@ This page has proper frontmatter.
 this should be skipped
 """
 
-    monkeypatch.setattr("llm_wiki.ingest.call_llm", _mock)
-    import llm_wiki.ingest
-    monkeypatch.setattr(llm_wiki.ingest, "call_llm", _mock)
+    monkeypatch.setattr("llm_wiki.ingest.pipeline.call_llm", _mock)
+    import llm_wiki.ingest.pipeline
+    monkeypatch.setattr(llm_wiki.ingest.pipeline, "call_llm", _mock)
     return _mock
 
 

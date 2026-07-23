@@ -80,7 +80,7 @@ def handle_lint_wiki(params: dict) -> dict:
 def handle_ingest(params: dict) -> dict:
     """Ingest a source file into the wiki. Dynamic import for graceful fallback."""
     try:
-        from llm_wiki.ingest import ingest
+        from llm_wiki.ingest.pipeline import ingest
     except ImportError as e:
         return {"error": f"ingest module not available: {e}"}
 

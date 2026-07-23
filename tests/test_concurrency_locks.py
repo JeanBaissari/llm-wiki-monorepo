@@ -23,7 +23,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from llm_wiki.core.locking import WikiLock
-from llm_wiki.ingest import write_wiki, update_index, read_file
+from llm_wiki.ingest.writer import write_wiki, update_index, read_file
 from llm_wiki.backup import cmd_verify
 
 
@@ -167,7 +167,7 @@ class TestAtomicAncillaryWrites:
 
     def test_append_log_creates_file(self, tmp_path):
         """append_log should create a valid log file."""
-        from llm_wiki.ingest import append_log
+        from llm_wiki.ingest.writer import append_log
         wiki = tmp_path / "wiki"
         log_dir = wiki / "log"
         log_dir.mkdir(parents=True)
@@ -186,7 +186,7 @@ class TestConcurrencyStress:
     @staticmethod
     def _writer_worker(page_path, content, result_queue, lock_timeout=10):
         try:
-            from llm_wiki.ingest import write_wiki
+            from llm_wiki.ingest.writer import write_wiki
             wiki_root = os.path.dirname(os.path.dirname(page_path))
             rel = os.path.relpath(page_path, wiki_root)
             status, ok = write_wiki(

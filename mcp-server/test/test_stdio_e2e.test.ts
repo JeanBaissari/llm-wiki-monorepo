@@ -21,7 +21,7 @@ import { execFileSync } from 'node:child_process';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..');
 const SCAFFOLD_SCRIPT = path.join(REPO_ROOT, 'skill', 'scripts', 'scaffold.py');
-const MCP_SERVER = path.join(REPO_ROOT, 'mcp-server', 'dist', 'index.js');
+const MCP_SERVER = path.join(REPO_ROOT, 'mcp-server', 'dist', 'main.js');
 
 let wikiRoot: string;
 let serverProcess: ChildProcess | null = null;

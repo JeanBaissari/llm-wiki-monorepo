@@ -2,84 +2,12 @@
 // Replaces Tauri API calls with direct Node.js fs operations
 
 import * as fs from "node:fs/promises";
-import * as fsSync from "node:fs";
 import * as path from "node:path";
 import type { FileNode } from "./types.js";
 
 /** Normalize a path — resolve relative, remove trailing slashes */
 export function normalizePath(p: string): string {
   return path.resolve(p).replace(/\/+$/, "");
-}
-
-const ALLOW_LIST_PATTERNS = [
-  /^PURPOSE\.md$/,
-  /^CLAUDE\.md$/,
-  /^SCHEMA\.md$/,
-  /^wiki(?:\/.*)?$/,
-  /^raw(?:\/.*)?$/,
-  /^audit(?:\/.*)?$/,
-  /^logs?(?:\/.*)?$/,
-];
-
-const BINARY_EXTENSIONS = new Set([
-  ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico",
-  ".pdf", ".zip", ".gz", ".tar", ".tgz",
-  ".mp3", ".mp4", ".avi", ".mov",
-  ".exe", ".dll", ".so", ".bin",
-  ".db", ".sqlite", ".sqlite3",
-  ".woff", ".woff2", ".ttf", ".eot",
-]);
-
-/**
- * Safe path resolution within a project root.
- * Rejects absolute paths, traversals escaping the root, and non-allow-listed paths.
- */
-export function safeJoin(projectRoot: string, userPath: string): string {
-  // Reject absolute paths
-  if (path.isAbsolute(userPath)) {
-    throw new Error(`Absolute paths are not allowed: "${userPath}". Use a project-relative path.`);
-  }
-
-  // Reject empty path
-  if (!userPath || userPath.trim() === "") {
-    throw new Error("Path must not be empty.");
-  }
-
-  // Resolve .. segments
-  const resolved = path.resolve(projectRoot, userPath);
-
-  // Resolve symlinks to verify the real path
-  let realPath: string;
-  try {
-    realPath = fsSync.realpathSync(resolved);
-  } catch {
-    realPath = resolved;
-  }
-
-  // Verify the path hasn't escaped projectRoot
-  const normalizedRoot = path.resolve(projectRoot);
-  if (!realPath.startsWith(normalizedRoot + path.sep) && realPath !== normalizedRoot) {
-    throw new Error(`Path escapes project root: "${userPath}".`);
-  }
-
-  // Check allow-list: path must be relative to projectRoot
-  const relPath = path.relative(normalizedRoot, realPath);
-  const isAllowed = ALLOW_LIST_PATTERNS.some((pattern) => pattern.test(relPath));
-  if (!isAllowed) {
-    throw new Error(
-      `Path not in allow-list: "${relPath}". Allowed: PURPOSE.md, CLAUDE.md, SCHEMA.md, wiki/**/*, raw/**/*, audit/**/*, logs/**/*`,
-    );
-  }
-
-  return realPath;
-}
-
-/**
- * Check if a file has a binary extension and should be rejected.
- */
-export function isBinaryExtension(filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
-  return BINARY_EXTENSIONS.has(ext);
 }
 
 /** List directory contents recursively, building a FileNode tree */

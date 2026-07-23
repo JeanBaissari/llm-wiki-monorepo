@@ -7,4 +7,4 @@
 // LWM_05 provides the index; this adapter provides the query interface
 // used by the MCP server's llm_wiki_search tool handler.
 
-export { search, buildIndex, clearIndex, IndexBuildingError } from "./search.js";
+export { search, buildIndex, clearIndex, IndexBuildingError } from "../search.js";

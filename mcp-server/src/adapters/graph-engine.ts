@@ -12,8 +12,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-import type { GraphNode, GraphEdge } from "./types.js";
-import { fileExists, ensureDir } from "./wiki-fs.js";
+import type { GraphNode, GraphEdge } from "../types.js";
+import { fileExists, ensureDir } from "../wiki-fs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,7 +63,7 @@ function resolveGraphEngine(): string {
   // Fall back to relative path from monorepo root
   const candidates = [
     "graph-engine",
-    path.resolve(__dirname, "..", "..", "graph-engine", "dist", "index.js"),
+    path.resolve(__dirname, "..", "..", "..", "graph-engine", "dist", "index.js"),
     path.resolve(process.cwd(), "..", "graph-engine", "dist", "index.js"),
   ];
 
@@ -78,7 +78,7 @@ function resolveGraphEngine(): string {
   }
 
   // Last resort: relative from __dirname
-  _graphEnginePath = path.resolve(__dirname, "..", "..", "graph-engine", "dist", "index.js");
+  _graphEnginePath = path.resolve(__dirname, "..", "..", "..", "graph-engine", "dist", "index.js");
   return _graphEnginePath;
 }
 

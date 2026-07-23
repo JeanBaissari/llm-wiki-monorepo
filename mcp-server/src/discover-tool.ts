@@ -3,7 +3,7 @@
 // Delegates to discover.py/link_suggest.py entity registry via the Python sidecar (LWM_07).
 // Zero subprocess — uses sidecar.call("discover_entities", ...).
 
-import type { PythonSidecar } from "./sidecar.js";
+import type { PythonSidecar } from "./adapters/sidecar.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@
 // Zero subprocess — uses sidecar.call("ingest_source", ...).
 
 import path from "node:path";
-import type { PythonSidecar } from "./sidecar.js";
+import type { PythonSidecar } from "./adapters/sidecar.js";
 
 // ── Public API ──────────────────────────────────────────────────────────────
 

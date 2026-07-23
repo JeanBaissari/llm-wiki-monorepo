@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "Standalone MCP server for LLM Wiki — 14 tools working directly against a wiki directory",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
   "type": "module",
   "bin": {
-    "llm-wiki-mcp": "./dist/index.js"
+    "llm-wiki-mcp": "./dist/main.js"
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
+    "start": "node dist/main.js",
+    "dev": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

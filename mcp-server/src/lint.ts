@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { LintIssue } from "./types.js";
 import { fileExists, findMdFiles } from "./wiki-fs.js";
-import type { PythonSidecar } from "./sidecar.js";
+import type { PythonSidecar } from "./adapters/sidecar.js";
 
 // ── Public API ──────────────────────────────────────────────────────────────
 

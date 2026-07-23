@@ -32,10 +32,10 @@ export interface WikiLayout {
 
 /**
  * Resolve the monorepo root from the compiled dist/ directory.
- * mcp-server/dist/ → mcp-server/ → monorepo root
+ * mcp-server/dist/projects/ → mcp-server/dist/ → mcp-server/ → monorepo root
  */
 function monorepoRoot(): string {
-  return path.resolve(__dirname, "../..");
+  return path.resolve(__dirname, "../../..");
 }
 
 /**

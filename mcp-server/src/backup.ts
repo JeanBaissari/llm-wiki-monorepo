@@ -3,7 +3,7 @@
 // Delegates to backup.py via the Python sidecar (LWM_07).
 // Zero subprocess — uses sidecar.call("backup", ...).
 
-import type { PythonSidecar } from "./sidecar.js";
+import type { PythonSidecar } from "./adapters/sidecar.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

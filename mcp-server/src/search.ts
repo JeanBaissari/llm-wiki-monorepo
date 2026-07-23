@@ -253,7 +253,7 @@ export async function search(
   if (!fsSync.existsSync(dbPath)) {
     const scriptPath = path.join(monorepoRoot(), "skill", "scripts", "index_wiki.py");
     // Check if there are any .md files first — if not, don't bother spawning
-    const { discoverLayout } = await import("./discover.js");
+    const { discoverLayout } = await import("./projects/discover.js");
     const layout = discoverLayout(wikiPath);
     const { findMdFiles } = await import("./wiki-fs.js");
     const mdFiles = await findMdFiles(layout.pages_dir);

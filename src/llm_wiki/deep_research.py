@@ -26,7 +26,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-from llm_wiki.discover import discover_layout
+from llm_wiki.core.layout import discover_layout
 from llm_wiki.operation import OperationContext
 
 
@@ -187,7 +187,7 @@ tags: [research, synthesis]
 
 <!-- Agent: what remains unanswered or needs further research? -->
 '''
-        from llm_wiki.atomic_write import atomic_write
+        from llm_wiki.core.atomic import atomic_write
         syn_path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write(str(syn_path), syn_content)
         ctx.add_touched("created", str(syn_path))

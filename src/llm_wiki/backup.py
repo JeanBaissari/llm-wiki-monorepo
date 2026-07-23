@@ -36,55 +36,11 @@ from datetime import datetime
 from pathlib import Path
 
 
-from llm_wiki.discover import discover_layout
+from llm_wiki.core.layout import discover_layout
+from llm_wiki.core.frontmatter import FRONTMATTER_RE, parse_frontmatter
+from llm_wiki.core.wikilinks import WIKILINK_RE
 
-
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
-WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 KEEP = 10  # default number of backups to keep when pruning
-
-
-def parse_frontmatter(text: str) -> dict | None:
-    """Minimal YAML-ish frontmatter parser (same as lint_wiki.py)."""
-    m = FRONTMATTER_RE.match(text)
-    if not m:
-        return None
-    body = m.group(1)
-    result: dict = {}
-    i = 0
-    lines = body.split("\n")
-    while i < len(lines):
-        line = lines[i]
-        if not line.strip() or line.lstrip().startswith("#"):
-            i += 1
-            continue
-        if ":" not in line:
-            i += 1
-            continue
-        key, _, rest = line.partition(":")
-        key = key.strip()
-        val = rest.strip()
-        if val.startswith("[") and val.endswith("]"):
-            inner = val[1:-1].strip()
-            if not inner:
-                result[key] = []
-            else:
-                parts = [p.strip() for p in inner.split(",")]
-                parsed: list = []
-                for p in parts:
-                    if p.isdigit() or (p.startswith("-") and p[1:].isdigit()):
-                        parsed.append(int(p))
-                    else:
-                        parsed.append(p.strip('"').strip("'"))
-                result[key] = parsed
-        elif val.startswith('"') and val.endswith('"'):
-            result[key] = val[1:-1].replace("\\n", "\n").replace('\\"', '"')
-        elif val.startswith("'") and val.endswith("'"):
-            result[key] = val[1:-1]
-        else:
-            result[key] = val
-        i += 1
-    return result
 
 
 def wiki_name(root: Path) -> str:

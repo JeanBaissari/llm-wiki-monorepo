@@ -7,7 +7,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from llm_wiki.atomic_write import (
+from llm_wiki.core.atomic import (
     atomic_write,
     cleanup_temp_files,
 )

@@ -7,7 +7,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from llm_wiki.content_hash import (
+from llm_wiki.core.hashing import (
     HASH_FIELD,
     compute_hash,
     read_hash,

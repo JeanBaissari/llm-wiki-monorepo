@@ -12,7 +12,7 @@ import argparse, hashlib, json, os, re, sys, subprocess
 from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
-from llm_wiki.discover import discover_layout
+from llm_wiki.core.layout import discover_layout
 from llm_wiki.llm import call_llm
 
 CHUNK_SIZE = 55_000
@@ -114,9 +114,9 @@ def write_wiki(root: str, rpath: str, content: str, pages_dir: str = None,
     else:
         fp = os.path.join(root, rpath)
     try:
-        from llm_wiki.atomic_write import atomic_write
-        from llm_wiki.content_hash import read_hash, inject_hash
-        from llm_wiki.lock_wiki import WikiLock, DEFAULT_LOCK_TIMEOUT
+        from llm_wiki.core.atomic import atomic_write
+        from llm_wiki.core.hashing import read_hash, inject_hash
+        from llm_wiki.core.locking import WikiLock, DEFAULT_LOCK_TIMEOUT
         lock = WikiLock(fp, timeout=lock_timeout or DEFAULT_LOCK_TIMEOUT)
         try:
             lock.__enter__()
@@ -159,7 +159,7 @@ def write_review(root: str, rtype: str, body: str, slug: str, audit_dir: str = N
     return fname if write_file(os.path.join(target_dir, fname), content) else None
 
 def update_index(root: str, pages: list, layout=None) -> int:
-    from llm_wiki.atomic_write import atomic_write
+    from llm_wiki.core.atomic import atomic_write
     if layout and layout.index_file:
         ip = layout.index_file
     elif layout:
@@ -189,7 +189,7 @@ def update_index(root: str, pages: list, layout=None) -> int:
 
 
 def append_log(root: str, slug: str, created: int, updated: int, reviews: int, log_dir: str = None) -> None:
-    from llm_wiki.atomic_write import atomic_write
+    from llm_wiki.core.atomic import atomic_write
     if log_dir:
         lp = os.path.join(log_dir, f"{tcomp()}.md")
     else:
@@ -251,7 +251,7 @@ def ingest(wiki_root: str, source_path: str, provider: str = "default", force: b
         else:
             analysis = stage1_analyze(source_text, orient, provider, slug, llm_timeout=llm_timeout)
         if analysis:
-            from llm_wiki.atomic_write import atomic_write
+            from llm_wiki.core.atomic import atomic_write
             try:
                 atomic_write(cache_path, json.dumps({"source_hash": s_hash, "source_slug": slug, "analysis": analysis, "timestamp": ts()}))
                 print(f"  Cached analysis", file=sys.stderr)

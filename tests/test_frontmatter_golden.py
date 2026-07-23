@@ -12,7 +12,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from llm_wiki.frontmatter import parse_frontmatter, FRONTMATTER_RE
+from llm_wiki.core.frontmatter import parse_frontmatter, FRONTMATTER_RE
 
 SAMPLE_PAGES = [
     pytest.param(

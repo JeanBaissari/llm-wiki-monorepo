@@ -30,8 +30,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from llm_wiki.discover import discover_layout
-from llm_wiki.wiki_logging import info, warn, error, panic as log_panic, configure as log_configure
+from llm_wiki.core.layout import discover_layout
+from llm_wiki.core.logging import info, warn, error, panic as log_panic, configure as log_configure
 
 STATUS_ORDER: dict[str, int] = {
     "healthy": 0,

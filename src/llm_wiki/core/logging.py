@@ -1,11 +1,11 @@
 """
-wiki_logging.py — Structured JSON logging for the llm-wiki-monorepo.
+logging.py — Structured JSON logging for the llm-wiki-monorepo.
 
 Every log event is a single JSON line to stderr with fields:
     {"v":1,"ts":"2026-07-03T14:22:31.123Z","lvl":"ERROR","cmp":"ingest","msg":"LLM call failed",...}
 
 Usage:
-    from wiki_logging import info, warn, error, set_level, configure
+    from llm_wiki.core.logging import info, warn, error, set_level, configure
 
     configure(quiet=True)          # suppress INFO/WARN/DEBUG
     configure(verbose=True)        # enable DEBUG

@@ -31,9 +31,9 @@ SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from llm_wiki.lock_wiki import WikiLock, DEFAULT_LOCK_TIMEOUT, clean_stale_locks
-from llm_wiki.atomic_write import atomic_write, cleanup_temp_files
-from llm_wiki.content_hash import compute_hash, read_hash, inject_hash, HASH_FIELD
+from llm_wiki.core.locking import WikiLock, DEFAULT_LOCK_TIMEOUT, clean_stale_locks
+from llm_wiki.core.atomic import atomic_write, cleanup_temp_files
+from llm_wiki.core.hashing import compute_hash, read_hash, inject_hash, HASH_FIELD
 from llm_wiki.ingest import write_wiki, write_file, update_index, read_file
 
 

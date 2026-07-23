@@ -8,7 +8,7 @@ import argparse, json, os, re, sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from llm_wiki.discover import discover_layout
+from llm_wiki.core.layout import discover_layout
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)

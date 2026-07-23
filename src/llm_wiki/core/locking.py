@@ -3,7 +3,7 @@ Wiki page locking utilities.
 
 Provides a context manager for per-page advisory locking via portalocker.
 Lock files: <page_path>.lock — contain PID, timestamp, hostname.
-Staleness detection: timeout-based (lock_timeout × 3) is primary and cross-platform.
+Staleness detection: timeout-based (lock_timeout x 3) is primary and cross-platform.
 On Unix, fast-path PID check via os.kill(pid, 0) avoids unnecessary timeout delays.
 """
 import os

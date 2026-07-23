@@ -111,7 +111,7 @@ def handle_suggest_links(params: dict) -> dict:
         return {"error": f"link_suggest module not available: {e}"}
 
     try:
-        from llm_wiki.discover import discover_layout
+        from llm_wiki.core.layout import discover_layout
     except ImportError as e:
         return {"error": f"discover module not available: {e}"}
 
@@ -244,7 +244,7 @@ def handle_discover_entities(params: dict) -> dict:
         return {"error": f"link_suggest module not available: {e}"}
 
     try:
-        from llm_wiki.discover import discover_layout
+        from llm_wiki.core.layout import discover_layout
     except ImportError as e:
         return {"error": f"discover module not available: {e}"}
 

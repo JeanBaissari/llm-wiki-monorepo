@@ -34,7 +34,7 @@ import shutil
 from pathlib import Path
 from datetime import date, datetime
 
-from llm_wiki.discover import discover_layout, WikiLayout, format_json
+from llm_wiki.core.layout import discover_layout, WikiLayout, format_json
 
 
 # Try multiple locations: installed package, then dev repo

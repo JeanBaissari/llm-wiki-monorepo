@@ -40,13 +40,9 @@ WRAPPER_COMMANDS = frozenset({
 
 # Library-only files that may have business logic (not commands)
 LIBRARY_FILES = frozenset({
-    "wiki_logging.py",
     "sidecar.py",
     "validate_fixtures.py",
     "regenerate_fixtures.py",
-    "atomic_write.py",
-    "content_hash.py",
-    "lock_wiki.py",
     "louvain.py",
 })
 

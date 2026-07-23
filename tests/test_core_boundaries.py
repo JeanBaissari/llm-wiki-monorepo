@@ -56,12 +56,13 @@ FORBIDDEN_IMPORTS_FOR_CORE = {
 
 # Modules that SHOULD be in core/ after modularization
 CORE_CANDIDATES = [
-    "frontmatter",
-    "content_hash",
-    "atomic_write",
-    "lock_wiki",
-    "wiki_logging",
-    "discover",
+    "core.frontmatter",
+    "core.hashing",
+    "core.atomic",
+    "core.locking",
+    "core.logging",
+    "core.layout",
+    "core.wikilinks",
 ]
 
 
@@ -69,14 +70,14 @@ class TestCoreBoundaries:
     @pytest.mark.parametrize("module_name", CORE_CANDIDATES)
     def test_core_module_has_no_domain_imports(self, module_name):
         """Core modules must not import from domain/command packages."""
-        filepath = SRC_DIR / "llm_wiki" / f"{module_name}.py"
+        filepath = SRC_DIR / "llm_wiki" / (module_name.replace(".", "/") + ".py")
         if not filepath.exists():
-            pytest.skip(f"{module_name}.py not yet at top level (may have moved to core/)")
+            pytest.skip(f"{module_name} not yet at core/ subpackage")
 
         imports = _extract_imports(filepath)
         forbidden = [i for i in imports if i in FORBIDDEN_IMPORTS_FOR_CORE]
         assert not forbidden, (
-            f"{module_name}.py imports domain modules: {forbidden}"
+            f"{module_name} imports domain modules: {forbidden}"
         )
 
     def test_core_module_imports_are_resolvable(self):

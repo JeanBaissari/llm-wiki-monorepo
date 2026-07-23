@@ -25,11 +25,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
-from llm_wiki.discover import discover_layout
-
-
-WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
+from llm_wiki.core.layout import discover_layout
+from llm_wiki.core.wikilinks import WIKILINK_RE
+from llm_wiki.core.frontmatter import FRONTMATTER_RE, parse_frontmatter
 HEADING_RE = re.compile(r"^#{2,3}\s+(.+)$", re.MULTILINE)
 BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
 SKIP_FILES = frozenset({"index.md", "log.md", "SCHEMA.md"})
@@ -61,29 +59,7 @@ def build_inverted_index(pages, registry=None) -> InvertedIndex:
     return InvertedIndex(entity_to_pages=dict(fwd), page_to_entities=rev)
 
 
-def parse_frontmatter(text: str) -> dict | None:
-    m = FRONTMATTER_RE.match(text)
-    if not m:
-        return None
-    result = {}
-    for line in m.group(1).splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or ":" not in line:
-            continue
-        key, _, val = line.partition(":")
-        key = key.strip()
-        val = val.strip()
-        if val.startswith("[") and val.endswith("]"):
-            inner = val[1:-1].strip()
-            if not inner:
-                result[key] = []
-            else:
-                result[key] = [x.strip().strip("\"'") for x in inner.split(",") if x.strip()]
-        elif val.startswith(('"', "'")):
-            result[key] = val[1:-1]
-        else:
-            result[key] = val
-    return result
+
 
 
 def extract_entities(text: str) -> list[str]:
@@ -289,7 +265,7 @@ def apply_suggestions(pages: dict, suggestions: list[dict]) -> int:
             new_text = new_text[:start] + link + new_text[end:]
 
         if new_text != source_text:
-            from llm_wiki.atomic_write import atomic_write
+            from llm_wiki.core.atomic import atomic_write
             atomic_write(str(source_path), new_text)
             modified += 1
 

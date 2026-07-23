@@ -10,7 +10,6 @@ __all__ = [
     "scaffold",
     "ingest",
     "lint_wiki",
-    "discover",
     "graph_insights",
     "backup",
     "index_wiki",
@@ -20,9 +19,6 @@ __all__ = [
     "deep_research",
     "migrate_log",
     "health_check",
-    "wiki_logging",
     "cli",
-    "atomic_write",
-    "lock_wiki",
-    "content_hash",
+    "core",
 ]

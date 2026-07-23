@@ -19,14 +19,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = REPO_ROOT / "src"
 sys.path.insert(0, str(SRC_DIR))
 
-from llm_wiki.discover import (
+from llm_wiki.core.layout import (
     discover_layout,
     WikiLayout,
     find_first_dir,
     find_first_file,
     detect_date_format,
-    parse_frontmatter,
 )
+from llm_wiki.core.frontmatter import parse_frontmatter
 
 
 class TestDiscoverCanonicalLayout:

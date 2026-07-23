@@ -45,10 +45,10 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from llm_wiki.discover import discover_layout
-from llm_wiki.frontmatter import FRONTMATTER_RE, parse_frontmatter
+from llm_wiki.core.layout import discover_layout
+from llm_wiki.core.frontmatter import FRONTMATTER_RE, parse_frontmatter
+from llm_wiki.core.wikilinks import load_pages, extract_wikilinks, WIKILINK_RE
 
-WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 LOG_FILENAME_RE = re.compile(r"^(\d{4})(\d{2})(\d{2})\.md$")
 H2_RE = re.compile(r"^##\s", re.MULTILINE)
 SHA256_RE = re.compile(r"^sha256:\s*([a-f0-9]{64})", re.MULTILINE)
@@ -61,20 +61,6 @@ AUDIT_REQUIRED_BASE = {
 VALID_SEVERITIES = {"info", "suggest", "warn", "error"}
 VALID_STATUSES = {"open", "resolved"}
 VALID_SOURCES = {"obsidian-plugin", "web-viewer", "manual"}
-
-
-def load_pages(wiki_dir: Path) -> dict[str, Path]:
-    """Build a lookup dict mapping stem → Path and relative-path → Path."""
-    pages: dict[str, Path] = {}
-    for p in wiki_dir.rglob("*.md"):
-        pages[p.stem] = p
-        rel = p.relative_to(wiki_dir)
-        pages[str(rel.with_suffix(""))] = p
-    return pages
-
-
-def extract_wikilinks(text: str) -> list[str]:
-    return WIKILINK_RE.findall(text)
 
 
 def lint(root: str) -> int:

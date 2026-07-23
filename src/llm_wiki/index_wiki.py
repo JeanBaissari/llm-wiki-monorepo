@@ -32,7 +32,7 @@ import time
 from pathlib import Path
 
 # ── Import discover.py from sibling package directory ────────────────────
-from llm_wiki.discover import discover_layout
+from llm_wiki.core.layout import discover_layout
 
 
 # ── Constants ───────────────────────────────────────────────────────────

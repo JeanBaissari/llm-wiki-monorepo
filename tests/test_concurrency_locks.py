@@ -22,7 +22,7 @@ SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from llm_wiki.lock_wiki import WikiLock
+from llm_wiki.core.locking import WikiLock
 from llm_wiki.ingest import write_wiki, update_index, read_file
 from llm_wiki.backup import cmd_verify
 

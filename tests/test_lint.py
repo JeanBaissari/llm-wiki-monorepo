@@ -23,12 +23,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = REPO_ROOT / "src"
 sys.path.insert(0, str(SRC_DIR))
 
+from llm_wiki.core.wikilinks import load_pages, extract_wikilinks, WIKILINK_RE
+from llm_wiki.core.frontmatter import parse_frontmatter
 from llm_wiki.lint_wiki import (
     lint,
-    load_pages,
-    extract_wikilinks,
-    parse_frontmatter,
-    WIKILINK_RE,
     LOG_FILENAME_RE,
 )
 

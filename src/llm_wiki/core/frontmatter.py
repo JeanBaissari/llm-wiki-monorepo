@@ -4,7 +4,7 @@ This is the single source of truth for parsing YAML frontmatter from
 wiki and audit markdown files. All other modules should import from here.
 
 Usage:
-    from llm_wiki.frontmatter import parse_frontmatter
+    from llm_wiki.core.frontmatter import parse_frontmatter
     fm = parse_frontmatter(text)  # dict or None
 """
 

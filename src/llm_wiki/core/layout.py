@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""discover.py — Auto-discover wiki structure for the llm-wiki-monorepo.
+"""layout.py — Auto-discover wiki structure for the llm-wiki-monorepo.
 
 Scans a project root directory and detects:
   - Content page locations (wiki/, content/, pages/, or flat)
@@ -9,9 +9,9 @@ Scans a project root directory and detects:
   - Frontmatter conventions (sampled from existing pages)
 
 Usage:
-    python3 discover.py <project-root>              # human-readable output
-    python3 discover.py <project-root> --json       # JSON for TS tools
-    python3 discover.py <project-root> --show       # verbose detection trace
+    python3 layout.py <project-root>              # human-readable output
+    python3 layout.py <project-root> --json       # JSON for TS tools
+    python3 layout.py <project-root> --show       # verbose detection trace
 
 Exit codes:
     0 — discovery completed (even if low confidence)
@@ -28,7 +28,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
 
-from llm_wiki.frontmatter import parse_frontmatter
+from llm_wiki.core.frontmatter import parse_frontmatter
 
 
 # ── Logging helpers (prints to stderr so --json output stays clean) ────

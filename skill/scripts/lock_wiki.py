@@ -7,7 +7,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from llm_wiki.lock_wiki import (
+from llm_wiki.core.locking import (
     WikiLock,
     DEFAULT_LOCK_TIMEOUT,
     clean_stale_locks,

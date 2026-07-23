@@ -15,7 +15,7 @@ import pytest
 @pytest.fixture(autouse=True)
 def reset_logging():
     """Reset logging level to INFO before each test."""
-    from llm_wiki import wiki_logging as wl
+    from llm_wiki.core import logging as wl
     wl._current_level = wl.LEVELS["INFO"]
     yield
 
@@ -32,7 +32,7 @@ def parse_logs(err_text: str) -> list[dict]:
 
 def test_log_event_emits_valid_json(capsys):
     """Every log_event call produces a single valid JSON line with all required fields."""
-    from llm_wiki.wiki_logging import log_event
+    from llm_wiki.core.logging import log_event
 
     log_event("INFO", "test", "hello world", extra="value")
 
@@ -62,8 +62,8 @@ def test_log_event_emits_valid_json(capsys):
 ])
 def test_convenience_functions(capsys, fn_name, expected_lvl):
     """Each convenience function emits the correct severity level."""
-    from llm_wiki.wiki_logging import set_level
-    from llm_wiki import wiki_logging as wl
+    from llm_wiki.core.logging import set_level
+    from llm_wiki.core import logging as wl
 
     set_level("DEBUG")  # Ensure all levels pass
 
@@ -79,7 +79,7 @@ def test_convenience_functions(capsys, fn_name, expected_lvl):
 
 def test_severity_filtering_suppresses_lower_levels(capsys):
     """Events below the current level threshold are not emitted."""
-    from llm_wiki.wiki_logging import set_level, info, warn
+    from llm_wiki.core.logging import set_level, info, warn
 
     set_level("WARN")
     info("test", "this should be suppressed")
@@ -94,7 +94,7 @@ def test_severity_filtering_suppresses_lower_levels(capsys):
 
 def test_panic_always_emitted(capsys):
     """PANIC-level events are emitted even at ERROR level."""
-    from llm_wiki.wiki_logging import set_level, panic, info
+    from llm_wiki.core.logging import set_level, panic, info
 
     set_level("ERROR")
     info("test", "suppressed")
@@ -109,7 +109,7 @@ def test_panic_always_emitted(capsys):
 
 def test_configure_verbose_sets_debug(capsys):
     """configure(verbose=True) enables DEBUG output."""
-    from llm_wiki.wiki_logging import configure, debug
+    from llm_wiki.core.logging import configure, debug
 
     configure(verbose=True)
     debug("test", "debug message")
@@ -120,7 +120,7 @@ def test_configure_verbose_sets_debug(capsys):
 
 def test_configure_quiet_sets_error(capsys):
     """configure(quiet=True) suppresses INFO/WARN/DEBUG."""
-    from llm_wiki.wiki_logging import configure, info, error
+    from llm_wiki.core.logging import configure, info, error
 
     configure(quiet=True)
     info("test", "suppressed")
@@ -133,7 +133,7 @@ def test_configure_quiet_sets_error(capsys):
 
 def test_configure_verbose_wins_over_quiet(capsys):
     """When both --verbose and --quiet are passed, verbose wins."""
-    from llm_wiki.wiki_logging import configure, debug
+    from llm_wiki.core.logging import configure, debug
 
     configure(quiet=True, verbose=True)
     debug("test", "debug wins")
@@ -145,7 +145,7 @@ def test_configure_verbose_wins_over_quiet(capsys):
 
 def test_component_identifiers(capsys):
     """Each log event preserves its component identifier."""
-    from llm_wiki.wiki_logging import set_level, info
+    from llm_wiki.core.logging import set_level, info
 
     set_level("DEBUG")
     components = ["ingest", "lint", "backup", "lock", "llm", "provider", "mcp", "graph"]
@@ -162,7 +162,7 @@ def test_component_identifiers(capsys):
 
 def test_arbitrary_metadata_serialization(capsys):
     """Extra kwargs are serialized as additional JSON fields."""
-    from llm_wiki.wiki_logging import info
+    from llm_wiki.core.logging import info
 
     info("test", "complex metadata",
          count=42,
@@ -188,7 +188,7 @@ def test_non_serializable_types_handled(capsys):
     """Types like datetime and Path are serialized via default=str."""
     from datetime import datetime
     from pathlib import Path
-    from llm_wiki.wiki_logging import info
+    from llm_wiki.core.logging import info
 
     info("test", "exotic types",
          dt=datetime(2026, 1, 15, 12, 0, 0),
@@ -208,7 +208,7 @@ def test_non_serializable_types_handled(capsys):
 
 def test_set_level_invalid_noop(capsys):
     """set_level with an invalid level name does not change the current level."""
-    from llm_wiki.wiki_logging import set_level, info, _current_level
+    from llm_wiki.core.logging import set_level, info, _current_level
 
     original = _current_level
     set_level("NONSENSE")
@@ -223,7 +223,7 @@ def test_set_level_invalid_noop(capsys):
 
 def test_timestamps_are_sequential(capsys):
     """Multiple log events have increasing timestamps."""
-    from llm_wiki.wiki_logging import set_level, info
+    from llm_wiki.core.logging import set_level, info
 
     set_level("DEBUG")
     for i in range(5):
@@ -239,7 +239,7 @@ def test_timestamps_are_sequential(capsys):
 
 def test_log_version_is_always_1(capsys):
     """All log events have v=1 for format versioning."""
-    from llm_wiki.wiki_logging import set_level, info, error, panic
+    from llm_wiki.core.logging import set_level, info, error, panic
 
     set_level("DEBUG")
     info("a", "m1")
@@ -254,7 +254,7 @@ def test_log_version_is_always_1(capsys):
 
 def test_empty_message_ok(capsys):
     """Empty message string is valid."""
-    from llm_wiki.wiki_logging import info
+    from llm_wiki.core.logging import info
 
     info("test", "")
     events = parse_logs(capsys.readouterr().err)
@@ -263,7 +263,7 @@ def test_empty_message_ok(capsys):
 
 def test_no_extra_metadata_ok(capsys):
     """Log event with no extra kwargs is valid."""
-    from llm_wiki.wiki_logging import info
+    from llm_wiki.core.logging import info
 
     info("test", "minimal")
     events = parse_logs(capsys.readouterr().err)
@@ -274,7 +274,7 @@ def test_no_extra_metadata_ok(capsys):
 
 def test_concurrent_like_calls(capsys):
     """Rapid successive log calls produce one JSON object per line."""
-    from llm_wiki.wiki_logging import set_level, info
+    from llm_wiki.core.logging import set_level, info
 
     set_level("DEBUG")
     for i in range(100):

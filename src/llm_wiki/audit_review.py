@@ -26,36 +26,8 @@ from collections import defaultdict
 from pathlib import Path
 
 
-from llm_wiki.discover import discover_layout
-
-
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
-
-
-def parse_frontmatter(text: str) -> dict | None:
-    m = FRONTMATTER_RE.match(text)
-    if not m:
-        return None
-    body = m.group(1)
-    result: dict = {}
-    for line in body.split("\n"):
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        if ":" not in line:
-            continue
-        key, _, rest = line.partition(":")
-        key = key.strip()
-        val = rest.strip()
-        if val.startswith("[") and val.endswith("]"):
-            inner = val[1:-1].strip()
-            result[key] = [p.strip().strip('"').strip("'") for p in inner.split(",") if p.strip()]
-        elif val.startswith('"') and val.endswith('"'):
-            result[key] = val[1:-1].replace("\\n", "\n").replace('\\"', '"')
-        elif val.startswith("'") and val.endswith("'"):
-            result[key] = val[1:-1]
-        else:
-            result[key] = val
-    return result
+from llm_wiki.core.layout import discover_layout
+from llm_wiki.core.frontmatter import FRONTMATTER_RE, parse_frontmatter
 
 
 def extract_comment_one_line(text: str) -> str:

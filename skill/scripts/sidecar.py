@@ -166,7 +166,8 @@ def handle_suggest_links(params: dict) -> dict:
 
     inverted = build_inverted_index(pages, registry)
     suggestions = generate_suggestions(
-        pages, registry, wiki_dir, limit, threshold
+        pages, registry, wiki_dir, limit, threshold,
+        inverted=inverted,
     )
 
     # Strip Path objects for JSON serialization

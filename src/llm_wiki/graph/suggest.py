@@ -23,6 +23,7 @@ import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 
 from llm_wiki.core.layout import discover_layout
@@ -146,18 +147,22 @@ def build_entity_registry(pages: dict[str, tuple[Path, str, dict | None]]) -> di
 
 
 def generate_suggestions(
-    pages: dict, registry: dict, wiki_dir: Path, limit: int, min_confidence: float
+    pages: dict, registry: dict, wiki_dir: Path, limit: int, min_confidence: float,
+    inverted: Optional[InvertedIndex] = None,
 ) -> list[dict]:
     total = len(pages)
     if total == 0:
         return []
 
-    entity_page_count: Counter = Counter()
-    for stem, (_, text, _) in pages.items():
-        clean = text_without_wikilinks(text).lower()
-        for key in registry:
-            if key in clean:
-                entity_page_count[key] += 1
+    if inverted is not None:
+        entity_page_count: Counter = Counter({k: len(v) for k, v in inverted.entity_to_pages.items()})
+    else:
+        entity_page_count: Counter = Counter()
+        for stem, (_, text, _) in pages.items():
+            clean = text_without_wikilinks(text).lower()
+            for key in registry:
+                if key in clean:
+                    entity_page_count[key] += 1
 
     suggestions = []
 

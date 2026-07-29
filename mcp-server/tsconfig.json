@@ -10,7 +10,11 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "graph-engine": ["../graph-engine/dist/index.js"],
+      "graph-engine/*": ["../graph-engine/dist/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "test", "node_modules"]

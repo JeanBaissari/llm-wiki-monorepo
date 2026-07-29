@@ -59,11 +59,11 @@ let _graphEnginePath: string | null = null;
 function resolveGraphEngine(): string {
   if (_graphEnginePath) return _graphEnginePath;
 
-  // Try workspace resolution first (npm workspaces hoist to node_modules)
-  // Fall back to relative path from monorepo root
+  // Try explicit relative path first (most reliable in monorepo dev).
+  // Then fall back to bare module specifier (works with npm workspaces).
   const candidates = [
-    "graph-engine",
     path.resolve(__dirname, "..", "..", "..", "graph-engine", "dist", "index.js"),
+    "graph-engine",
     path.resolve(process.cwd(), "..", "graph-engine", "dist", "index.js"),
   ];
 
@@ -77,7 +77,6 @@ function resolveGraphEngine(): string {
     }
   }
 
-  // Last resort: relative from __dirname
   _graphEnginePath = path.resolve(__dirname, "..", "..", "..", "graph-engine", "dist", "index.js");
   return _graphEnginePath;
 }

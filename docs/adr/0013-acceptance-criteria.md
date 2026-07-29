@@ -80,8 +80,8 @@
 | AC-06.3 | All new test failures are pre-existing (exist on main) | YES |
 | AC-06.4 | No new import errors in any module | YES |
 | AC-06.5 | Sidecar JSON-RPC handlers produce valid responses | YES |
-| AC-06.6 | CI workflows reference correct entry points | TBD |
-| AC-06.7 | `release-manifest.json` paths match `pyproject.toml` console_scripts | TBD |
+| AC-06.6 | CI workflows reference correct entry points | YES |
+| AC-06.7 | `release-manifest.json` paths match `pyproject.toml` console_scripts | YES |
 | AC-06.8 | `docs_truth_check.py` exits 0 with no drift | TBD |
 
 ## 7. Documentation

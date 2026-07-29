@@ -175,7 +175,7 @@ check("AC-05.2: adapters/fts5.ts exists", file_exists("mcp-server/src/adapters/f
 check("AC-05.2: adapters/graph-engine.ts exists", file_exists("mcp-server/src/adapters/graph-engine.ts"))
 check("AC-05.3: registry.ts exists", file_exists("mcp-server/src/registry.ts"))
 check("AC-05.4: main.ts exists", file_exists("mcp-server/src/main.ts"))
-check("AC-05.5: package.json bin -> main.js", grep_file_count('"main.js"', "mcp-server/package.json") >= 1)
+check("AC-05.5: package.json main = dist/main.js", grep_file_count('"main": \".*main.js\"', "mcp-server/package.json") >= 1)
 check("AC-05.6: TypeScript typecheck", ts_typecheck())
 
 # Tool count verification

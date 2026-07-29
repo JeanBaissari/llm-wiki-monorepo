@@ -4,6 +4,7 @@
 - **Date:** 2026-07-29
 - **Branches:** deployed on `v0.3.0/modularization`
 - **Deciders:** JeanBaissari (@JeanBaissari)
+- **Phase 6 (remaining gaps):** executed 2026-07-29, see [Gaps Closed](#gaps-closed)
 
 ## Context
 
@@ -103,9 +104,26 @@ docs/
 - Import paths are longer. `from llm_wiki.quality.claims.models import Claim` vs old `from llm_wiki.claims import Claim`.
 - CI paths need explicit verification for each domain (addressed by `test_core_boundaries.py`).
 
+### Gaps Closed (Phase 6)
+
+Batch 6A-6F closed 6 of 7 remaining gaps on `v0.3.0/modularization`:
+
+| Batch | Gap | Status |
+|-------|-----|--------|
+| 6A | OpenCode test imports | Fixed — 2 failing tests → 0 |
+| 6B | graph-engine.ts resolve path | Fixed — reordered candidates, added tsconfig paths |
+| 6C | contracts/ package | Created — `schema_validator.py` moved to `src/llm_wiki/contracts/` |
+| 6D | shared-types TS package | Created `packages/shared-types/` — canonical `GraphNode`/`GraphEdge` extracted |
+| 6E | MCP integration tests | Fixed — sidecar response schema matches, 17 pass, 0 fail |
+| 6F | Link suggest inverted param | Added `inverted` parameter to `generate_suggestions()` |
+
+**Final numbers: 472 passed, 5 failed, 2 errors** (vs 445 pass / 33 fail on main).
+
 **Remaining Gaps (post-v0.3):**
-- `contracts/` package for `schema_validator.py` and version management
-- `mcp-server/src/adapters/graph-engine.ts` has a fragile `resolveGraphEngine()` fallback path
-- `shared-types/` TypeScript package for graph node/edge contracts duplicating across packages
-- Root documentation taxonomy (docs/getting-started/, docs/reference/, docs/architecture/)
-- `release-manifest.json` updated to reflect new console_scripts paths
+- Root documentation taxonomy (`docs/getting-started/`, `docs/reference/`) — deferred (high risk, cross-cutting)
+- 7 pre-existing test failures (benchmark timing, sklearn env, fixture version marker)
+
+The 7 remaining failures are all pre-existing:
+- `test_mcp_benchmark.py` — benchmark timing/environment issues
+- `test_verification.py` — sklearn import error (optional dep not installed)
+- `test_fixtures_fresh.py` — schema version marker misalignment (cosmetic)

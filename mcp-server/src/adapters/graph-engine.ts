@@ -19,26 +19,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const _require = createRequire(import.meta.url);
 
-// ── Graph-engine type imports (mirrors graph-engine's types) ──────────
-
-interface GraphEngineNode {
-  id: string;
-  label: string;
-  type: string;
-  path: string;
-  linkCount: number;
-  community: number;
-}
-
-interface GraphEngineEdge {
-  source: string;
-  target: string;
-  weight: number;
-}
-
 interface GraphBuildResult {
-  nodes: GraphEngineNode[];
-  edges: GraphEngineEdge[];
+  nodes: GraphNode[];
+  edges: GraphEdge[];
   communities: { id: number; nodeCount: number; cohesion: number; topNodes: string[] }[];
 }
 
@@ -88,7 +71,7 @@ function graphDataPath(wikiPath: string): string {
   return path.join(wikiPath, "graph-data.json");
 }
 
-function toGraphNode(n: GraphEngineNode): GraphNode {
+function toGraphNode(n: GraphNode): GraphNode {
   return {
     id: n.id,
     label: n.label,
@@ -99,7 +82,7 @@ function toGraphNode(n: GraphEngineNode): GraphNode {
   };
 }
 
-function toGraphEdge(e: GraphEngineEdge): GraphEdge {
+function toGraphEdge(e: GraphEdge): GraphEdge {
   return { source: e.source, target: e.target, weight: e.weight };
 }
 
@@ -172,20 +155,20 @@ export async function getInsights(wikiPath: string): Promise<{
   // Load cached graph data
   const raw = await readFile(dataPath, "utf-8");
   const graphData = JSON.parse(raw) as {
-    nodes: GraphEngineNode[];
-    edges: GraphEngineEdge[];
+    nodes: GraphNode[];
+    edges: GraphEdge[];
     communities: any[];
   };
 
   const geMod = await tryImport<{
     findSurprisingConnections: (
-      nodes: GraphEngineNode[],
-      edges: GraphEngineEdge[],
+      nodes: GraphNode[],
+      edges: GraphEdge[],
       communities: any[],
     ) => any[];
     detectKnowledgeGaps: (
-      nodes: GraphEngineNode[],
-      edges: GraphEngineEdge[],
+      nodes: GraphNode[],
+      edges: GraphEdge[],
       communities: any[],
     ) => any[];
   }>(resolveGraphEngine());
@@ -233,16 +216,16 @@ export async function searchGraph(
 
   const raw = await readFile(dataPath, "utf-8");
   const graphData = JSON.parse(raw) as {
-    nodes: GraphEngineNode[];
-    edges: GraphEngineEdge[];
+    nodes: GraphNode[];
+    edges: GraphEdge[];
   };
 
   const geMod = await tryImport<{
     applyGraphSearch: (
-      nodes: GraphEngineNode[],
-      edges: GraphEngineEdge[],
+      nodes: GraphNode[],
+      edges: GraphEdge[],
       query: string,
-    ) => { nodes: GraphEngineNode[]; edges: GraphEngineEdge[]; matchedNodeIds: Set<string> };
+    ) => { nodes: GraphNode[]; edges: GraphEdge[]; matchedNodeIds: Set<string> };
   }>(resolveGraphEngine());
 
   if (!geMod?.applyGraphSearch) {

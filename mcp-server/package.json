@@ -16,6 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@baissari/llm-wiki-shared-types": "file:../../packages/shared-types",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "graph-engine": "*",
     "sql.js": "^1.10.0"

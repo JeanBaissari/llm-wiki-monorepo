@@ -12,6 +12,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@baissari/llm-wiki-shared-types": "file:../../packages/shared-types",
     "graphology": "^0.26.0"
   },
   "peerDependencies": {

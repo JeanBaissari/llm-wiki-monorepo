@@ -605,7 +605,7 @@ class TestEdgeCases:
 
     def test_approx_tokens_helper(self):
         """_approx_tokens gives reasonable estimates."""
-        from providers.opencode import _approx_tokens
+        from llm_wiki.providers.opencode import _approx_tokens
         assert _approx_tokens("") == 1  # floor at 1
         assert _approx_tokens("abcd") == 1
         assert _approx_tokens("abcdefgh") == 2
@@ -613,7 +613,7 @@ class TestEdgeCases:
 
     def test_ts_helper_formats_correctly(self):
         """_ts produces parseable timestamp strings."""
-        from providers.opencode import _ts
+        from llm_wiki.providers.opencode import _ts
         ts = _ts()
         # Format: YYYYMMDD-HHMMSS-ffffff
         parts = ts.split("-")

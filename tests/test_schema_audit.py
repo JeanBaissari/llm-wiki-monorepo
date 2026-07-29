@@ -45,7 +45,7 @@ class TestSchemaValidator:
 
     def test_imports(self):
         """Schema validator imports successfully."""
-        from llm_wiki.schema_validator import validate_page, validate_audit, validate_log_event
+        from llm_wiki.contracts import validate_page, validate_audit, validate_log_event
         assert callable(validate_page)
         assert callable(validate_audit)
         assert callable(validate_log_event)
@@ -67,7 +67,7 @@ class TestSchemaValidator:
 
     def test_valid_fixtures_pass(self):
         """All valid fixtures should pass validation."""
-        from llm_wiki.schema_validator import validate_fixture_file
+        from llm_wiki.contracts import validate_fixture_file
 
         results = []
         for f in sorted(FIXTURES_VALID.glob("*.json")):
@@ -80,7 +80,7 @@ class TestSchemaValidator:
 
     def test_invalid_fixtures_fail(self):
         """All invalid fixtures should fail validation."""
-        from llm_wiki.schema_validator import validate_fixture_file
+        from llm_wiki.contracts import validate_fixture_file
 
         results = []
         for f in sorted(FIXTURES_INVALID.glob("*.json")):
@@ -93,7 +93,7 @@ class TestSchemaValidator:
 
     def test_page_validation(self):
         """Page validation catches specific errors."""
-        from llm_wiki.schema_validator import validate_page
+        from llm_wiki.contracts import validate_page
 
         valid = {"title": "Test", "type": "entity", "created": "2026-01-01",
                  "updated": "2026-01-01", "sources": [], "tags": []}
@@ -114,7 +114,7 @@ class TestSchemaValidator:
 
     def test_audit_validation(self):
         """Audit validation catches anchor vs unanchored requirements."""
-        from llm_wiki.schema_validator import validate_audit
+        from llm_wiki.contracts import validate_audit
 
         anchored = {
             "id": "20260722-120000-abcd", "target": "test.md",
@@ -142,7 +142,7 @@ class TestSchemaValidator:
 
     def test_log_event_validation(self):
         """Log event validation catches version and level issues."""
-        from llm_wiki.schema_validator import validate_log_event
+        from llm_wiki.contracts import validate_log_event
 
         valid = {"v": 1, "ts": "2026-07-22T12:00:00Z", "lvl": "INFO",
                  "cmp": "test", "msg": "hello"}
@@ -156,7 +156,7 @@ class TestSchemaValidator:
 
     def test_frontmatter_parsing(self):
         """Frontmatter parser extracts fields from markdown."""
-        from llm_wiki.schema_validator import parse_page_frontmatter
+        from llm_wiki.contracts import parse_page_frontmatter
 
         md = """---
 title: Test Page
@@ -183,7 +183,7 @@ Content here.
 
     def test_no_frontmatter(self):
         """Markdown without frontmatter returns None."""
-        from llm_wiki.schema_validator import parse_page_frontmatter
+        from llm_wiki.contracts import parse_page_frontmatter
         assert parse_page_frontmatter("# Just content") is None
 
 

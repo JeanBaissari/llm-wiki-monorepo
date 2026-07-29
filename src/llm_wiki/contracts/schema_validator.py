@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 SCHEMA_DIR = REPO_ROOT / "schema" / "versions" / "v0.2.1"
 
 _REQUIRED_FRONTMATTER = frozenset({"title", "type", "created", "updated", "sources", "tags"})

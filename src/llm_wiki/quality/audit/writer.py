@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from llm_wiki.schema_validator import validate_audit
+from llm_wiki.contracts import validate_audit
 
 
 def _generate_audit_id() -> str:

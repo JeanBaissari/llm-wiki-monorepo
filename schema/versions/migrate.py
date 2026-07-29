@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""migrate.py — Schema migration runner for LLM Wiki.
+"""
+NOTE: This module is currently unreferenced in the codebase (v0.3.0).
+It was written as a migration stub for future schema version upgrades.
+When a schema migration is needed, wire this into the CLI via `llm_wiki migrate-schema`.
+
+migrate.py — Schema migration runner for LLM Wiki.
 
 Reads a wiki directory, detects the current schema version from a
 `.schema_version` file (or infers from page frontmatter), consults

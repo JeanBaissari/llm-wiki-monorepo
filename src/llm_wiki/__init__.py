@@ -8,6 +8,7 @@ __version__ = "0.2.1"
 
 __all__ = [
     "cli",
+    "contracts",
     "core",
     "quality",
     "providers",

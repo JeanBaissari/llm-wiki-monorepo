@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from .schema_validator import validate_log_event
+from llm_wiki.contracts import validate_log_event
 
 
 def _generate_id() -> str:

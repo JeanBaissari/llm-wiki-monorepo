@@ -1,5 +1,7 @@
 # Quick Start — llm-wiki-monorepo
 
+> LLM Wiki is an agent-native file-first knowledge compiler — AI agents turn raw documents into persistent, cross-linked Markdown wikis.
+
 > Ready to go from zero to a live wiki? This guide covers installation and your first wiki in minutes. For the full CLI command reference, see [`docs/reference/cli.md`](../reference/cli.md). For MCP server and tool details, see [`docs/reference/mcp-tools.md`](../reference/mcp-tools.md).
 
 ## Two Paths to Run Commands

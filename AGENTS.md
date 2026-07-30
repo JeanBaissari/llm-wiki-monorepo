@@ -26,17 +26,20 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 
 ## Package Map
 
-| Dir | Language | What it does | When to touch it |
-|-----|----------|-------------|-----------------|
-| `skill/` | Python + MD | Agent skill: SKILL.md + 13 scripts + 10 references | Agent operations, scripts, docs |
-| `mcp-server/` | TypeScript | MCP server: 14 tools via stdio | Programmatic wiki access |
-| `graph-engine/` | TypeScript | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
-| `templates/` | MD + JSON | 20 domain templates for scaffold.py | Adding/modifying project templates |
-| `web-viewer/` | TypeScript | Local preview server: mermaid, KaTeX, feedback | UI changes |
-| `extension/` | JavaScript | Chrome web clipper | Browser clipping |
-| `audit-shared/` | TypeScript | Audit file format library | Audit schema changes |
-| `plugins/obsidian-audit/` | TypeScript | Obsidian plugin | Vault integration |
-| `rust-backend/` | _(removed)_ | Coming soon: multi-format doc parsing (PDF, DOCX, EPUB) | — |
+| Dir | Language | Tier | What it does | When to touch it |
+|-----|----------|------|-------------|-----------------|
+| `skill/` | Python + MD | adapter | Agent skill: SKILL.md + 13 scripts + 10 references | Agent operations, scripts, docs |
+| `mcp-server/` | TypeScript | programmatic-access | MCP server: 14 tools via stdio | Programmatic wiki access |
+| `graph-engine/` | TypeScript | analysis | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
+| `templates/` | MD + JSON | core | 20 domain templates for scaffold.py | Adding/modifying project templates |
+| `web-viewer/` | TypeScript | optional | Local preview server: mermaid, KaTeX, feedback | UI changes |
+| `extension/` | JavaScript | optional | Chrome web clipper | Browser clipping |
+| `audit-shared/` | TypeScript | core | Audit file format library | Audit schema changes |
+| `plugins/obsidian-audit/` | TypeScript | optional | Obsidian plugin | Vault integration |
+| `src/llm_wiki/` | Python | core | CLI, version, core Python library | CLI operations, version bumps |
+| `graph-bridge/` | TypeScript | adapter | AST extraction + graph merger bridge | Code graph integration |
+| `packages/shared-types/` | TypeScript | core | Shared TypeScript types and schemas | Schema changes, cross-package types |
+| `rust-backend/` | _(removed)_ | — | Coming soon: multi-format doc parsing (PDF, DOCX, EPUB) | — |
 
 ## Build Commands
 

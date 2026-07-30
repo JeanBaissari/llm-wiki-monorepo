@@ -2,7 +2,7 @@
 
 ## What this system is
 
-A complete, portable knowledge base operating system. It takes the Karpathy LLM Wiki pattern and wraps it in production-grade infrastructure: agent skills, MCP server, knowledge graph engine, domain-specific templates, browser clipping, human feedback loops, and automated maintenance.
+A complete, portable knowledge base operating system. LLM Wiki is an **agent-native, file-first knowledge compiler.** It takes the Karpathy LLM Wiki pattern and wraps it in production-grade infrastructure: agent skills, MCP server, knowledge graph engine, domain-specific templates, browser clipping, human feedback loops, and automated maintenance.
 
 ## Why it exists
 

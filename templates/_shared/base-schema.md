@@ -1,3 +1,4 @@
+<!-- GENERATED FROM schema/versions/v0.2.1/page.schema.json — DO NOT EDIT -->
 <!-- Generated from schema/versions/v0.2.1/page.schema.json. DO NOT EDIT. -->
 
 # Shared Template Primitives

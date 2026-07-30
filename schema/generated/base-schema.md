@@ -3,6 +3,10 @@
 > This file is auto-generated from `schema/versions/v0.2.1/page.schema.json`.
 > Do not edit by hand. Edit the JSON Schema and regenerate.
 
+## Schema Version
+
+schema_version: v0.2.1
+
 ## Required Frontmatter
 
 All wiki pages must include these fields in YAML frontmatter:
@@ -46,3 +50,7 @@ All wiki pages must include these fields in YAML frontmatter:
 - Use `[[page-slug]]` syntax for wikilinks
 - Every entity and concept should appear in `wiki/index.md`
 - Pages link to sources via `sources:` frontmatter
+
+---
+
+*Generated from `schema/versions/v0.2.1/` — DO NOT EDIT.*

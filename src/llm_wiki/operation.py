@@ -189,6 +189,30 @@ class OperationContext:
         else:
             if self.status == "started" or self.status == "running":
                 self._finish("succeeded")
+
+        if self.wiki_root:
+            manifest_dir = Path(self.wiki_root) / ".llm-wiki" / "operations" / "completed"
+            manifest_dir.mkdir(parents=True, exist_ok=True)
+            manifest_path = manifest_dir / f"{self.operation_id}.json"
+
+            touched_flat: list[str] = []
+            for paths in self.touched_paths.values():
+                touched_flat.extend(paths)
+
+            manifest = {
+                "operation_id": self.operation_id,
+                "run_id": self.run_id,
+                "command": self.command,
+                "started": self.started_at,
+                "finished": _iso_now(),
+                "inputs": dict(self.inputs),
+                "touched_paths": touched_flat,
+                "status": "failed" if exc_type else "completed",
+            }
+
+            with open(manifest_path, "w") as f:
+                json.dump(manifest, f, indent=2, default=str)
+
         return False  # Don't suppress exceptions
 
 

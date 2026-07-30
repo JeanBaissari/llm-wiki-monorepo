@@ -96,7 +96,7 @@ class TestSidecarDispatchOverhead:
     @pytest.fixture
     def running_sidecar(self, populated_wiki: Path):
         """Long-lived sidecar for dispatch overhead measurements."""
-        from test_mcp_integration import SidecarProcess
+        from tests.test_mcp_integration import SidecarProcess
         sidecar = SidecarProcess(wiki_root=str(populated_wiki))
         sidecar.start()
         # Warmup
@@ -161,10 +161,10 @@ class TestSidecarVsDirect:
         wiki_root = str(populated_wiki)
 
         # Direct lint_files (in-process)
-        from lint_wiki import lint_files
+        from llm_wiki.quality.lint import lint
 
         def direct_lint():
-            return lint_files(root=wiki_root)
+            return lint(wiki_root)
 
         # Warmup both
         direct_lint()
@@ -189,7 +189,7 @@ class TestSidecarVsDirect:
 
     def test_sidecar_reuse_benefit(self, populated_wiki: Path):
         """Multiple sidecar calls on a persistent process — per-call cost is flat."""
-        from test_mcp_integration import SidecarProcess
+        from tests.test_mcp_integration import SidecarProcess
         sidecar = SidecarProcess(wiki_root=str(populated_wiki))
         sidecar.start()
 
@@ -244,7 +244,7 @@ class TestSubprocessSpawnBaseline:
     def test_sidecar_vs_subprocess_ratio(self, populated_wiki: Path):
         """Verify sidecar dispatch on a running process is ≥5x faster than
         subprocess spawn baseline."""
-        from test_mcp_integration import SidecarProcess
+        from tests.test_mcp_integration import SidecarProcess
 
         # Subprocess baseline: spawn python3 -c "pass"
         def spawn_baseline():

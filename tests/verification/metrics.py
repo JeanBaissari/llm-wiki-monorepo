@@ -188,10 +188,11 @@ def nmi(
     average_method: str = "sqrt",
 ) -> float:
     """Normalized Mutual Information.
-
+    
     Uses sklearn if available; otherwise pure-Python fallback."""
     if HAVE_SKLEARN:
-        return sklearn_nmi(labels_true, labels_pred, average_method=average_method)
+        method = average_method if average_method != "sqrt" else "geometric"
+        return sklearn_nmi(labels_true, labels_pred, average_method=method)
     return pure_nmi(labels_true, labels_pred, average_method)
 
 

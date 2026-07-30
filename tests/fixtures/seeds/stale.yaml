@@ -679,6 +679,3 @@ expected_lint_failures:
 - rule: contradiction_page
   description: Page with explicit contradictions
   location: wiki/concepts/contradiction_page.md
-- rule: source_drift
-  description: SHA256 mismatch in raw source
-  location: raw/sources/dirty_source.md

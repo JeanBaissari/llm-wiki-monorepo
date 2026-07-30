@@ -224,6 +224,7 @@ class ClaimsManager:
         ))
         if evidence:
             ctr = Contradiction(
+                contradiction_id="",
                 claim_ids=[claim_id],
                 status="open",
                 severity="medium",

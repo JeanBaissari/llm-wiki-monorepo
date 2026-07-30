@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.3.0] — 2026-07-29
+
+### Modular Package Layout (ADR 0013)
+
+- **Python:** 28 flat modules reorganized into 10 domain packages: `core/`, `quality/{claims,lint,audit}/`, `ingest/`, `providers/`, `graph/`, `search/`, `ops/`, `wiki/`, `research/`, `contracts/`
+- **TypeScript:** MCP server split from 1,287-line `index.ts` into 20 focused files under `tools/`, `adapters/`, `projects/`, `security/`
+- **Shared types:** extracted canonical `GraphNode`/`GraphEdge` types into new `packages/shared-types/` workspace package
+- **Core primitives:** centralized frontmatter parsing, wikilink extraction, hashing, atomic writes, locking, and logging into `core/`
+- **All CLI commands unchanged** — `llm-wiki lint`, `llm-wiki ingest`, etc. work identically
+- **All 14 MCP tool names and schemas preserved** byte-for-byte
+- **+51 tests added** (490 total); 7 pre-existing failures eliminated; 472 pass
+
+### Docs Taxonomy
+
+- Root documentation reorganized into `docs/`: `architecture/`, `getting-started/`, `reference/`, `legal/`, `release/`
+- `README.md` and `AGENTS.md` kept at root (PyPI packaging + agent tool convention)
+- `CONTRIBUTING.md` → symlink to `docs/contributing.md`
+- `LICENSE` file created (MIT)
+
+### Remaining Gaps Closed
+
+- OpenCode test imports fixed (2 failures → 0)
+- graph-engine resolve path reordered
+- MCP integration tests match sidecar response schema (9 failures → 0)
+- Link suggest `inverted` parameter added
+- Release manifest console_scripts updated to modular paths
+- Doc drift: MCP tool counts, template counts, version manifest consistency
+
 ## [0.2.1] — 2026-07-22
 
 ### Release Integrity (LWM_003 + LWM_004)

@@ -1,23 +1,26 @@
 # LLM Wiki Monorepo
 
 <p align="center">
-  <strong>A knowledge base that builds itself.</strong><br>
-  AI agents read your documents, build a structured wiki, and keep it current — no database, no API lock-in, one repo.
+  <strong>Agent-native knowledge compiler.</strong><br>
+  AI agents turn raw documents into persistent, cross-linked Markdown wikis.<br>
+  No database. No API lock-in. One <code>git clone</code>.
 </p>
 
 <p align="center">
-  <a href="#what-is-this">What is this?</a> •
+  <a href="#what-is-this">What</a> •
   <a href="#features">Features</a> •
   <a href="#quick-start">Quick Start</a> •
   <a href="#architecture">Architecture</a> •
   <a href="#packages">Packages</a> •
   <a href="#templates">Templates</a> •
+  <a href="#documentation">Docs</a> •
   <a href="#credits">Credits</a> •
   <a href="#license">License</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/JeanBaissari/llm-wiki-monorepo/actions/workflows/ci.yml"><img src="https://github.com/JeanBaissari/llm-wiki-monorepo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/baissarienterprises-llm-wiki/"><img src="https://img.shields.io/pypi/v/baissarienterprises-llm-wiki.svg" alt="PyPI"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-18+-green.svg" alt="Node 18+"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="License MIT"></a>
@@ -30,11 +33,23 @@
 pip install baissarienterprises-llm-wiki
 ```
 
+## What's New in v0.3.0
+
+**Modular architecture.** The Python package has been reorganized from 28 flat modules into 10 domain-organized packages — `core/`, `quality/`, `ingest/`, `providers/`, `graph/`, `search/`, `ops/`, `wiki/`, `research/`, `contracts/`. Every module now answers: what domain owns this? What category within that domain? What specific function?
+
+**MCP server modularized.** The 1,287-line `index.ts` is gone. The MCP server is now 20 focused files: per-tool handlers under `tools/`, adapters under `adapters/`, project scanning under `projects/`, path safety under `security/`. All 14 tool names, schemas, and responses preserved byte-for-byte.
+
+**Shared TypeScript types.** Canonical `GraphNode`/`GraphEdge` types extracted into `packages/shared-types/` — a single source of truth for 3 packages that previously defined near-identical interfaces independently.
+
+**Documentation taxonomy.** Root-level docs reorganized into `docs/architecture/`, `docs/getting-started/`, `docs/reference/`, `docs/legal/`, `docs/release/`. README.md and AGENTS.md kept at root for PyPI packaging and AI agent auto-discovery.
+
+**7 pre-existing test failures eliminated.** OpenCode imports fixed. MCP integration tests now match the sidecar response schema. Link suggest optimization added. 472 tests pass (up from 445).
+
 ## What is this?
 
 LLM Wiki is a **production-grade knowledge engine** that turns raw documents into a living, cross-linked Markdown wiki. Instead of re-retrieving documents on every query (RAG), the system **incrementally builds and maintains** a persistent knowledge base. Sources are compiled once, kept current, and compound over time.
 
-It's a monorepo of everything needed to run a self-building wiki: a Python CLI package, an MCP server for programmatic access, a knowledge graph engine with community detection, a Chrome web clipper, a web viewer, an Obsidian plugin, and 20 domain templates — all wired together through an agent skill that works with any LLM.
+It's everything needed to run a self-building wiki in one monorepo: a Python CLI package, an MCP server, a knowledge graph engine with community detection, a Chrome web clipper, a web viewer, an Obsidian plugin, and 20 domain templates — wired through an agent skill that works with any LLM.
 
 ---
 
@@ -69,7 +84,11 @@ It's a monorepo of everything needed to run a self-building wiki: a Python CLI p
 
 - **Chrome Web Clipper** — one-click web page capture with Readability + Turndown, auto-triggering ingest after clip.
 
-- **CI/CD Pipeline** — pytest + vitest matrix across Python 3.10–3.12 and Node 18–22, coverage reporting, caching, benchmark artifacts.
+- **Claim & Epistemic Tracking** — optional sidecar model: claims, epistemic events (created/reinforced/challenged/weakened/superseded/resolved), and contradiction records with JSONL storage. Health reports and diffs between wiki states.
+
+- **Modular Architecture** — 28 flat modules reorganized into 10 domain packages: `core/` (primitives), `quality/{claims,lint,audit}/`, `ingest/` (pipeline), `providers/` (LLM adapters), `graph/` (louvain, insights, suggestions), `search/` (FTS5), `ops/` (health, serve, benchmark), `wiki/` (scaffold, backup), `research/` (deep-research), `contracts/` (schema validation). MCP server split from 1,287-line monolith into 20 focused files.
+
+- **CI/CD Pipeline** — pytest + vitest matrix across Python 3.10–3.12 and Node 18–22, coverage reporting, trusted OIDC publishing to PyPI on tag push.
 
 ## Quick Start
 
@@ -106,30 +125,36 @@ llm-wiki insights ~/my-wiki
 # Health check
 llm-wiki health ~/my-wiki
 
-# Start MCP server
+# Claim tracking (optional sidecar)
+llm-wiki claims health ~/my-wiki
+
+# Start MCP server (14 tools via stdio)
 llm-wiki serve ~/my-wiki
 ```
 
 ## Architecture
 
-```
-wiki/ directory  ← shared state (Markdown files)
-     │
-     ├── Agent Skill + Python Scripts   → 20+ scripts: scaffold, ingest, lint,
-     │                                     discover, insights, backup, link-suggest,
-     │                                     deep-research, audit, benchmark, sidecar,
-     │                                     lock_wiki, atomic_write, content_hash,
-     │                                     index_wiki, louvain, health_check, wiki_logging
-     ├── LLM Provider Layer             → openai, anthropic, litellm, opencode
-     │   (src/llm_wiki/ + skill/scripts/providers/)
-     ├── MCP Server (stdio)             → programmatic access, 14 tools,
-     │                                     direct sidecar (zero subprocess)
-     ├── Graph Engine (Node.js)         → relevance model, Louvain, insights,
-     │                                     graphology bridge, verification suite
-     ├── Web Viewer + Obsidian Plugin   → human browsing + feedback
-     ├── Browser Extension              → web clipping + auto-ingest
-     └── templates/                     → 20 domain schemas
-```
+ ```
+ wiki/ directory  ← shared state (Markdown files)
+      │
+      ├── Agent Skill + Python Scripts   → 20+ scripts: scaffold, ingest, lint,
+      │                                     discover, insights, backup, link-suggest,
+      │                                     deep-research, audit, benchmark, serve
+      ├── Python Package (src/llm_wiki/)  → modular: core/ (primitives),
+      │   ├── core/                       quality/ (claims, lint, audit),
+      │   ├── quality/                    ingest/ (pipeline), providers/,
+      │   ├── ingest/ + providers/        graph/ (louvain, insights),
+      │   ├── graph/ + search/            search/ (FTS5), ops/ (health, serve),
+      │   ├── ops/ + wiki/ + research/    wiki/ (scaffold, backup),
+      │   └── contracts/                  research/ (deep-research)
+      ├── MCP Server (stdio)              → 14 tools, modular: tools/,
+      │                                     adapters/, projects/, security/
+      ├── Graph Engine (Node.js)          → relevance model, Louvain, insights
+      ├── shared-types (TS)               → canonical GraphNode/GraphEdge types
+      ├── Web Viewer + Obsidian Plugin    → human browsing + feedback
+      ├── Browser Extension               → web clipping + auto-ingest
+      └── templates/                      → 20 domain schemas
+ ```
 
 ## Packages
 
@@ -158,11 +183,14 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 |------|---------------|
 | `README.md` | You are here |
 | `docs/getting-started/quickstart.md` | Every command with real examples |
+| `docs/reference/cli.md` | Full CLI reference — all 15 commands with flags and examples |
+| `docs/reference/mcp-tools.md` | All 14 MCP tools with schemas and usage examples |
 | `AGENTS.md` | Architecture, conventions, build/test commands, Python Dependency Policy |
 | `docs/release/changelog.md` | Full version history — all features, changes, and breaking changes |
 | `docs/reference/file-map.md` | Complete file tree with descriptions |
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
-| `docs/architecture/overview.md` | Why this system exists |
+| `docs/architecture/overview.md` | Why this system exists — design philosophy and goals |
+| `docs/adr/` | Architecture Decision Records — 14 design decisions with tradeoffs |
 | `skill/references/` | 12 detailed reference guides including concurrency, observability, and ingest |
 
 ## Requirements

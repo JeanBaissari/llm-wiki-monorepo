@@ -8,6 +8,7 @@
 import { readFileSync, readdirSync } from "fs";
 import { join, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { z } from "zod";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,10 +48,18 @@ export interface ValidationResult {
   skipped?: boolean;
 }
 
-function loadJsonSchema(name: string): Record<string, unknown> | null {
+const JsonSchemaShape = z.object({
+  $schema: z.string().optional(),
+  type: z.string().optional(),
+  properties: z.record(z.unknown()).optional(),
+  required: z.array(z.string()).optional(),
+}).passthrough();
+
+export function loadJsonSchema(name: string): Record<string, unknown> | null {
   try {
-    const path = join(SCHEMA_DIR, name);
-    return JSON.parse(readFileSync(path, "utf-8"));
+    const path = join(SCHEMA_DIR, `${name}.schema.json`);
+    const raw = JSON.parse(readFileSync(path, "utf-8"));
+    return JsonSchemaShape.parse(raw);
   } catch {
     return null;
   }

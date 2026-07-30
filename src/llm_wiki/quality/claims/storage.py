@@ -60,6 +60,8 @@ class ClaimsManager:
     def __init__(self, wiki_root: str):
         self.wiki_root = str(Path(wiki_root).resolve())
         self.sidecar_dir = _ensure_sidecar_dir(self.wiki_root)
+        self._by_page: dict[str, list[str]] | None = None
+        self._by_status: dict[str, list[str]] | None = None
 
     @property
     def claims_path(self) -> str:
@@ -103,11 +105,55 @@ class ClaimsManager:
     def get_open_contradictions(self) -> list[dict]:
         return [c for c in self.get_all_contradictions() if c.get("status") in ("open", "investigating")]
 
+    def _build_indexes(self) -> None:
+        if self._by_page is not None:
+            return
+        self._by_page = defaultdict(list)
+        self._by_status = defaultdict(list)
+        for c in self.get_all_claims():
+            for p in c.get("pages", []):
+                self._by_page[p].append(c["claim_id"])
+            self._by_status[c.get("status", "active")].append(c["claim_id"])
+
     def get_claims_by_page(self, page_slug: str) -> list[dict]:
-        return [c for c in self.get_all_claims() if page_slug in c.get("pages", [])]
+        self._build_indexes()
+        cids = self._by_page.get(page_slug, []) if self._by_page else []
+        all_claims = {c["claim_id"]: c for c in self.get_all_claims()}
+        return [all_claims[cid] for cid in cids if cid in all_claims]
 
     def get_claims_by_status(self, status: str) -> list[dict]:
-        return [c for c in self.get_all_claims() if c.get("status") == status]
+        self._build_indexes()
+        cids = self._by_status.get(status, []) if self._by_status else []
+        all_claims = {c["claim_id"]: c for c in self.get_all_claims()}
+        return [all_claims[cid] for cid in cids if cid in all_claims]
+
+    def page_confidence(self, page_slug: str) -> str:
+        claims = self.get_claims_by_page(page_slug)
+        if not claims:
+            return "unknown"
+
+        confidence_score = 0
+        for c in claims:
+            conf = c.get("confidence", "medium")
+            if conf == "high":
+                confidence_score += 3
+            elif conf == "medium":
+                confidence_score += 2
+            elif conf == "low":
+                confidence_score += 1
+
+        open_ctrs = self.get_open_contradictions()
+        for ctr in open_ctrs:
+            if any(cid in [cl["claim_id"] for cl in claims] for cid in ctr.get("claim_ids", [])):
+                confidence_score -= 3
+
+        avg = confidence_score / max(len(claims), 1)
+        if avg >= 2.5:
+            return "high"
+        elif avg >= 1.5:
+            return "medium"
+        else:
+            return "low"
 
     def get_stale_claims(self, staleness_days: int = 180) -> list[dict]:
         now = datetime.now(timezone.utc)
@@ -144,7 +190,7 @@ class ClaimsManager:
             for p in c.get("pages", []):
                 pages_with_claims.add(p)
 
-        return {
+        report = {
             "total_claims": len(all_claims),
             "total_events": len(all_events),
             "total_contradictions": len(all_contradictions),
@@ -155,6 +201,60 @@ class ClaimsManager:
             "severity_breakdown": dict(severity_counts),
             "active_claims": len(self.get_active_claims()),
         }
+        report["page_confidence"] = {
+            page: self.page_confidence(page)
+            for page in sorted(pages_with_claims)
+        }
+        return report
+
+    def reinforce_claim(self, claim_id: str, source: str, operation_id: str = "") -> None:
+        self.emit_event(EpistemicEvent(
+            claim_id=claim_id,
+            event_type="reinforced",
+            source=source,
+            operation_id=operation_id,
+        ))
+
+    def challenge_claim(self, claim_id: str, source: str, evidence: str = "", operation_id: str = "") -> None:
+        self.emit_event(EpistemicEvent(
+            claim_id=claim_id,
+            event_type="challenged",
+            source=source,
+            operation_id=operation_id,
+        ))
+        if evidence:
+            ctr = Contradiction(
+                claim_ids=[claim_id],
+                status="open",
+                severity="medium",
+                evidence=[evidence],
+            )
+            self.create_contradiction(ctr)
+
+    def weaken_claim(self, claim_id: str, source: str, operation_id: str = "") -> None:
+        self.emit_event(EpistemicEvent(
+            claim_id=claim_id,
+            event_type="weakened",
+            source=source,
+            operation_id=operation_id,
+        ))
+
+    def supersede_claim(self, claim_id: str, replacement_id: str, source: str, operation_id: str = "") -> None:
+        self.emit_event(EpistemicEvent(
+            claim_id=claim_id,
+            event_type="superseded",
+            source=source,
+            operation_id=operation_id,
+        ))
+
+    def resolve_contradiction(self, contradiction_id: str, resolution_claim_id: str) -> bool:
+        all_ctrs = self.get_all_contradictions()
+        for ctr in all_ctrs:
+            if ctr.get("contradiction_id") == contradiction_id:
+                ctr["status"] = "resolved"
+                ctr["resolution"] = f"Claim {resolution_claim_id} preferred"
+                return True
+        return False
 
     def diff(self, other: "ClaimsManager") -> dict:
         local_claims = {c["claim_id"]: c for c in self.get_all_claims()}

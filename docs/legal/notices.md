@@ -140,7 +140,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 The following upstream projects were referenced for methodology and design. Their licenses are provided for attribution purposes only; no GPL-licensed code is incorporated into this project's distributed artifacts.
 
-- **nashsu/llm_wiki** (https://github.com/nashsu/llm_wiki) — GPL-3.0. Referenced for graph relevance model design (see [THIRD_PARTY.md](./THIRD_PARTY.md#graph-engine--ported-code) for provenance disposition).
+- **nashsu/llm_wiki** (https://github.com/nashsu/llm_wiki) — GPL-3.0. Referenced for graph relevance model design (see [provenance.md](./provenance.md#graph-engine--ported-code) for provenance disposition).
 - **nashsu/llm_wiki_skill** (https://github.com/nashsu/llm_wiki_skill) — GPL-3.0. Referenced for API contract methodology.
 
 ---

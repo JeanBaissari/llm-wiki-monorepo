@@ -1,4 +1,4 @@
-# INDEX.md — Complete File Map
+# docs/reference/file-map.md — Complete File Map
 
 Every file in the llm-wiki-monorepo, organized by package with descriptions.
 
@@ -7,11 +7,13 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 | File | Purpose |
 |------|---------|
 | `README.md` | Project overview, quick start, architecture |
-| `QUICKGUIDE.md` | Hands-on command reference with examples |
-| `INDEX.md` | This file — complete file tree |
+| `docs/getting-started/quickstart.md` | Installation and first wiki — quick start guide |
+| `docs/reference/cli.md` | Full CLI command reference with examples |
+| `docs/reference/mcp-tools.md` | MCP server, web viewer, browser extension reference |
+| `docs/reference/file-map.md` | This file — complete file tree |
 | `AGENTS.md` | Architecture and conventions for AI agents |
-| `PURPOSE.md` | Why this system exists, core principles, success criteria |
-| `VERSIONING.md` | Semantic versioning policy and release process |
+| `docs/architecture/overview.md` | Why this system exists, core principles, success criteria |
+| `docs/release/versioning.md` | Semantic versioning policy and release process |
 | `install.sh` | One-command install — detects deps, builds, creates wrappers |
 | `package.json` | NPM workspace root — scripts for build/test/run |
 | `.gitignore` | Git ignore rules |

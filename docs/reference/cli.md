@@ -1,6 +1,6 @@
-# Quick Guide — llm-wiki-monorepo
+# CLI Reference — llm-wiki-monorepo
 
-Hands-on command reference. Every operation you can run, with real examples.
+Full command reference for all `llm-wiki` CLI operations. For getting started, see [`docs/getting-started/quickstart.md`](../getting-started/quickstart.md). For MCP server and tool details, see [`docs/reference/mcp-tools.md`](mcp-tools.md).
 
 ## Two Paths to Run Commands
 
@@ -11,59 +11,11 @@ All Python operations have **two invocation paths** — both supported, neither 
 | **`llm-wiki` CLI** | Pip-installed usage. Cleaner syntax, built-in aliases. | `llm-wiki scaffold ~/my-wiki "Title"` |
 | **`python3 skill/scripts/`** | Hermes skill integration. Works without pip install. | `python3 skill/scripts/scaffold.py ~/my-wiki "Title"` |
 
-Each section below shows `llm-wiki` first, then the direct script invocation as the alternative.
-
 > **Tip:** `llm-wiki` has short aliases — `sc` for scaffold, `in` for ingest, `ls` for lint, `bk` for backup, `dr` for deep-research, `lsug` for link-suggest.
 
 ---
 
-## 1. One-Command Install
-
-```bash
-bash install.sh
-```
-
-Detects Python/Node versions, installs npm dependencies, builds all TypeScript packages, verifies all Python scripts, and optionally creates Hermes symlinks and PATH wrappers.
-
-No `llm-wiki` equivalent — this sets up the monorepo itself.
-
----
-
-## 2. Scaffold a Wiki
-
-```bash
-# llm-wiki CLI (pip-installed usage)
-llm-wiki scaffold ~/my-wiki "My Research Topic"
-llm-wiki scaffold ~/my-codebase-wiki "My Project" --template codebase
-llm-wiki scaffold ~/strat-wiki "Strategy Lab" --template algorithmic-trading
-llm-wiki scaffold --list-templates
-llm-wiki scaffold ~/my-wiki "New Topic" --template codebase --force
-
-# Alternative: direct script invocation (Hermes skill integration)
-python3 skill/scripts/scaffold.py ~/my-wiki "My Research Topic"
-python3 skill/scripts/scaffold.py ~/my-codebase-wiki "My Project" --template codebase
-python3 skill/scripts/scaffold.py ~/strat-wiki "Strategy Lab" --template algorithmic-trading
-python3 skill/scripts/scaffold.py --list-templates
-python3 skill/scripts/scaffold.py ~/my-wiki "New Topic" --template codebase --force
-```
-
-**What it creates:**
-```
-<wiki-root>/
-├── PURPOSE.md      ← Why this wiki exists
-├── CLAUDE.md       ← Schema: conventions, page types, naming rules
-├── log/            ← Per-day operation log
-├── audit/          ← Human feedback inbox
-├── raw/            ← Immutable source documents
-├── wiki/           ← LLM-generated knowledge pages
-└── outputs/        ← Query answers, charts
-```
-
-**20 domain templates available:** research, codebase, finance, algorithmic-trading, algorithmic-trading-mql4, cybersecurity, machine-learning, prompt-engineering, copywriting, marketing, design-systems, architecture, crypto, commodities, decompilers, medicine, developer-tools, personal-growth, reading, business.
-
----
-
-## 3. Ingest Sources
+## 1. Ingest Sources
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -93,7 +45,7 @@ LLM_WIKI_RESPONSE_FILE=~/stage2-response.txt llm-wiki ingest ~/my-wiki source.md
 
 ---
 
-## 4. Lint the Wiki
+## 2. Lint the Wiki
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -109,7 +61,7 @@ python3 skill/scripts/lint_wiki.py ~/my-wiki --json
 
 ---
 
-## 5. Graph Insights
+## 3. Graph Insights
 
 ### Python engine (via CLI)
 
@@ -145,7 +97,7 @@ node graph-engine/dist/index.js --wiki ~/my-wiki --action relevance --node "enti
 
 ---
 
-## 6. Link Suggestions
+## 4. Link Suggestions
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -165,7 +117,7 @@ Entity extraction from frontmatter, headings, and bold terms. 4-signal scoring: 
 
 ---
 
-## 7. Deep Research
+## 5. Deep Research
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -181,7 +133,7 @@ python3 skill/scripts/deep_research.py ~/my-wiki "topic" --depth 3 --sources 10
 
 ---
 
-## 8. Backup & Recovery
+## 6. Backup & Recovery
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -211,78 +163,7 @@ python3 skill/scripts/backup.py ~/my-wiki --auto
 
 ---
 
-## 9. MCP Server
-
-```bash
-# Single-wiki mode
-node mcp-server/dist/index.js --wiki ~/my-wiki
-
-# Multi-wiki mode (serve all wikis in a directory)
-node mcp-server/dist/index.js --projects ~/wikis
-
-# Via env var
-LLM_WIKI_PATH=~/my-wiki node mcp-server/dist/index.js
-```
-
-No `llm-wiki` CLI equivalent — the MCP server is a TypeScript package accessed via stdio.
-
-**10 MCP Tools:**
-- `llm_wiki_status` — Health, page count, last ingest, open reviews
-- `llm_wiki_files` — File tree listing (wiki/sources/all)
-- `llm_wiki_read_file` — Read any file (120KB limit)
-- `llm_wiki_reviews` — List review items (open/resolved/all)
-- `llm_wiki_search` — SQLite FTS5 full-text search
-- `llm_wiki_graph` — Graph operations (build/insights/search)
-- `llm_wiki_lint` — Run automated lint checks
-- `llm_wiki_ingest` — Trigger two-step ingest on a source
-- `llm_wiki_audit_save` — Save audit feedback responses
-- `llm_wiki_links_suggest` — Suggest missing wikilinks
-
-**Multi-wiki mode:** Add `"project": "project-name"` to tool call arguments.
-
-**Claude Desktop config:**
-```json
-{
-  "mcpServers": {
-    "llm-wiki": {
-      "command": "node",
-      "args": ["/path/to/llm-wiki-monorepo/mcp-server/dist/index.js", "--projects", "/path/to/wikis"]
-    }
-  }
-}
-```
-
----
-
-## 10. Web Viewer
-
-```bash
-cd web-viewer
-npm install
-npm run build
-npm start -- --wiki ~/my-wiki --port 4175
-# Open http://127.0.0.1:4175
-```
-
-No `llm-wiki` CLI equivalent — the web viewer is a standalone TypeScript app.
-
-**Features:** Search bar (TF-based ranking), graph insights panel (metrics, surprising connections, knowledge gaps), KaTeX math, mermaid diagrams, wikilink resolution, audit feedback.
-
----
-
-## 11. Browser Extension
-
-1. Open Chrome → `chrome://extensions`
-2. Enable "Developer mode"
-3. Click "Load unpacked" → select `extension/` directory
-4. Click the extension icon on any webpage → clips to markdown with frontmatter
-5. Check "Auto-ingest after clip" to automatically trigger the ingest pipeline
-
-No `llm-wiki` CLI equivalent — the extension is a standalone Chrome extension.
-
----
-
-## 12. Audit Reviews
+## 7. Audit Reviews
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -298,7 +179,7 @@ python3 skill/scripts/audit_review.py ~/my-wiki --all
 
 ---
 
-## 13. Performance Benchmarks
+## 8. Performance Benchmarks
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -312,7 +193,7 @@ Outputs CSV with timing for: lint, graph build, graph insights, Python insights.
 
 ---
 
-## 14. Wiki Structure Discovery
+## 9. Wiki Structure Discovery
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -330,7 +211,7 @@ Auto-detects wiki layout: content pages, source documents, log/audit directories
 
 ---
 
-## 15. Migrate Old Wikis
+## 10. Migrate Old Wikis
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -344,7 +225,7 @@ Converts v1 `log.md` → v2 `log/` directory structure.
 
 ---
 
-## 16. Hermes Agent Install
+## 11. Hermes Agent Install
 
 ```bash
 # Symlink skill into Hermes (also offered by install.sh)

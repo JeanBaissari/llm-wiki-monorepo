@@ -41,14 +41,14 @@ def check_npm_version(expected: str) -> tuple[bool, str]:
 
 
 def check_changelog(expected: str) -> tuple[bool, str]:
-    changelog = REPO_ROOT / "CHANGELOG.md"
+    changelog = REPO_ROOT / "docs" / "release" / "changelog.md"
     if not changelog.exists():
-        return False, "Missing CHANGELOG.md"
+        return False, "Missing docs/release/changelog.md"
     text = changelog.read_text()
     pattern = rf"^##\s*\[{re.escape(expected)}\]"
     if re.search(pattern, text, re.MULTILINE):
         return True, f"Entry [{expected}] found"
-    return False, f"No entry for [{expected}] in CHANGELOG.md"
+    return False, f"No entry for [{expected}] in docs/release/changelog.md"
 
 
 def check_llm_wiki_version(expected: str) -> tuple[bool, str]:
@@ -123,7 +123,7 @@ def main() -> int:
 
     changelog_ok, changelog_msg = check_changelog(expected_version)
     checks.append({
-        "check": "CHANGELOG.md entry",
+        "check": "docs/release/changelog.md entry",
         "expected": expected_version,
         "actual": changelog_msg,
         "status": "PASS" if changelog_ok else "FAIL",

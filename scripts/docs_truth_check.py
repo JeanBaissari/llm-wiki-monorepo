@@ -94,8 +94,10 @@ def main() -> int:
     doc_files = [
         REPO_ROOT / "README.md",
         REPO_ROOT / "AGENTS.md",
-        REPO_ROOT / "INDEX.md",
-        REPO_ROOT / "QUICKGUIDE.md",
+        REPO_ROOT / "docs/reference/file-map.md",
+        REPO_ROOT / "docs" / "getting-started" / "quickstart.md",
+        REPO_ROOT / "docs" / "reference" / "cli.md",
+        REPO_ROOT / "docs" / "reference" / "mcp-tools.md",
     ]
 
     for doc_path in doc_files:

@@ -65,8 +65,8 @@ llm-wiki-monorepo/
 │
 ├── CLAUDE.md → AGENTS.md  ← Symlink for agent compatibility
 ├── CONTRIBUTING.md
-├── CHANGELOG.md
-├── VERSIONING.md
+├── changelog.md
+├── docs/release/versioning.md
 │
 ├── pyproject.toml          ← PyPI: baissarienterprises-llm-wiki
 ├── package.json            ← npm workspace root

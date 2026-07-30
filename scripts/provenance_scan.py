@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Scan source files for provenance markers and compare against THIRD_PARTY.md.
+"""Scan source files for provenance markers and compare against docs/legal/provenance.md.
 
 Searches for comments containing "ported", "adapted from", "derived from",
 and GPL-related license strings. Cross-references findings against the
-provenance ledger in THIRD_PARTY.md. Reports undocumented ported code.
+provenance ledger in docs/legal/provenance.md. Reports undocumented ported code.
 
 Exit codes: 0 = clean (no undocumented findings), 1 = undocumented ported code found.
 """
@@ -30,7 +30,7 @@ PROVENANCE_PATTERNS = {
 
 SOURCE_EXTENSIONS = {".ts", ".py", ".js", ".json", ".md", ".toml"}
 SKIP_DIRS = {".git", "node_modules", "dist", ".venv", "__pycache__", ".pytest_cache", "_internal"}
-SKIP_FILES = {"package-lock.json", "uv.lock", "THIRD_PARTY.md", "CHANGELOG.md"}
+SKIP_FILES = {"package-lock.json", "uv.lock", "provenance.md", "CHANGELOG.md"}
 
 
 def find_provenance_markers(root: Path) -> list[dict]:
@@ -114,13 +114,13 @@ def classify_findings(findings: list[dict], third_party_entries: set[str]) -> di
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Scan for provenance markers and cross-reference with THIRD_PARTY.md")
+    parser = argparse.ArgumentParser(description="Scan for provenance markers and cross-reference with docs/legal/provenance.md")
     parser.add_argument("--json", action="store_true", help="Output results as JSON")
     parser.add_argument("--root", default=str(REPO_ROOT), help=f"Repo root (default: {REPO_ROOT})")
     args = parser.parse_args()
 
     root = Path(args.root)
-    third_party_path = root / "THIRD_PARTY.md"
+    third_party_path = root / "docs" / "legal" / "provenance.md"
 
     findings = find_provenance_markers(root)
     third_party_entries = parse_third_party_entries(third_party_path)
@@ -143,7 +143,7 @@ def main() -> int:
         print(json.dumps(result, indent=2))
     else:
         print(f"Provenance scan: {total} markers found", file=sys.stderr)
-        print(f"  Documented in THIRD_PARTY.md: {documented_count}", file=sys.stderr)
+        print(f"  Documented in docs/legal/provenance.md: {documented_count}", file=sys.stderr)
         print(f"  Undocumented: {undocumented_count}", file=sys.stderr)
         print(f"  GPL references: {gpl_count}", file=sys.stderr)
 

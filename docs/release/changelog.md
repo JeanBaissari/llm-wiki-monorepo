@@ -198,4 +198,4 @@
 - 20 domain templates (audited and consistent)
 - CI/CD pipeline (GitHub Actions) with full integration tests
 - One-command install script (`install.sh`)
-- VERSIONING.md — semantic versioning policy
+- docs/release/versioning.md — semantic versioning policy

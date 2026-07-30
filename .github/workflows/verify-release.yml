@@ -14,9 +14,9 @@ on:
       - 'templates/**'
       - 'README.md'
       - 'AGENTS.md'
-      - 'INDEX.md'
+      - 'docs/reference/file-map.md'
       - 'QUICKGUIDE.md'
-      - 'VERSIONING.md'
+      - 'docs/release/versioning.md'
   workflow_dispatch:
 
 jobs:

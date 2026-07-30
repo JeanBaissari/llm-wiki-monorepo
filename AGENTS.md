@@ -160,15 +160,15 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 ### "Add a new Python script"
 1. Create `skill/scripts/<name>.py` with `#!/usr/bin/env python3` shebang
 2. Use `argparse` for CLI
-3. Add to `INDEX.md` scripts table
-4. Add to `QUICKGUIDE.md` with examples
+3. Add to `docs/reference/file-map.md` scripts table
+4. Add to `docs/reference/cli.md` with examples
 5. If it's a new operation, add to `skill/SKILL.md`
 
 ### "Add a new template"
 1. Copy an existing template: `cp -r templates/codebase templates/<name>`
 2. Edit `PURPOSE.md`, `SCHEMA.md`, `extra-dirs.json`
 3. Add to `README.md` template list
-4. Add to `INDEX.md` template table
+4. Add to `docs/reference/file-map.md` template table
 5. Template auto-discovered by `scaffold.py --list-templates`
 
 ### "Fix a bug in the MCP server"

@@ -44,8 +44,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/JeanBaissari/llm-wiki-monorepo"
 Repository = "https://github.com/JeanBaissari/llm-wiki-monorepo"
-Documentation = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/QUICKGUIDE.md"
-Changelog = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/docs/getting-started/quickstart.md"
+Changelog = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/docs/release/changelog.md"
 Issues = "https://github.com/JeanBaissari/llm-wiki-monorepo/issues"
 
 [project.scripts]

@@ -1,8 +1,8 @@
 ---
 title: Stale Test Wiki
 type: index
-created: 2026-07-22
-updated: 2026-07-22
+created: 2026-07-30
+updated: 2026-07-30
 wiki_config:
   schema: codebase
   page_dirs: [concepts, entities, summaries, comparisons, graphs, synthesis]

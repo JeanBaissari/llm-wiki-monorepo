@@ -1,0 +1,26 @@
+[
+  {
+    "request": {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
+    "response": {
+      "jsonrpc": "2.0", "id": 1,
+      "result": {
+        "tools": [
+          {"name": "llm_wiki_status", "description": "..."},
+          {"name": "llm_wiki_files", "description": "..."},
+          {"name": "llm_wiki_read_file", "description": "..."},
+          {"name": "llm_wiki_reviews", "description": "..."},
+          {"name": "llm_wiki_search", "description": "..."},
+          {"name": "llm_wiki_graph", "description": "..."},
+          {"name": "llm_wiki_graph_build", "description": "..."},
+          {"name": "llm_wiki_graph_insights", "description": "..."},
+          {"name": "llm_wiki_graph_search", "description": "..."},
+          {"name": "llm_wiki_lint", "description": "..."},
+          {"name": "llm_wiki_ingest", "description": "..."},
+          {"name": "llm_wiki_suggest_links", "description": "..."},
+          {"name": "llm_wiki_backup", "description": "..."},
+          {"name": "llm_wiki_discover_entities", "description": "..."}
+        ]
+      }
+    }
+  }
+]

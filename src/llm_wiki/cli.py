@@ -32,6 +32,7 @@ COMMANDS = {
     "audit": "llm_wiki.quality.audit",
     "benchmark": "llm_wiki.ops.benchmark",
     "migrate-log": "llm_wiki.ops.migrate",
+    "ops": "llm_wiki.ops.list",
     "discover": "llm_wiki.core.layout",
     "index": "llm_wiki.search",
     "health": "llm_wiki.ops.health",

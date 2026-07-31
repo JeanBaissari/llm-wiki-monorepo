@@ -99,14 +99,15 @@ def update_index(root: str, pages: list, layout=None) -> int:
         atomic_write(ip, current)
     return added
 
-def append_log(root: str, slug: str, created: int, updated: int, reviews: int, log_dir: str = None) -> None:
+def append_log(root: str, slug: str, created: int, updated: int, reviews: int, log_dir: str = None, operation_id: str = "") -> None:
     if log_dir:
         lp = os.path.join(log_dir, f"{tcomp()}.md")
     else:
         lp = os.path.join(root, "log", f"{tcomp()}.md")
     os.makedirs(os.path.dirname(lp) or ".", exist_ok=True)
     from datetime import datetime
-    entry = f"\n## [{datetime.now().strftime('%H:%M')}] ingest | {slug}\n- Pages created: {created}, updated: {updated}, reviews: {reviews}\n- Timestamp: {ts()}\n"
+    op_ref = f" [op: {operation_id[:12]}]" if operation_id else ""
+    entry = f"\n## [{datetime.now().strftime('%H:%M')}] ingest | {slug}{op_ref}\n- Pages created: {created}, updated: {updated}, reviews: {reviews}\n- Timestamp: {ts()}\n"
     if os.path.exists(lp):
         current = read_file(lp) or ""
         atomic_write(lp, current + entry)

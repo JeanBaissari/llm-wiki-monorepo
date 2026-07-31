@@ -57,6 +57,7 @@ def log_event(
     severity: str,
     component: str,
     message: str,
+    operation_id: str = "",
     **metadata: object,
 ) -> None:
     if LEVELS.get(severity, 0) < _current_level:
@@ -70,24 +71,26 @@ def log_event(
         "msg": message,
         **metadata,
     }
+    if operation_id:
+        event["operation_id"] = operation_id
     print(json.dumps(event, default=str), file=sys.stderr)
 
 
-def debug(component: str, message: str, **metadata: object) -> None:
-    log_event("DEBUG", component, message, **metadata)
+def debug(component: str, message: str, operation_id: str = "", **metadata: object) -> None:
+    log_event("DEBUG", component, message, operation_id=operation_id, **metadata)
 
 
-def info(component: str, message: str, **metadata: object) -> None:
-    log_event("INFO", component, message, **metadata)
+def info(component: str, message: str, operation_id: str = "", **metadata: object) -> None:
+    log_event("INFO", component, message, operation_id=operation_id, **metadata)
 
 
-def warn(component: str, message: str, **metadata: object) -> None:
-    log_event("WARN", component, message, **metadata)
+def warn(component: str, message: str, operation_id: str = "", **metadata: object) -> None:
+    log_event("WARN", component, message, operation_id=operation_id, **metadata)
 
 
-def error(component: str, message: str, **metadata: object) -> None:
-    log_event("ERROR", component, message, **metadata)
+def error(component: str, message: str, operation_id: str = "", **metadata: object) -> None:
+    log_event("ERROR", component, message, operation_id=operation_id, **metadata)
 
 
-def panic(component: str, message: str, **metadata: object) -> None:
-    log_event("PANIC", component, message, **metadata)
+def panic(component: str, message: str, operation_id: str = "", **metadata: object) -> None:
+    log_event("PANIC", component, message, operation_id=operation_id, **metadata)

@@ -1,0 +1,6 @@
+# Ignore generated test artifacts within fixture
+.llm-wiki/
+log/
+*.jsonl
+manifest-*.json
+wiki/synthesis/

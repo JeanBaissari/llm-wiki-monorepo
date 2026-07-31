@@ -9,7 +9,7 @@
     "prestart": "npm run build",
     "start": "tsx server/index.ts",
     "dev": "tsx watch server/index.ts",
-    "test": "echo '# tests 0'",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -36,8 +36,11 @@
     "@types/js-yaml": "^4.0.9",
     "@types/markdown-it": "^14.1.1",
     "@types/node": "^20.11.0",
+    "@types/supertest": "^6.0.0",
     "esbuild": "^0.20.0",
+    "supertest": "^7.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
   }
 }

@@ -7,6 +7,7 @@ export interface GraphNode {
   path: string;
   linkCount: number;
   community: number;
+  sources?: string[];
 }
 
 export interface GraphEdge {

@@ -7,6 +7,30 @@ const WEIGHTS = {
   typeAffinity: 1.0,
 } as const;
 
+export interface RelevanceOptions {
+  weights?: {
+    directLink?: number;
+    sourceOverlap?: number;
+    commonNeighbor?: number;
+    typeAffinity?: number;
+  };
+  typeAffinityMatrix?: Record<string, Record<string, number>>;
+}
+
+export function buildSourceIndex(nodes: GraphNode[]): Map<string, string[]> {
+  const index = new Map<string, string[]>();
+  for (const node of nodes) {
+    const sources = node.sources;
+    if (sources) {
+      for (const src of sources) {
+        if (!index.has(src)) index.set(src, []);
+        index.get(src)!.push(node.id);
+      }
+    }
+  }
+  return index;
+}
+
 const TYPE_AFFINITY: Record<string, Record<string, number>> = {
   entity: { concept: 1.2, entity: 0.8, source: 1.0, synthesis: 1.0, query: 0.8 },
   concept: { entity: 1.2, concept: 0.8, source: 1.0, synthesis: 1.2, query: 1.0 },
@@ -79,8 +103,20 @@ export function calculateRelevance(
   _nodes: GraphNode[],
   structure: GraphStructure,
   nodeMap: Map<string, GraphNode>,
+  options?: RelevanceOptions,
 ): number {
   if (nodeA.id === nodeB.id) return 0;
+
+  const w = { ...WEIGHTS, ...options?.weights };
+  const affinity = options?.typeAffinityMatrix ?? TYPE_AFFINITY;
+
+  const degA = structure.degree.get(nodeA.id) ?? 0;
+  const degB = structure.degree.get(nodeB.id) ?? 0;
+
+  const affinityMap = affinity[nodeA.type];
+  const typeAffinityScore = (affinityMap?.[nodeB.type] ?? 0.5) * w.typeAffinity;
+
+  if (degA === 0 && degB === 0) return typeAffinityScore;
 
   let forwardLinks = 0;
   let backwardLinks = 0;
@@ -88,7 +124,7 @@ export function calculateRelevance(
   const adjB = structure.adjacency.get(nodeB.id);
   if (adjA?.has(nodeB.id)) forwardLinks = 1;
   if (adjB?.has(nodeA.id)) backwardLinks = 1;
-  const directLinkScore = (forwardLinks + backwardLinks) * WEIGHTS.directLink;
+  const directLinkScore = (forwardLinks + backwardLinks) * w.directLink;
 
   const nodeASources = getEnrichedSources(nodeA.id, nodeMap);
   const nodeBSources = getEnrichedSources(nodeB.id, nodeMap);
@@ -99,7 +135,7 @@ export function calculateRelevance(
       if (sourcesA.has(src)) sharedSourceCount++;
     }
   }
-  const sourceOverlapScore = sharedSourceCount * WEIGHTS.sourceOverlap;
+  const sourceOverlapScore = sharedSourceCount * w.sourceOverlap;
 
   const neighborsA = structure.neighbors.get(nodeA.id);
   const neighborsB = structure.neighbors.get(nodeB.id);
@@ -112,10 +148,7 @@ export function calculateRelevance(
       }
     }
   }
-  const commonNeighborScore = adamicAdar * WEIGHTS.commonNeighbor;
-
-  const affinityMap = TYPE_AFFINITY[nodeA.type];
-  const typeAffinityScore = (affinityMap?.[nodeB.type] ?? 0.5) * WEIGHTS.typeAffinity;
+  const commonNeighborScore = adamicAdar * w.commonNeighbor;
 
   return directLinkScore + sourceOverlapScore + commonNeighborScore + typeAffinityScore;
 }
@@ -147,8 +180,9 @@ export function getRelatedNodes(
 function getEnrichedSources(
   nodeId: string,
   nodeMap: Map<string, GraphNode>,
+  _sourceIndex?: Map<string, string[]>,
 ): string[] | undefined {
   const entry = nodeMap.get(nodeId);
   if (!entry) return undefined;
-  return (entry as GraphNode & { sources?: string[] }).sources;
+  return entry.sources;
 }

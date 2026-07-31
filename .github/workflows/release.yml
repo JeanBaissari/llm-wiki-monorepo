@@ -39,6 +39,22 @@ jobs:
       - name: Build wheel and sdist
         run: python -m build
 
+      # Smoke-test the built wheel in a clean venv
+      - name: Wheel smoke test
+        run: |
+          python -m venv /tmp/smoke-venv
+          /tmp/smoke-venv/bin/pip install dist/*.whl
+          /tmp/smoke-venv/bin/llm-wiki --version
+          /tmp/smoke-venv/bin/llm-wiki lint --help | head -1
+          /tmp/smoke-venv/bin/llm-wiki claims health --help | head -1
+
+      # Verify wheel version matches git tag
+      - name: Verify version matches tag
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          WHEEL_VERSION=$(/tmp/smoke-venv/bin/llm-wiki --version | awk '{print $NF}')
+          [ "$TAG_VERSION" = "$WHEEL_VERSION" ] || (echo "Version mismatch: tag=$TAG_VERSION, wheel=$WHEEL_VERSION" && exit 1)
+
       # Upload the dist/ directory so the publish job can download it
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

@@ -118,6 +118,23 @@ jobs:
           name: coverage-python-${{ matrix.python-version }}
           path: coverage.xml
 
+  schema-cross-language:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - name: Install Python deps
+        run: pip install -e ".[dev,test]"
+      - name: Install TypeScript deps
+        run: cd audit-shared && npm install && npm run build
+      - name: Cross-language schema validation
+        run: python3 -m pytest tests/test_schema_audit.py -q -k "CrossLanguage"
+
   integration:
     runs-on: ubuntu-latest
     steps:

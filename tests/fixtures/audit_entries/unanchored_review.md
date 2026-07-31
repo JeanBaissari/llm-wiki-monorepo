@@ -1,18 +1,15 @@
 ---
-id: audit-002
-type: review
-status: open
-created: 2026-01-15
-updated: 2026-01-15
-page: wiki/concepts/test_page.md
-severity: low
-tags: [test, fixture, unanchored]
+id: "20260722-140000-c3d4"
+target: "operations/ingest-001"
+target_kind: "operation"
+target_reason: "Review applies to the entire ingest operation"
+severity: "warn"
+author: "review-bot"
+source: "manual"
+created: "2026-07-22"
+status: "open"
 ---
 
-## Summary
+# Unanchored Operation Review
 
-General review without a specific anchor point.
-
-## Suggestion
-
-Consider adding more examples to this page.
+This review covers the entire ingest operation rather than a specific line range.

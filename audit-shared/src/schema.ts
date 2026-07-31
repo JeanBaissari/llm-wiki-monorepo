@@ -28,15 +28,17 @@ export type Anchor = z.infer<typeof AnchorSchema>;
 export const AuditEntrySchema = z.object({
   id: z.string().regex(/^\d{8}-\d{6}-[0-9a-f]{4}$/),
   target: z.string().min(1),
-  target_lines: AnchorSchema.shape.target_lines,
-  anchor_before: AnchorSchema.shape.anchor_before,
-  anchor_text: AnchorSchema.shape.anchor_text,
-  anchor_after: AnchorSchema.shape.anchor_after,
+  target_lines: AnchorSchema.shape.target_lines.optional(),
+  anchor_before: AnchorSchema.shape.anchor_before.optional(),
+  anchor_text: AnchorSchema.shape.anchor_text.optional(),
+  anchor_after: AnchorSchema.shape.anchor_after.optional(),
   severity: Severity,
   author: z.string().min(1),
   source: AuditSource,
   created: z.string(),
   status: AuditStatus,
+  target_kind: z.enum(["file", "operation", "wiki"]).optional(),
+  target_reason: z.string().optional(),
   // Body is the markdown after the frontmatter. Contains the # Comment and (for resolved) # Resolution sections.
   body: z.string().default(""),
 });

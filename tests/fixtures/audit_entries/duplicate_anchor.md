@@ -1,23 +1,17 @@
 ---
-id: audit-003
-type: review
-status: open
-created: 2026-01-15
-updated: 2026-01-15
-page: wiki/concepts/test_page.md
-anchor:
-  line: 5
-  context: "# Test Page"
-  offset: 1
-severity: low
-tags: [test, fixture, duplicate]
+id: "20260722-160000-e5f6"
+target: "wiki/concepts/duplicate.md"
+target_lines: [5, 7]
+anchor_before: "line before"
+anchor_text: "ambiguous text that appears twice\n"
+anchor_after: "line after first occurrence"
+severity: "suggest"
+author: "test-agent"
+source: "manual"
+created: "2026-07-22"
+status: "open"
 ---
 
-## Summary
+# Duplicate Anchor Ambiguity
 
-This anchor text ("# Test Page") may match multiple locations in the file
-or appear in multiple pages, creating ambiguity.
-
-## Suggestion
-
-Use a more specific anchor context or line number.
+The anchor text appears multiple times in the target file, requiring context-based disambiguation.

@@ -65,6 +65,35 @@ def cmd_diff(wiki_root_a: str, wiki_root_b: str) -> int:
     return 1 if diff["added"] > 0 or diff["removed"] > 0 or diff["changed"] > 0 else 0
 
 
+def cmd_redteam(wiki_root: str, as_json: bool = False) -> int:
+    """Run red-team analysis and print recommendations."""
+    import json as json_mod
+    if not has_sidecar(wiki_root):
+        print("No claim sidecar found. This wiki has no claim tracking enabled.")
+        return 0
+
+    mgr = ClaimsManager(wiki_root)
+    report = mgr.redteam_report()
+
+    if as_json:
+        print(json_mod.dumps(report, indent=2, default=str))
+    else:
+        print("=== Claim Red-Team Report ===")
+        print(f"  Total claims:          {report['total_claims']}")
+        print(f"  Open contradictions:   {report['open_contradictions']}")
+        print(f"  Stale claims:           {report['stale_claims']}")
+        print(f"  Low confidence claims:  {report['low_confidence_claims']}")
+        print(f"  Contested claims:       {report['contested_claims']}")
+        print(f"  Health score:           {report['health_score']}/100")
+
+        if report["recommendations"]:
+            print("\n📋 Recommendations:")
+            for i, rec in enumerate(report["recommendations"], 1):
+                print(f"  {i}. [{rec['action']}] {rec['detail']}")
+
+    return 1 if report["health_score"] < 70 else 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Claim/event/contradiction sidecar management.",
@@ -84,12 +113,18 @@ def main() -> int:
     diff_parser.add_argument("wiki_root_a", help="Path to the first wiki root")
     diff_parser.add_argument("wiki_root_b", help="Path to the second wiki root")
 
+    redteam_parser = subparsers.add_parser("redteam", help="Red-team analysis of claim quality")
+    redteam_parser.add_argument("wiki_root", help="Path to the wiki root directory")
+    redteam_parser.add_argument("--json", action="store_true", help="Output as JSON")
+
     args = parser.parse_args()
 
     if args.subcommand == "health":
         return cmd_health(args.wiki_root)
     elif args.subcommand == "diff":
         return cmd_diff(args.wiki_root_a, args.wiki_root_b)
+    elif args.subcommand == "redteam":
+        return cmd_redteam(args.wiki_root, args.json if hasattr(args, 'json') else False)
     else:
         parser.print_help()
         return 1

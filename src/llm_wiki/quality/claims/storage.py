@@ -207,6 +207,61 @@ class ClaimsManager:
         }
         return report
 
+    def redteam_report(self) -> dict:
+        """Generate a red-team analysis of claim quality.
+
+        Surfaces: contradictions, stale claims, low-confidence claims,
+        contested claims, and provides actionable recommendations.
+        """
+        all_claims = self.get_all_claims()
+        open_ctrs = self.get_open_contradictions()
+        stale = self.get_stale_claims()
+
+        low_conf_claims = [c for c in all_claims if c.get("confidence") == "low"]
+        contested_claim_ids = set()
+        for ctr in open_ctrs:
+            for cid in ctr.get("claim_ids", []):
+                contested_claim_ids.add(cid)
+
+        recommendations = []
+        if stale:
+            recommendations.append({
+                "action": "review_stale",
+                "count": len(stale),
+                "detail": f"Review {len(stale)} stale claims (>180 days without update)",
+                "claim_ids": [c.get("claim_id") for c in stale],
+            })
+        if open_ctrs:
+            recommendations.append({
+                "action": "resolve_contradictions",
+                "count": len(open_ctrs),
+                "detail": f"Resolve {len(open_ctrs)} open contradictions",
+                "contradiction_ids": [c.get("contradiction_id") for c in open_ctrs],
+            })
+        if low_conf_claims:
+            recommendations.append({
+                "action": "strengthen_claims",
+                "count": len(low_conf_claims),
+                "detail": f"Strengthen {len(low_conf_claims)} low-confidence claims with additional evidence",
+                "claim_ids": [c.get("claim_id") for c in low_conf_claims],
+            })
+
+        penalties = 0
+        penalties += len(stale) * 2
+        penalties += len(open_ctrs) * 10
+        penalties += len(low_conf_claims) * 5
+        penalties += len(contested_claim_ids) * 3
+
+        return {
+            "total_claims": len(all_claims),
+            "open_contradictions": len(open_ctrs),
+            "stale_claims": len(stale),
+            "low_confidence_claims": len(low_conf_claims),
+            "contested_claims": len(contested_claim_ids),
+            "recommendations": recommendations,
+            "health_score": max(0, 100 - penalties),
+        }
+
     def reinforce_claim(self, claim_id: str, source: str, operation_id: str = "") -> None:
         self.emit_event(EpistemicEvent(
             claim_id=claim_id,

@@ -73,7 +73,7 @@ def stage2_generate(analysis: str, slug: str, src_path: str, orient: dict, provi
     return call_llm(STAGE2_SYSTEM, "\n\n".join(parts), provider, total_timeout=llm_timeout) or read_response()
 
 def ingest(wiki_root: str, source_path: str, provider: str = "default", force: bool = False,
-           llm_timeout: Optional[int] = None, claims: bool = False) -> int:
+           llm_timeout: Optional[int] = None, claims: bool = False, operation_id: str = "") -> int:
     """Ingest a source document into the wiki.
 
     Args:
@@ -155,7 +155,7 @@ def ingest(wiki_root: str, source_path: str, provider: str = "default", force: b
     if new_pages:
         a = update_index(wiki_root, new_pages, layout)
         if a: print(f"  \u2713 Added {a} entries to wiki/index.md", file=sys.stderr)
-    append_log(wiki_root, slug, pages_created, pages_updated, reviews_written, layout.log_dir)
+    append_log(wiki_root, slug, pages_created, pages_updated, reviews_written, layout.log_dir, operation_id=operation_id)
     print(f"\n\u2705 Ingest complete: {slug}\n   Created: {pages_created}  Updated: {pages_updated}  Reviews: {reviews_written}", file=sys.stderr)
     return 0
 
@@ -209,8 +209,8 @@ def main() -> int:
         for f in files:
             print(f"\n{'='*60}", file=sys.stderr)
             with OperationContext("ingest", wiki_root=args.wiki_root,
-                                   inputs={"source": f, "provider": args.provider, "batch": True}) as ctx:
-                ec = ingest(args.wiki_root, f, args.provider, args.force, llm_timeout=llm_timeout, claims=args.claims)
+                                    inputs={"source": f, "provider": args.provider, "batch": True}) as ctx:
+                ec = ingest(args.wiki_root, f, args.provider, args.force, llm_timeout=llm_timeout, claims=args.claims, operation_id=ctx.operation_id)
                 if ec != 0:
                     ctx.fail()
                 else:
@@ -219,7 +219,7 @@ def main() -> int:
 
     with OperationContext("ingest", wiki_root=args.wiki_root,
                            inputs={"source": args.source_path, "provider": args.provider}) as ctx:
-        ec = ingest(args.wiki_root, args.source_path, args.provider, args.force, llm_timeout=llm_timeout, claims=args.claims)
+        ec = ingest(args.wiki_root, args.source_path, args.provider, args.force, llm_timeout=llm_timeout, claims=args.claims, operation_id=ctx.operation_id)
         if ec != 0:
             ctx.fail()
         else:

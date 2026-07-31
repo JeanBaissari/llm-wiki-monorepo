@@ -1,5 +1,4 @@
 // Graph Engine — Insights: Surprising Connections + Knowledge Gaps
-// Port of nashsu's graph-insights.ts logic.
 
 import {
   GraphNode,

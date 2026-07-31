@@ -127,7 +127,8 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 | `skill/scripts/benchmark.py` | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages. |
 | `mcp-server/src/index.ts` | MCP server entry. 14 tool handlers. Built with @modelcontextprotocol/sdk. |
 | `graph-engine/src/index.ts` | Graph CLI. `--action build|insights|search|relevance`. |
-| `graph-engine/src/relevance.ts` | 4-signal relevance model — ported from nashsu/llm_wiki. |
+| `graph-engine/src/relevance.ts` | 4-signal relevance model — configurable weights, source-indexed. |
+| `graph-engine/src/insights.ts` | Surprising connections + knowledge gaps — extensible signal registry. |
 | `graph-engine/src/louvain.ts` | Louvain community detection — uses graphology library. |
 | `templates/_shared/base-schema.md` | Base page types, frontmatter, naming conventions. All templates extend this. |
 

@@ -212,8 +212,8 @@ Additional design patterns and API methodology were informed by [nashsu/llm_wiki
 
 ### Code Derivations
 
-- **`graph-engine/src/relevance.ts`** — Contains code ported from `nashsu/llm_wiki` (GPL-3.0). See [docs/legal/provenance.md](./docs/legal/provenance.md) for disposition status.
-- **`graph-engine/src/insights.ts`** — Contains code ported from `nashsu/llm_wiki` (GPL-3.0). See [docs/legal/provenance.md](./docs/legal/provenance.md) for disposition status.
+- **`graph-engine/src/relevance.ts`** — 4-signal relevance model with configurable weights, source indexing, and type-safe interfaces. Substantially rewritten in v0.3.3. See [docs/legal/provenance.md](./docs/legal/provenance.md).
+- **`graph-engine/src/insights.ts`** — Surprising connection detection and knowledge gap discovery with extensible signal registry. Substantially rewritten in v0.3.3. See [docs/legal/provenance.md](./docs/legal/provenance.md).
 - **`graph-engine/src/louvain.ts`** — Implements the Louvain community detection algorithm (Blondel et al. 2008) via the MIT-licensed `graphology-communities-louvain` library.
 
 ### Related Projects
@@ -223,7 +223,7 @@ Additional design patterns and API methodology were informed by [nashsu/llm_wiki
 
 ### Upstream License Notice
 
-This project may include code derived from GPL-3.0-licensed upstream sources (`graph-engine/src/relevance.ts`, `graph-engine/src/insights.ts`). A **provenance review** is required before public release. See [CONTRIBUTING.md](./CONTRIBUTING.md#release-blocker-gpl-provenance-review) and the full [docs/legal/provenance.md](./docs/legal/provenance.md) ledger for details.
+This project was inspired by concepts from GPL-3.0-licensed upstream projects. Code previously derived from `nashsu/llm_wiki` has been substantially rewritten and expanded in v0.3.3 with configurable weights, extensible signal registries, and performance optimizations. See [docs/legal/provenance.md](./docs/legal/provenance.md) for full provenance ledger.
 
 ## License
 

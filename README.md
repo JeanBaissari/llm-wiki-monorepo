@@ -158,18 +158,20 @@ llm-wiki serve ~/my-wiki
 
 ## Packages
 
-| Package | Language | Purpose |
-|---------|----------|---------|
-| `skill/` | Python + Markdown | Agent skill (8 operations) + 20+ scripts + 12 reference docs |
-| `src/llm_wiki/` | Python | PyPI package — CLI, LLM providers, concurrency, search, graph insights |
-| `mcp-server/` | TypeScript | MCP server — 14 tools, direct sidecar integration |
-| `graph-engine/` | TypeScript | Knowledge graph — relevance, Louvain communities, insights, verification |
-| `templates/` | Markdown + JSON | 20 domain-specific project templates |
-| `tests/` | Python + TypeScript | pytest (ingest, lint, concurrency, search, opencode) + vitest (graph, mcp) |
-| `web-viewer/` | TypeScript | Preview server with search + graph insights panel |
-| `extension/` | JavaScript | Chrome web clipper with auto-ingest |
-| `audit-shared/` | TypeScript | Shared audit file format library |
-| `plugins/obsidian-audit/` | TypeScript | Obsidian plugin — file feedback from vault |
+| Package | Language | Tier | Purpose |
+|---------|----------|------|---------|
+| `skill/` | Python + Markdown | adapter | Agent skill (8 operations) + 20+ scripts + 12 reference docs |
+| `src/llm_wiki/` | Python | core | PyPI package — CLI, LLM providers, concurrency, search, graph insights |
+| `mcp-server/` | TypeScript | programmatic-access | MCP server — 14 tools, direct sidecar integration |
+| `graph-engine/` | TypeScript | analysis | Knowledge graph — relevance, Louvain communities, insights, verification |
+| `templates/` | Markdown + JSON | core | 20 domain-specific project templates |
+| `tests/` | Python + TypeScript | core | pytest (ingest, lint, concurrency, search, opencode) + vitest (graph, mcp) |
+| `web-viewer/` | TypeScript | optional | Preview server with search + graph insights panel |
+| `extension/` | JavaScript | optional | Chrome web clipper with auto-ingest |
+| `audit-shared/` | TypeScript | core | Shared audit file format library |
+| `plugins/obsidian-audit/` | TypeScript | optional | Obsidian plugin — file feedback from vault |
+| `graph-bridge/` | TypeScript | adapter | AST extraction + graph merger bridge |
+| `packages/shared-types/` | TypeScript | core | Canonical GraphNode/GraphEdge type definitions |
 
 ## Templates (20 domains)
 

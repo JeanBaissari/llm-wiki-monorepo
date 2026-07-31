@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def discover_mcp_tools() -> list[str]:
-    index_path = REPO_ROOT / "mcp-server" / "src" / "index.ts"
+    index_path = REPO_ROOT / "mcp-server" / "src" / "registry.ts"
     text = index_path.read_text()
     start = text.index("const TOOL_DEFINITIONS")
     end = text.index("];", start) + 2

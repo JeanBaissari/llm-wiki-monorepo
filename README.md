@@ -160,7 +160,7 @@ llm-wiki serve ~/my-wiki
 
 | Package | Language | Tier | Purpose |
 |---------|----------|------|---------|
-| `skill/` | Python + Markdown | adapter | Agent skill (8 operations) + 20+ scripts + 12 reference docs |
+| `skill/` | Python + Markdown | adapter | Agent skill (8 operations) + 20+ scripts + 13 reference docs |
 | `src/llm_wiki/` | Python | core | PyPI package — CLI, LLM providers, concurrency, search, graph insights |
 | `mcp-server/` | TypeScript | programmatic-access | MCP server — 14 tools, direct sidecar integration |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph — relevance, Louvain communities, insights, verification |
@@ -193,7 +193,7 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
 | `docs/architecture/overview.md` | Why this system exists — design philosophy and goals |
 | `docs/adr/` | Architecture Decision Records — 14 design decisions with tradeoffs |
-| `skill/references/` | 12 detailed reference guides including concurrency, observability, and ingest |
+| `skill/references/` | 13 detailed reference guides including concurrency, observability, and ingest |
 
 ## Requirements
 

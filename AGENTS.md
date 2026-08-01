@@ -28,7 +28,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 
 | Dir | Language | Tier | What it does | When to touch it |
 |-----|----------|------|-------------|-----------------|
-| `skill/` | Python + MD | adapter | Agent skill: SKILL.md + 13 scripts + 10 references | Agent operations, scripts, docs |
+| `skill/` | Python + MD | adapter | Agent skill: SKILL.md + 22 scripts + 13 references | Agent operations, scripts, docs |
 | `mcp-server/` | TypeScript | programmatic-access | MCP server: 14 tools via stdio | Programmatic wiki access |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
 | `templates/` | MD + JSON | core | 20 domain templates for scaffold.py | Adding/modifying project templates |
@@ -39,7 +39,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 | `src/llm_wiki/` | Python | core | CLI, version, core Python library | CLI operations, version bumps |
 | `graph-bridge/` | TypeScript | adapter | AST extraction + graph merger bridge | Code graph integration |
 | `packages/shared-types/` | TypeScript | core | Shared TypeScript types and schemas | Schema changes, cross-package types |
-| `rust-backend/` | _(removed)_ | — | Coming soon: multi-format doc parsing (PDF, DOCX, EPUB) | — |
+
 
 ## Build Commands
 
@@ -79,7 +79,7 @@ cd <package> && npx tsc --noEmit
 node graph-engine/dist/index.js --wiki /path/to/wiki --action build
 
 # MCP server — tool test
-timeout 5 node mcp-server/dist/index.js --wiki /path/to/wiki <<< '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+timeout 5 node mcp-server/dist/main.js --wiki /path/to/wiki <<< '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
 # Full integration test
 python3 skill/scripts/scaffold.py /tmp/test-wiki "Test" --template codebase --force
@@ -125,7 +125,7 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 | `skill/scripts/backup.py` | Snapshot, restore, integrity verification — `--auto` one-command safe state. |
 | `skill/scripts/link_suggest.py` | Suggests missing wikilinks from entities — `--apply` auto-adds them. |
 | `skill/scripts/benchmark.py` | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages. |
-| `mcp-server/src/index.ts` | MCP server entry. 14 tool handlers. Built with @modelcontextprotocol/sdk. |
+| `mcp-server/src/main.ts` | MCP server entry point. 14 tools across focused handler files under tools/. Built with @modelcontextprotocol/sdk. |
 | `graph-engine/src/index.ts` | Graph CLI. `--action build|insights|search|relevance`. |
 | `graph-engine/src/relevance.ts` | 4-signal relevance model — configurable weights, source-indexed. |
 | `graph-engine/src/insights.ts` | Surprising connections + knowledge gaps — extensible signal registry. |
@@ -178,7 +178,7 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 ### "Fix a bug in the MCP server"
 1. Edit `mcp-server/src/<file>.ts`
 2. `cd mcp-server && npx tsc`
-3. Test with: `timeout 5 node dist/index.js --wiki /tmp/test-wiki <<< '...'`
+3. Test with: `timeout 5 node dist/main.js --wiki /tmp/test-wiki <<< '...'`
 4. Commit with message prefix: "Fix MCP server: ..."
 
 ### "Fix a bug in the graph engine"
@@ -240,7 +240,7 @@ The EOW cron job loads this skill automatically. Changes to `skill/SKILL.md` or 
 - **@modelcontextprotocol/sdk** — MCP server only. Pure JS.
 - **Readability.js** + **Turndown.js** — Browser extension only. Already vendored.
 - **Python (v0.2.0+):** openai, anthropic, litellm, instructor, tenacity, tiktoken, python-dotenv, pydantic, portalocker — specified in `pyproject.toml`. See [Python Dependency Policy](#python-dependency-policy-v020).
-- No Rust dependencies. (`rust-backend/` removed — coming soon.)
+- No Rust dependencies.
 
 ## Python Dependency Policy (v0.2.0+)
 

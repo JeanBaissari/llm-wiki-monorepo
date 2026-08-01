@@ -25,7 +25,7 @@ What this wiki deliberately excludes:
 
 ## Operations
 
-This wiki follows the llm-wiki skill's five operations: `compile`, `ingest`, `query`, `lint`, `audit`.
+This wiki follows the llm-wiki skill's eight operations: `compile`, `ingest`, `ingest-2step`, `query`, `lint`, `audit`, `research`, `insights`.
 Every operation appends an entry to `log/YYYYMMDD.md`.
 
 ## Naming conventions

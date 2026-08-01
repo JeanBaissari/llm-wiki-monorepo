@@ -138,7 +138,7 @@ For codebases with documentation, use graphify to build a structural knowledge g
 
 ---
 
-## The five operations
+## The eight operations
 
 Every action on the wiki is one of these five. Each appends an entry to the current day's log file (`log/YYYYMMDD.md`).
 
@@ -193,7 +193,7 @@ Answer a question **grounded in the wiki**, not general knowledge.
 Health check. Run:
 
 ```bash
-python3 scripts/lint_wiki.py <wiki-root>
+llm-wiki lint <wiki-root>
 ```
 
 The script reports:
@@ -304,12 +304,12 @@ Analyze the wiki's knowledge graph for surprising connections and knowledge gaps
 | **`web/`** | Local Node.js server — preview the wiki with mermaid/math rendered; select → feedback → `audit/` |
 | `scripts/scaffold.py` | Bootstrap a new wiki directory tree |
 | `scripts/ingest.py` | Two-step chain-of-thought ingest (higher quality) |
-| `scripts/lint_wiki.py` | Fourteen-pass health check (links, orphans, index, frontmatter, staleness, confidence, contradictions, drift, size, rotation, audit shape, log shape) |
+| `scripts/lint_wiki.py` | Fifteen-pass health check (links, orphans, index, frontmatter, staleness, confidence, contradictions, drift, size, rotation, audit shape, log shape, template validation) |
 | `scripts/deep_research.py` | Web search + auto-ingest + synthesis for a research topic |
 | `scripts/graph_insights.py` | Surprising connections and knowledge gap detection |
 | `scripts/audit_review.py` | Group open/resolved audits by target file |
 | `scripts/migrate_log.py` | Convert v1 log.md to v2 log/ directory |
-| **`mcp-server/`** | Standalone MCP server — 8 tools (status, files, read, reviews, search, graph, lint, ingest) working against any wiki directory |
+| **`mcp-server/`** | Standalone MCP server — 14 tools (status, files, read_file, reviews, search, graph, graph_build, graph_insights, graph_search, lint, ingest, suggest_links, backup, discover_entities) working against any wiki directory |
 | [qmd](https://github.com/tobi/qmd) | Optional local semantic search (useful at >100 pages) |
 | [Obsidian Headless](https://github.com/obsidian-headless/obsidian-headless) | Server-side Obsidian for headless deployments — render, lint, and sync wikis without a GUI |
 
@@ -537,7 +537,7 @@ Quick grep across history: `grep -rh "^\#\# \[" log/ | tail -20`.
 - `references/eow-cron-pipeline.md` — Weekly automated maintenance pattern
 - `references/migration-guide.md` — Migrating v1 wikis to v2 format
 - `references/ingest-guide.md` — Two-step chain-of-thought ingest prompt architecture
-- `../templates/` — 19 domain-specific project templates with PURPOSE.md + SCHEMA.md
+- `../templates/` — 20 domain-specific project templates with PURPOSE.md + SCHEMA.md
 - `../mcp-server/` — Standalone MCP server for programmatic wiki access
 - `../graph-engine/` — Knowledge graph engine (relevance model, Louvain communities, insights)
 - `../extension/` — Chrome browser extension for web clipping

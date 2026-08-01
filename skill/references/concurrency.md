@@ -6,7 +6,7 @@ conflict resolution workflow for the LLM Wiki monorepo.
 ## Architecture
 
 The wiki directory is the shared state for the entire system. Every component
-reads and writes the same markdown files. Starting in v0.2.0, all writes are
+reads and writes the same markdown files. Starting in v0.2.0 (stable through v0.3.4), all writes are
 protected by a three-layer concurrency strategy:
 
 1. **Per-page advisory locking** — Only one agent can write to a page at a time.
@@ -159,5 +159,5 @@ Use `--force` for:
   NFS and network filesystems are explicitly not supported. Use the git-based merge
   workflow for multi-machine coordination.
 - **No distributed lock manager**: Redis, etcd, and other distributed coordination
-  primitives are out of scope for v0.2.0. Git is the distributed coordination
+  primitives are out of scope for v0.3.4. Git is the distributed coordination
   primitive.

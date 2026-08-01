@@ -1,6 +1,6 @@
 # LLM Wiki — Examples & Workflows
 
-Comprehensive reference covering everything from basic CLI usage to advanced agent-driven pipelines. Updated for current state (v0.1.1).
+Comprehensive reference covering everything from basic CLI usage to advanced agent-driven pipelines. Updated for current state (v0.3.4).
 
 ---
 
@@ -16,7 +16,7 @@ llm-wiki-monorepo/
 │   ├── cli.py             ← Unified CLI dispatcher
 │   ├── scaffold.py
 │   ├── ingest.py
-│   ├── lint_wiki.py       ← 16 passes (15 wiki + 1 template validation)
+│   ├── lint_wiki.py       ← 15 passes
 │   ├── discover.py        ← Single source of truth for paths
 │   ├── graph_insights.py
 │   ├── link_suggest.py
@@ -25,7 +25,7 @@ llm-wiki-monorepo/
 │   ├── deep_research.py
 │   ├── audit_review.py
 │   ├── migrate_log.py
-│   └── templates/         ← 19 templates shipped in wheel
+│   └── templates/         ← 20 templates shipped in wheel
 │
 ├── skill/scripts/         ← DEPRECATED — thin wrappers with warning
 │
@@ -52,7 +52,7 @@ llm-wiki-monorepo/
 │       ├── merger.ts      ← Merges wikilink + code graphs
 │       └── types.ts
 │
-├── mcp-server/            ← TypeScript — 8 tools, multi-wiki
+├── mcp-server/            ← TypeScript — 14 tools, multi-wiki
 ├── web-viewer/            ← TypeScript — search + graph panel + code overlay
 ├── extension/             ← Chrome — web clipper + auto-ingest
 ├── audit-shared/          ← TypeScript — audit schema
@@ -78,7 +78,7 @@ llm-wiki-monorepo/
 
 ---
 
-## 2. Current State (v0.1.1) Quick Reference
+## 2. Current State (v0.3.4) Quick Reference
 
 ### Install
 
@@ -94,7 +94,7 @@ llm-wiki --help             # → 11 available commands
 
 | Command | Purpose |
 |---------|---------|
-| `llm-wiki scaffold <root> <title>` | Create a new wiki from 19 templates |
+| `llm-wiki scaffold <root> <title>` | Create a new wiki from 20 templates |
 | `llm-wiki lint <root>` | 15-pass health check |
 | `llm-wiki ingest <root> <source>` | Two-stage agent loop ingest |
 | `llm-wiki discover <root>` | Auto-detect wiki structure |
@@ -467,7 +467,7 @@ This is what the system looks like when every component is live, every bridge is
                   │  └────────────────────────┘ │
                   │                              │
                   │  ┌─ npm installed ─────────┐ │
-                  │  │  MCP Server (8 tools)   │ │
+                  │  │  MCP Server (14 tools)  │ │
                   │  │  Graph Engine (merged)  │ │
                   │  │  Web Viewer (search +   │ │
                   │  │    graph + code overlay) │ │

@@ -145,4 +145,4 @@ The following upstream projects were referenced for methodology and design. Thei
 
 ---
 
-This file was generated as part of the v0.2.1 provenance review. Licenses and attributions should be verified before each public release.
+This file was generated as part of the v0.3.4 provenance review. Licenses and attributions should be verified before each public release.

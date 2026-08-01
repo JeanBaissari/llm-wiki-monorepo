@@ -94,4 +94,4 @@
 | `skill/SKILL.md` methodology | `X` — Upstream reference | `docs_only_credit` | Resolved |
 | All `D` — Direct dependencies | `D` — Direct dependency | `license_compatible_include` | Resolved |
 
-> **Action Required**: Items marked `clean_room_replace` must be independently reimplemented from public algorithm descriptions (without reference to GPL-licensed source code) before v0.2.1 public release. See [GPL Provenance Review](CONTRIBUTING.md#release-blocker-gpl-provenance-review).
+> **Resolved in v0.3.3**: Items previously marked `clean_room_replace` have been substantially rewritten and expanded. See [CONTRIBUTING.md](CONTRIBUTING.md#release-blocker-gpl-provenance-review) for the resolution summary.

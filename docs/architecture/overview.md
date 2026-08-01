@@ -34,4 +34,4 @@ This system solves all four problems in a single, installable package.
 - [ ] Review system catches AI errors before they become accepted facts
 - [ ] EOW cron keeps wikis healthy without human intervention
 - [ ] MCP server enables headless/automated wiki operations
-- [ ] Templates cover 19 domains relevant to Baissari Enterprises' work
+- [ ] Templates cover 20 domains relevant to Baissari Enterprises' work

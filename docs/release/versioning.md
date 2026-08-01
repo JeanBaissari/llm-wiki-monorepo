@@ -2,7 +2,7 @@
 
 ## Current Version
 
-The llm-wiki-monorepo Python package is at **0.2.1** (PyPI: `baissarienterprises-llm-wiki`).
+The llm-wiki-monorepo Python package is at **0.3.4** (PyPI: `baissarienterprises-llm-wiki`).
 
 | Milestone | Description |
 |-----------|-------------|

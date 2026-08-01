@@ -43,23 +43,23 @@ Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit
 | `eow-cron-pipeline.md` | Weekly automated maintenance — discover repos, assess health, conditional graph rebuild, lint, report |
 | `migration-guide.md` | Migrating v1 wikis (flat structure, log.md) to v2 format (log/ directory, wiki/ subdirectory) |
 
-### `skill/scripts/` — 13 Python scripts
+### `skill/scripts/` — 11 Python scripts
+
+All scripts are thin wrappers that delegate to `src/llm_wiki/` modules.
 
 | File | Lines | Purpose |
 |------|-------|---------|
 | `scaffold.py` | 330 | Bootstrap new wiki — `--template` picks from 20 domain templates, `--force` overwrites |
-| `ingest.py` | 233 | Two-step chain-of-thought ingest — Stage 1 analysis + Stage 2 generation with SHA256 caching |
-| `lint_wiki.py` | 557 | 15-pass automated health check with auto-discovered layout — dead links, orphans, frontmatter, staleness, source drift |
+| `ingest.py` | 233 | Thin wrapper — delegates to `llm_wiki.ingest.pipeline` |
+| `lint_wiki.py` | 557 | Thin wrapper — delegates to `llm_wiki.quality.lint` |
 | `deep_research.py` | 209 | Agent-driven research — web search, source fetch, auto-ingest, synthesis page |
-| `discover.py` | 350 | Auto-discover wiki structure — pages, sources, logs, audits, page types, frontmatter conventions |
+| `discover.py` | 350 | Thin wrapper — delegates to `llm_wiki.core.layout` |
 | `graph_insights.py` | 240 | Pure Python wikilink graph analysis — community detection, surprising connections, knowledge gaps |
 | `link_suggest.py` | 351 | Suggest missing wikilinks — entity extraction, 4-signal scoring, `--apply` auto-add |
 | `backup.py` | 411 | Snapshot, restore, integrity verification, prune — `--auto` one-command safe state |
 | `benchmark.py` | ~280 | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages, CSV output |
 | `audit_review.py` | 147 | Group open/resolved audit files by target for processing |
 | `migrate_log.py` | 117 | Convert v1 log.md to v2 log/ directory format |
-| `test_ingest_blocks.py` | ~150 | Unit test for FILE/REVIEW block parsing in ingest.py |
-| `test_ingest_e2e.py` | ~350 | End-to-end multi-step agent loop integration test for ingest.py |
 
 ---
 
@@ -71,16 +71,21 @@ TypeScript. 14 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wi
 |------|---------|
 | `package.json` | Dependencies: `@modelcontextprotocol/sdk` |
 | `tsconfig.json` | TypeScript config — ES2022, strict mode |
-| `src/index.ts` | Main server — 14 tool handlers, JSON-RPC via stdio |
+| `src/main.ts` | Main server — 14 tool handlers, JSON-RPC via stdio |
+| `src/registry.ts` | Tool registry — 14 TOOL_DEFINITIONS with schemas and handler mappings |
 | `src/types.ts` | Shared types: WikiProject, FileNode, SearchResult, ReviewItem, GraphNode, LintIssue |
 | `src/wiki-fs.ts` | Filesystem adapter — list, read, write, find, fileExists, ensureDir |
 | `src/search.ts` | BM25 search engine — pure TypeScript, no dependencies, ranked results with snippets |
 | `src/review.ts` | Bidirectional review system — create, list, resolve, getOpenForFile |
-| `src/lint.ts` | Bridge to lint_wiki.py — subprocess call with structured output parsing + TS fallback |
-| `src/graph.ts` | Bridge to graph-engine — build, insights, search via subprocess |
+| `src/lint.ts` | Sidecar bridge to quality.lint — delegates via PythonSidecar (not subprocess) |
+| `src/graph.ts` | Sidecar bridge to graph-engine — build, insights, search via PythonSidecar |
 | `src/storage.ts` | TTL-based cache layer — raw/.cache/<key>.json with expiry |
 | `src/cleanup.ts` | Soft cascade cleanup — strip source refs on deletion, report orphans |
-| `src/discover.ts` | TypeScript bridge to discover.py — calls Python discover module, typed fallback |
+| `src/discover.ts` | Sidecar bridge to core.layout — delegates via PythonSidecar, typed fallback |
+| `src/tools/` | 14 tool handler modules — one file per MCP tool |
+| `src/adapters/` | Adapter layer — sidecar.ts (PythonSidecar), fts5.ts, graph-engine.ts |
+| `src/projects/` | Multi-project support — workspace scanning and project management |
+| `src/security/` | Security middleware — path traversal prevention, input validation |
 
 ---
 

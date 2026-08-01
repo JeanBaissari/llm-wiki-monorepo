@@ -6,7 +6,7 @@
 |----|-----------|----------|
 | AC-00.1 | All 15 CLI commands produce help output (`--help` exits 0) | YES |
 | AC-00.2 | CLI aliases resolve to correct targets | YES |
-| AC-00.3 | `llm-wiki --version` outputs `0.2.1` | YES |
+| AC-00.3 | `llm-wiki --version` outputs `0.3.4` | YES |
 | AC-00.4 | Frontmatter parser golden tests pass for canonical inputs | YES |
 | AC-00.5 | Core module import boundary test documents expected constraints | YES |
 | AC-00.6 | `release-manifest.json` lists 15 unified CLI commands | YES |

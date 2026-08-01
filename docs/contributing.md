@@ -20,11 +20,21 @@ See [docs/legal/provenance.md](./docs/legal/provenance.md) for the full provenan
 
 ```
 src/llm_wiki/         ← Python package — CLI, LLM providers, concurrency, search
-skill/scripts/        ← Python scripts — scaffold, ingest, lint, insights, backup
+  ├── core/           ← Primitives: frontmatter, hashing, atomic, locking, logging, layout, wikilinks
+  ├── quality/        ← Claims, lint, audit (claims/, lint/, audit/)
+  ├── ingest/         ← Pipeline: blocks, writer, cache
+  ├── providers/      ← LLM adapters (registry, openai, anthropic, opencode)
+  ├── graph/          ← Louvain, insights, link suggestions
+  ├── search/         ← FTS5 indexing
+  ├── ops/            ← Health, serve, benchmark, migrate
+  ├── wiki/           ← Scaffold, backup
+  ├── research/       ← Deep research pipeline
+  └── contracts/      ← Schema validation
+skill/scripts/        ← Thin CLI wrappers — delegate to src/llm_wiki/
 skill/SKILL.md        ← Agent skill definition — loaded by Hermes/Claude/Codex
 templates/            ← 20 domain templates (PURPOSE.md + SCHEMA.md + extra-dirs.json)
 tests/                ← pytest suite — 16 test files + conftest.py fixtures
-mcp-server/           ← TypeScript — MCP server (stdio, 10 tools)
+mcp-server/           ← TypeScript — MCP server (stdio, 14 tools)
 graph-engine/         ← TypeScript — knowledge graph (relevance, Louvain, insights)
 web-viewer/           ← TypeScript — local preview server
 extension/            ← JavaScript — Chrome web clipper
@@ -55,7 +65,7 @@ extension/            ← JavaScript — Chrome web clipper
    ```toml
    llm-wiki-<command> = "llm_wiki.<name>:main"
    ```
-4. Import from existing modules rather than copying logic — `discover.py`, `atomic_write.py`, and `wiki_logging.py` are shared foundations
+4. Import from existing modules rather than copying logic — `core/layout.py`, `core/atomic.py`, and `core/logging.py` are shared foundations
 
 **Quality check before opening a PR:**
 ```bash
@@ -221,7 +231,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/).
 
 **Examples:**
 ```
-feat: Add template validation pass to lint_wiki.py
+feat: Add template validation pass to quality.lint
 fix: Handle empty frontmatter in ingest FILE block parsing
 docs: Add agent-native provider section to QUICKGUIDE
 chore: Update pytest dependency to >=8.0

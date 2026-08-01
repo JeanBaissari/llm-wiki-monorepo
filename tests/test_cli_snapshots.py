@@ -53,7 +53,7 @@ class TestCliBaseline:
     def test_version(self):
         r = _run_cli("--version")
         assert r.returncode == 0
-        assert r.stdout.strip() == "llm-wiki 0.3.0"
+        assert r.stdout.strip() == "llm-wiki 0.3.4"
 
     def test_no_args_shows_help(self):
         r = _run_cli()

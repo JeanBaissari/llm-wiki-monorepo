@@ -64,9 +64,8 @@ SAMPLE_PAGES = [
     ),
     pytest.param(
         "---\ntitle: Case\nConfidence: low\n---\n\nContent",
-        {"Confidence": "low"},
-        id="case-insensitive" or True,
-        marks=pytest.mark.xfail(reason="frontmatter keys are case-sensitive in current parser"),
+        {"title": "Case", "Confidence": "low"},
+        id="key-case-preserved",
     ),
     pytest.param(
         '---\ntitle: "Quoted title"\n---\n\nContent',

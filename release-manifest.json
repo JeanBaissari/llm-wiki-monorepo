@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "release": {
-    "version": "0.3.0",
+    "version": "0.3.4",
     "canonical_version_source": "pyproject.toml:project.version"
   },
   "python": {
@@ -24,9 +24,21 @@
       "llm-wiki-serve = llm_wiki.ops.serve:main"
     ],
     "unified_cli_commands": [
-      "scaffold", "lint", "ingest", "insights", "link-suggest",
-      "backup", "deep-research", "audit", "benchmark",
-      "migrate-log", "discover", "index", "health", "serve", "claims"
+      "scaffold",
+      "lint",
+      "ingest",
+      "insights",
+      "link-suggest",
+      "backup",
+      "deep-research",
+      "audit",
+      "benchmark",
+      "migrate-log",
+      "discover",
+      "index",
+      "health",
+      "serve",
+      "claims"
     ]
   },
   "npm": {
@@ -34,7 +46,7 @@
       {
         "path": ".",
         "name": "llm-wiki-monorepo",
-        "version": "0.3.0",
+        "version": "0.3.4",
         "role": "root-workspace"
       },
       {
@@ -130,7 +142,7 @@
     ]
   },
   "changelog": {
-    "required_entry": "0.3.0",
+    "required_entry": "0.3.4",
     "file": "docs/release/changelog.md"
   },
   "docs": {

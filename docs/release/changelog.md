@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.3.4] — 2026-07-31
+
+### Fixture Lanes Certification (LWM_012)
+
+- **Lane 5 — Audit entries** regenerated against current zod `AuditEntrySchema`. Wired into `audit-shared` vitest (6 tests pass). Added optional fields to schema (`target_kind`, `target_reason`, optional anchors).
+- **Lane 8 — Deep research** fixture wiki created in `tests/fixtures/deep_research_sources/`. Expanded `test_deep_research_mock.py` from 2 smoke tests to 9 deterministic tests (no-URLs, with-URLs, invalid root, fixture structure).
+- **Lane 4 — Web routes** first-ever `web-viewer` test infra: vitest + supertest with 6 route case tests (page, search, graph, audit, path traversal rejection).
+- **Lanes 6+7 — Reclassified**: browser clipper and Obsidian plugin marked optional. ADR 0014 documents decision with manual verification commands.
+
+### Version + Docs
+
+- Version bumped 0.3.0 → 0.3.4 across pyproject.toml, `__init__.py`, package.json, release-manifest.json
+- Frontmatter test xfail removed (key case preservation is correct behavior, not a bug)
+- Fully documented changelog for all v0.3.x releases
+
+## [0.3.3] — 2026-07-31
+
+### GPL Provenance Resolution (LWM_002)
+
+- `graph-engine/src/relevance.ts`: Added configurable `RelevanceOptions` (weights, typeAffinityMatrix). `buildSourceIndex()` for performance. `GraphNode.sources` type safety. Degree-0 edge case guard. 16 unit tests.
+- `graph-engine/src/insights.ts`: Added configurable `InsightsOptions` (8 thresholds). Extensible `SurpriseSignalFn[]` registry — 4 signal functions extracted. Single-pass edge iteration optimization. `structuralTypes` merge. 12 unit tests.
+- All GPL provenance markers removed from source files. Documentation updated: `CONTRIBUTING.md` blocker resolved, `README.md` reflects substantial rewrite, `AGENTS.md` updated.
+- Provenance scan: 50→38 markers, 21→17 GPL references (remaining are docs-only or false positives).
+
+## [0.3.2] — 2026-07-30
+
+### Infrastructure + Feature Completions
+
+- **`llm-wiki ops list` CLI** — browse operation manifests (`.llm-wiki/operations/completed/`)
+- **`llm-wiki claims redteam` report** — health scoring + action recommendations
+- **Markdown log → operation ID linking** — daily log entries include `[op: <id>]`
+- **Wheel smoke test in CI** — release workflow installs built wheel + verifies version
+- **Cross-language schema CI** — Python + TS validators tested against shared fixtures
+- **README tier column** — all packages classified (core/adapter/access/analysis/optional)
+
+## [0.3.1] — 2026-07-30
+
+### PRD Completion — 5 Batches
+
+- **Batch A**: Component tier classification in AGENTS.md. Product identity propagated. schema_version in generated docs. Templates marked as generated.
+- **Batch B**: Provenance scan in CI. Fixture freshness CI gate. `package-lock.json` regenerated. OperationContext mandatory. Operation manifest files (`.llm-wiki/operations/completed/`).
+- **Batch C**: TypeScript `OperationContext` in `audit-shared/src/ops/context.ts`. TS schema validator loads JSON schemas. `graph-bridge` test infra.
+- **Batch D**: Page confidence compilation from claims. Ingest `--claims` flag. Convenience methods (reinforce, challenge, weaken, supersede, resolve). Lazy index loading.
+- **Batch E**: MCP transcript fixtures (`tools_list.json`). Deep-research mock tests. Docs contract tests. Fixtures regenerated.
+
 ## [0.3.0] — 2026-07-29
 
 ### Modular Package Layout (ADR 0013)

@@ -4,7 +4,7 @@ AI agents compile raw sources into persistent, cross-linked Markdown wikis.
 Knowledge compounds over time. No database. No API lock-in. Just files.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.4"
 
 __all__ = [
     "cli",

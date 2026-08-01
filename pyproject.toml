@@ -52,7 +52,6 @@ Repository = "https://github.com/JeanBaissari/llm-wiki-monorepo"
 Documentation = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/docs/getting-started/quickstart.md"
 Changelog = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/docs/release/changelog.md"
 Issues = "https://github.com/JeanBaissari/llm-wiki-monorepo/issues"
-ADR = "https://github.com/JeanBaissari/llm-wiki-monorepo/blob/main/docs/adr/0013-modular-package-layout.md"
 
 [project.scripts]
 llm-wiki = "llm_wiki.cli:main"

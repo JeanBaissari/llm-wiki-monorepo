@@ -13,6 +13,22 @@ export interface CommunityDetectionResult {
   communities: CommunityInfo[];
 }
 
+/**
+ * Deterministic PRNG (mulberry32) used to seed graphology's Louvain. Without a
+ * seeded rng the library defaults to Math.random, making community IDs in
+ * graph-data.json non-deterministic across builds. Seeding it (default 42,
+ * matching the Python engine) makes graph builds reproducible (LWM_024).
+ */
+function seededRng(seed: number): () => number {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function buildGraphologyGraph(nodes: GraphNode[], edges: GraphEdge[]): Graph {
   const g = new Graph({ type: "undirected" });
   const nodeSet = new Set<string>();
@@ -42,8 +58,10 @@ export function detectCommunities(
 
   const g = options?._graph ?? buildGraphologyGraph(nodes, edges);
   const resolution = options?.resolution ?? 1;
+  const seed = options?.seed ?? 42;
 
-  const rawCommunities = louvain(g, { resolution });
+  // Seed the rng so community IDs are deterministic across builds (LWM_024).
+  const rawCommunities = louvain(g, { resolution, rng: seededRng(seed) });
 
   const assignments = new Map<string, number>(
     Object.entries(rawCommunities).map(([k, v]) => [k, v as number]),

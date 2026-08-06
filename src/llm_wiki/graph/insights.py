@@ -4,12 +4,13 @@ Usage: python3 graph_insights.py <wiki-root> [--connections <n>] [--gaps <n>] [-
 Builds a directed graph from [[wikilinks]], detects communities, and surfaces surprising
 cross-boundary connections and knowledge gaps. Pure Python, no external dependencies."""
 
-import argparse, json, os, re, sys
+import argparse, json, os, re, sys, warnings
 from collections import Counter, defaultdict
 from pathlib import Path
 
 from llm_wiki.core.layout import discover_layout
 from llm_wiki.core.frontmatter import parse_frontmatter
+from llm_wiki.graph.louvain import detect_communities
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 SKIP_STEMS = frozenset({"index", "log", "overview"})
@@ -36,7 +37,7 @@ def build_graph(files, wiki_root):
     for fp in files:
         text = fp.read_text(encoding="utf-8", errors="replace")
         fm = parse_frontmatter(text) or {}
-        title, ntype = fm.get("title", fp.stem), fm.get("type", "page")
+        title, ntype = fm.get("title", fp.stem), fm.get("type", "concept")
         sources = fm.get("sources", [])
         rel = fp.relative_to(wiki_root)
         pid = str(rel.with_suffix("")).replace(os.sep, "/")
@@ -59,26 +60,28 @@ def build_graph(files, wiki_root):
     for nid, attrs in nodes.items(): attrs["degree"] = deg.get(nid, 0)
     return nodes, edges
 
-def communities(adj):
-    """Greedy label-propagation community detection."""
-    comm = {nid: i for i, nid in enumerate(adj)}
-    changed = True
-    while changed:
-        changed = False
-        for nid in adj:
-            counts = Counter()
-            for nb in adj[nid]: counts[comm[nb]] += 1
-            if not counts: continue
-            best = min(counts.items(), key=lambda x: (-x[1], x[0]))[0]
-            if best != comm[nid]:
-                comm[nid] = best
-                changed = True
-    seen = {}; compact = {}
-    for nid in adj:
-        c = comm[nid]
-        if c not in seen: seen[c] = len(seen)
-        compact[nid] = seen[c]
-    return compact
+def detect_communities_for_insights(nodes, edges):
+    """Community assignments via the canonical Louvain engine (graph/louvain.py).
+
+    Replaces the former label-propagation pass so `llm-wiki insights` and the
+    TypeScript graph-engine share one community-detection algorithm (LWM_024 /
+    ADR-0017). Returns {node_id: community_id} renumbered size-descending — the
+    same shape the old label-propagation returned, so downstream scoring is
+    unchanged. The Louvain transition warning is suppressed here because this IS
+    the intended, completed migration for insights.
+    """
+    node_list = [
+        {"id": pid, "label": a["label"], "linkCount": a.get("linkCount", 0)}
+        for pid, a in nodes.items()
+    ]
+    edge_list = [{"source": s, "target": t, "weight": 1} for s, t in edges]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        assignments, _ = detect_communities(node_list, edge_list, seed=42)
+    # Ensure every node (incl. isolated) has an assignment.
+    for pid in nodes:
+        assignments.setdefault(pid, len(assignments))
+    return assignments
 
 def comm_stats(edges, community):
     c_nodes = defaultdict(set); c_edges = defaultdict(int)
@@ -114,7 +117,7 @@ def score_connections(nodes, edges, community, cstats, top_n):
         ph = (1.0 - deg_ratio) * 0.8
         if ph > 0.4 and max_d > 5:
             score += ph; reasons.append(f"peripheral→hub (deg {min_d}↔{max_d})")
-        ts, tt = ns.get("type", "page"), nt.get("type", "page")
+        ts, tt = ns.get("type", "concept"), nt.get("type", "concept")
         if ts != tt:
             score += 0.5; reasons.append(f"cross-type ({ts}↔{tt})")
         if reasons:
@@ -133,7 +136,7 @@ def find_gaps(nodes, edges, adj, community, cstats, top_n):
         deg = attrs.get("degree", 0)
         if deg <= 1:
             gaps["isolatedNodes"].append({
-                "id": nid, "label": attrs["label"], "type": attrs.get("type", "page"),
+                "id": nid, "label": attrs["label"], "type": attrs.get("type", "concept"),
                 "degree": deg, "community": community.get(nid, -1),
             })
     for cid, st in cstats.items():
@@ -144,7 +147,7 @@ def find_gaps(nodes, edges, adj, community, cstats, top_n):
         for nb in adj.get(nid, set()): seen.add(community.get(nb, -1))
         if len(seen) >= 3:
             gaps["bridgeNodes"].append({
-                "id": nid, "label": nodes[nid]["label"], "type": nodes[nid].get("type", "page"),
+                "id": nid, "label": nodes[nid]["label"], "type": nodes[nid].get("type", "concept"),
                 "degree": nodes[nid].get("degree", 0),
                 "connectedCommunities": sorted(seen), "communityCount": len(seen),
             })
@@ -209,7 +212,7 @@ def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10, fmt:
     nodes, edges = build_graph(files, root)
     adj = {nid: set() for nid in nodes}
     for s, t in edges: adj[s].add(t); adj[t].add(s)
-    comm = communities(adj)
+    comm = detect_communities_for_insights(nodes, edges)
     cstats = comm_stats(edges, comm)
     top_conns = score_connections(nodes, edges, comm, cstats, connections)
     ks = find_gaps(nodes, edges, adj, comm, cstats, gaps)

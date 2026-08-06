@@ -84,9 +84,12 @@ def embed_wiki(
         vs.init_vector_schema(conn, dim=dim, with_vec0=vec0)
 
         meta = embedder.embed_meta(build_id=time.strftime("%Y%m%dT%H%M%S"))
-        # A model/dimension change (or --rebuild) invalidates all vectors.
+        # A model/dimension change (or --rebuild) invalidates all vectors. Clear
+        # BOTH stores so the vec0 fast-path never drifts from page_vectors.
         if rebuild or not vs.embed_meta_matches(conn, meta):
             conn.execute("DELETE FROM page_vectors")
+            if vec0:
+                vs.clear_vec0(conn)
             conn.commit()
         vs.write_embed_meta(conn, meta)
 
@@ -107,12 +110,16 @@ def embed_wiki(
             vs.store_vector(
                 conn, rel, file_hash, vec, time.strftime("%Y-%m-%dT%H:%M:%S")
             )
+            if vec0:  # keep the vec0 fast-path in sync with the blob store
+                vs.upsert_vec0(conn, rel, vec)
             stats["embedded"] += 1
 
-        # Drop vectors for pages that no longer exist on disk.
+        # Drop vectors for pages that no longer exist on disk (both stores).
         for rel, _vec in list(vs.iter_vectors(conn)):
             if rel not in current:
                 vs.delete_vector(conn, rel)
+                if vec0:
+                    vs.delete_vec0(conn, rel)
                 stats["deleted"] += 1
 
         conn.commit()

@@ -12,8 +12,10 @@ from llm_wiki.eval.goldset import (
     GoldItem,
     GoldSet,
     GoldSetError,
+    gate_only,
     load_goldset,
     parse_goldset,
+    tune_only,
 )
 from llm_wiki.eval.harness import EvalReport, evaluate
 from llm_wiki.eval.metrics import (
@@ -28,6 +30,8 @@ __all__ = [
     "GoldItem",
     "GoldSet",
     "GoldSetError",
+    "gate_only",
+    "tune_only",
     "load_goldset",
     "parse_goldset",
     "EvalReport",

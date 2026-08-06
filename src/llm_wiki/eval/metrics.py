@@ -17,7 +17,14 @@ from typing import Iterable, Sequence
 
 
 def precision_at_k(predicted: Sequence[str], relevant: Iterable[str], k: int) -> float:
-    """Fraction of the top-k predictions that are relevant."""
+    """Precision over the returned top-k: ``hits / len(top-k)``.
+
+    Note this divides by the number of items actually returned (≤ k), not by k.
+    That is intentional for variable-length suggestion lists — a source page with
+    only two correct links that returns exactly those two scores 1.0, not 2/k.
+    Callers must pass a de-duplicated ranked list (distinct ids); duplicates are
+    removed upstream (e.g. ``eval.baseline.predictions_for``), not here.
+    """
     if k <= 0:
         return 0.0
     rel = set(relevant)

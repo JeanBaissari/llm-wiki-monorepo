@@ -220,6 +220,59 @@ def vector_count(conn: sqlite3.Connection) -> int:
     return row[0] if row else 0
 
 
+def get_vectors(
+    conn: sqlite3.Connection, rel_paths: "list[str]"
+) -> "list[tuple[str, list[float]]]":
+    """Fetch the stored float32 vectors for specific pages (exact-rerank helper)."""
+    if not rel_paths:
+        return []
+    placeholders = ",".join("?" * len(rel_paths))
+    try:
+        cur = conn.execute(
+            f"SELECT rel_path, vector FROM page_vectors WHERE rel_path IN ({placeholders})",
+            tuple(rel_paths),
+        )
+    except sqlite3.OperationalError:
+        return []
+    return [(rp, unpack_vector(blob)) for rp, blob in cur]
+
+
+# ── vec0 fast-path store (only exists/populated when sqlite-vec is loaded) ────
+
+def upsert_vec0(conn: sqlite3.Connection, rel_path: str, vec: "list[float]") -> None:
+    """Insert/replace a row in the vec0 table. No-op if the table is absent."""
+    try:
+        conn.execute("DELETE FROM vec_pages WHERE rel_path = ?", (rel_path,))
+        conn.execute(
+            "INSERT INTO vec_pages(rel_path, embedding) VALUES (?, ?)",
+            (rel_path, pack_vector(vec)),
+        )
+    except sqlite3.OperationalError:
+        pass  # vec_pages not present on this backend → page_vectors is the store
+
+
+def delete_vec0(conn: sqlite3.Connection, rel_path: str) -> None:
+    try:
+        conn.execute("DELETE FROM vec_pages WHERE rel_path = ?", (rel_path,))
+    except sqlite3.OperationalError:
+        pass
+
+
+def clear_vec0(conn: sqlite3.Connection) -> None:
+    try:
+        conn.execute("DELETE FROM vec_pages")
+    except sqlite3.OperationalError:
+        pass
+
+
+def vec0_count(conn: sqlite3.Connection) -> int:
+    try:
+        row = conn.execute("SELECT COUNT(*) FROM vec_pages").fetchone()
+    except sqlite3.OperationalError:
+        return 0
+    return row[0] if row else 0
+
+
 def open_index_db(db_path: str | Path) -> sqlite3.Connection:
     """Open the shared .index/wiki.db with the same pragmas the indexer uses."""
     p = Path(db_path)

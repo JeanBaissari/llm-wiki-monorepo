@@ -1,0 +1,15 @@
+{
+  "_comment": "SEED gold set for the lexical link-suggestion eval baseline (LWM_022 / ADR-0022). Hand-labeled correct (source-stem -> target-stem) links grounded in the REAL pages of tests/fixtures/wikis/populated. This is a small SEED to be expanded to a few hundred labels (including a held-out, SHA256-frozen real gate wiki) per the PRD. Invariants: tune and gate splits are disjoint by query; the gate split holds a gibberish negative that must return empty. Target ids are page file stems (underscored), matching the suggester's target_stem output.",
+  "version": 1,
+  "items": [
+    {"query": "cnn", "relevant": ["neural_network"], "split": "gate", "note": "A CNN is a neural network; suggester surfaces the plain-text mention."},
+    {"query": "pytorch", "relevant": ["deep_learning"], "split": "gate", "note": "PyTorch is a deep learning framework."},
+    {"query": "tensorflow", "relevant": ["deep_learning"], "split": "gate", "note": "TensorFlow is a deep learning framework."},
+    {"query": "deep_learning", "relevant": ["neural_network"], "split": "gate", "note": "Correct link the lexical suggester misses: the term only appears inside an existing wikilink, so it is never surfaced as a candidate (honest recall miss)."},
+    {"query": "zqxwmv nonsense token", "relevant": [], "split": "gate", "kind": "negative", "note": "Gibberish query: a correct system returns nothing."},
+    {"query": "fine_tuning", "relevant": ["transfer_learning"], "split": "tune", "note": "Fine-tuning is a form of transfer learning."},
+    {"query": "transfer_learning", "relevant": ["fine_tuning"], "split": "tune", "note": "Transfer learning subsumes fine-tuning."},
+    {"query": "python", "relevant": ["pytorch"], "split": "tune", "note": "PyTorch is built on Python."},
+    {"query": "asdf qwerty gibberish", "relevant": [], "split": "tune", "kind": "negative", "note": "Tune-side gibberish negative."}
+  ]
+}

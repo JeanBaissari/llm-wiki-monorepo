@@ -15,6 +15,8 @@ Usage:
     llm-wiki migrate-log <wiki-root>
     llm-wiki discover <wiki-root> [--json]
     llm-wiki serve <wiki-root> [--projects <names>]
+    llm-wiki embed <wiki-root> [--rebuild]        # requires [semantic] extra; no-op without it
+    llm-wiki eval <wiki-root> [--goldset <path>] [--split gate|tune|all]
 """
 
 import sys
@@ -35,6 +37,8 @@ COMMANDS = {
     "ops": "llm_wiki.ops.list",
     "discover": "llm_wiki.core.layout",
     "index": "llm_wiki.search",
+    "embed": "llm_wiki.semantic.embed",
+    "eval": "llm_wiki.eval.cli",
     "health": "llm_wiki.ops.health",
     "serve": "llm_wiki.ops.serve",
     "claims": "llm_wiki.quality.claims",

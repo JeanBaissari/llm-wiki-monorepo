@@ -61,6 +61,21 @@ class GoldSet:
         return self.by_split("gate")
 
 
+def tune_only(goldset: GoldSet) -> GoldSet:
+    """A view with ONLY the tune split.
+
+    Hand this (never the full ``GoldSet``) to any constant-tuning code so it
+    structurally cannot read gate labels — the tuning/gating isolation half of
+    ADR-0022 (the other half, disjointness, is enforced at load time).
+    """
+    return GoldSet(items=list(goldset.tune), version=goldset.version)
+
+
+def gate_only(goldset: GoldSet) -> GoldSet:
+    """A view with ONLY the gate split — used exclusively by the release gate."""
+    return GoldSet(items=list(goldset.gate), version=goldset.version)
+
+
 class GoldSetError(ValueError):
     """Raised when a gold set is malformed or violates the disjoint invariant."""
 

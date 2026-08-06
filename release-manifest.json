@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "release": {
-    "version": "0.3.4",
+    "version": "0.4.0",
     "canonical_version_source": "pyproject.toml:project.version"
   },
   "python": {
@@ -38,7 +38,10 @@
       "index",
       "health",
       "serve",
-      "claims"
+      "claims",
+      "search",
+      "embed",
+      "eval"
     ]
   },
   "npm": {
@@ -46,7 +49,7 @@
       {
         "path": ".",
         "name": "llm-wiki-monorepo",
-        "version": "0.3.4",
+        "version": "0.4.0",
         "role": "root-workspace"
       },
       {
@@ -142,7 +145,7 @@
     ]
   },
   "changelog": {
-    "required_entry": "0.3.4",
+    "required_entry": "0.4.0",
     "file": "docs/release/changelog.md"
   },
   "docs": {

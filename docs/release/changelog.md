@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.4.0] — 2026-08-06
+
+### Semantic Core
+
+The first feature-expansion minor after the v0.3.x stabilization line. Adds a
+**semantic layer** to a system that was previously lexical/structural only.
+Everything is additive and behind the optional `[semantic]` extra — the base
+install stays lexical-only and byte-identical to v0.3.4, and every existing
+default (keyword search, `graph-data.json` shape, the 14 MCP tools, ingest
+frontmatter) is unchanged.
+
+- **Pluggable embeddings** (LWM_013/015): a dimension-agnostic `Embedder`
+  interface with **model2vec / potion-retrieval-32M** (numpy-only, no torch) as
+  the default; `is_semantic_available()` probe + graceful lexical fallback.
+- **In-file vector store** (LWM_014/017/018): a `page_vectors` float32-blob table
+  + optional `sqlite-vec` `vec0` table in the existing `.index/wiki.db`, with an
+  `embed_meta` guard. KNN uses a pure-numpy fallback when the extension can't
+  load (macOS/Windows-safe), and the `vec0` fast path is an exact prefilter +
+  numpy rerank so both backends return identical top-k.
+- **`llm-wiki embed`** (LWM_016): SHA256-fresh batch embedding into the store.
+- **Hybrid search** (LWM_019/020): `llm-wiki search [--hybrid]` — Reciprocal Rank
+  Fusion of FTS5/BM25 + vector KNN, opt-in, with a gibberish floor and
+  keyword-only fallback. (Promotion to default deferred to v0.5.0 post-eval.)
+- **Semantic link suggestion** (LWM_021): `llm-wiki link-suggest --semantic
+  --page <stem>` — fuses embedding + Personalized PageRank + lexical signals;
+  suggest-only, never auto-applying a link on static-embedding similarity alone.
+- **Evaluation harness** (LWM_022): `llm-wiki eval` + a committed gold-set
+  baseline (precision@5=0.75) with a disjoint tune/gate split, wired as a CI
+  eval-regression gate.
+- **Graph-engine consolidation** (LWM_024): deleted the divergent Python
+  label-propagation path — `llm-wiki insights` now uses the canonical Louvain,
+  matching the TypeScript engine; seeded the graph-engine rng so community IDs in
+  `graph-data.json` are deterministic.
+- **CI gates** (LWM_023): eval-regression gate, a cross-OS (ubuntu+macOS)
+  `semantic` job exercising the native/numpy KNN paths, a base-install-purity
+  gate, and benchmark governance (env-dependent latency benchmark marked `slow`).
+
+### New CLI commands
+
+- `llm-wiki search`, `llm-wiki embed`, `llm-wiki eval`.
+
+### New optional extras
+
+- `[semantic]` (model2vec, numpy, sqlite-vec) and `[eval]` (deepeval).
+
+### Deferred to follow-ups
+
+- MCP hybrid-search surface (optional `mode` param), Windows CI matrix, and a
+  couple of snapshot corpora remain for a subsequent patch.
+
 ## [0.3.4] — 2026-07-31
 
 ### Fixture Lanes Certification (LWM_012)

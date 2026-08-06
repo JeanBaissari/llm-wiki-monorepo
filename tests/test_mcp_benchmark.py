@@ -352,6 +352,7 @@ Test page for ingest benchmark.
 
         monkeypatch.setattr(ingest_mod, "call_llm", _mock)
 
+    @pytest.mark.slow  # absolute-latency benchmark: env-dependent, opt-in (LWM_023)
     def test_ingest_dispatch_latency(self, tmp_path: Path):
         """Ingest via sidecar — measure dispatch overhead only."""
         # Create a fresh wiki

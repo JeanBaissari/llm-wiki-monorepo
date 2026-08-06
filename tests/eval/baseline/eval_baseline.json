@@ -1,0 +1,10 @@
+{
+  "f1": 0.75,
+  "k": 5,
+  "n_negative": 1,
+  "n_positive": 4,
+  "negative_pass_rate": 1.0,
+  "precision_at_k": 0.75,
+  "recall_at_k": 0.75,
+  "split": "gate"
+}

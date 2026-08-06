@@ -306,6 +306,40 @@ def output_json(suggestions: list[dict]) -> None:
     print(json.dumps(out, indent=2))
 
 
+def _run_semantic(args) -> int:
+    """`link-suggest --semantic --page <stem>` — suggest-only related notes.
+
+    Fuses embedding + Personalized PageRank + lexical signals (LWM_021). Falls
+    back to PPR+lexical when the [semantic] extra is absent. Suggest-only: the
+    `--apply` path is not offered here because a static-embedding similarity may
+    not auto-apply a link on its own (ADR-0021); each row is tagged with whether
+    it is auto-appliable.
+    """
+    if not args.page:
+        print("--semantic requires --page <stem>", file=sys.stderr)
+        return 2
+    from llm_wiki.semantic.embedder import get_embedder
+    from llm_wiki.semantic.linking import is_auto_appliable, semantic_related
+
+    results = semantic_related(
+        args.wiki_root, args.page, args.limit, embedder=get_embedder()
+    )
+    if args.format == "json":
+        print(json.dumps(
+            [{**r, "auto_appliable": is_auto_appliable(r)} for r in results],
+            indent=2,
+        ))
+    else:
+        print(f"# Semantic related notes for [[{args.page}]]")
+        if not results:
+            print("No related notes found.")
+        for r in results:
+            tag = "auto-appliable" if is_auto_appliable(r) else "suggest-only"
+            print(f"{r['rank']}. {r['target_stem']}  "
+                  f"signals={','.join(r['signals'])}  [{tag}]")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Suggest missing wikilinks in an LLM Wiki."
@@ -319,7 +353,15 @@ def main() -> int:
                         help="Minimum confidence score 0.0-1.0 (default: 0.3)")
     parser.add_argument("--format", choices=["text", "json"], default="text",
                         help="Output format (default: text)")
+    parser.add_argument("--semantic", action="store_true",
+                        help="Semantic related-notes (embedding + PageRank + lexical, "
+                             "fused via RRF); requires --page. Suggest-only.")
+    parser.add_argument("--page", default=None,
+                        help="Source page stem for --semantic mode")
     args = parser.parse_args()
+
+    if args.semantic:
+        return _run_semantic(args)
 
     layout = discover_layout(args.wiki_root)
     wiki_dir = Path(layout.pages_dir)

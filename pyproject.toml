@@ -73,6 +73,12 @@ llm-wiki-serve = "llm_wiki.ops.serve:main"
 dev = ["pytest>=8.0", "pytest-cov>=5.0"]
 test = ["pytest>=8.0", "pytest-cov>=5.0", "vcrpy>=6.0"]
 graph = ["networkx>=3.0"]
+# v0.4.0 Semantic Core — optional extras. Base install stays lexical/keyword-only
+# and behaves identically without these (LWM_013 invariant #3). model2vec is
+# numpy-only (no torch); sqlite-vec is a loadable extension with a numpy KNN
+# fallback (LWM_017/ADR-0016) so search degrades to keyword when it can't load.
+semantic = ["model2vec>=0.3", "numpy>=1.24", "sqlite-vec>=0.1.1"]
+eval = ["deepeval>=1.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,0 +1,10 @@
+{
+  "f1": 0.916667,
+  "precision": 1.0,
+  "recall": 0.846154,
+  "n_gate_pairs": 13,
+  "split": "gate",
+  "must_not_merge_pass": true,
+  "generated_by": "scripts/tune 2026-08-07",
+  "note": "ER-F1 fail-on-drop baseline (LWM_025 AC#7). Computed on the er_goldset.json gate split via resolve_entities (string-only path, no embedder) -> merges_to_clusters -> er_f1. Formatting/case variant families merge at the raised 0.92 bar (precision 1.0); the K8s/Kubernetes family is the honest recall gap (embedding-dependent, 2 FN pairs). Must-not-merge negatives all pass on the gate split. Richer extractors (LWM_026 AC#5) must hold or improve this."
+}

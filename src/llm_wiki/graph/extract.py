@@ -26,6 +26,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
+from llm_wiki.core.logging import warn
+
 # Default entity types for zero-shot extraction; operator-overridable later
 # (LWM_026 open question — per-template type lists).
 DEFAULT_ENTITY_LABELS = ("person", "organization", "location", "concept", "model", "method")
@@ -93,8 +95,11 @@ class GLiNERExtractor(EntityExtractor):
     """Optional zero-shot NER backend (``[ner]`` extra: gliner + onnxruntime).
 
     Heavy imports and the model download are deferred to the first ``extract()``
-    (mirroring ``Model2VecEmbedder._load``); any load/inference failure is the
-    caller's cue to fall back to ``RegexExtractor`` (see ``get_extractor``).
+    (mirroring ``Model2VecEmbedder._load``). GLiNERExtractor methods never
+    raise: a load failure marks this instance unavailable and ``extract()``
+    returns an empty span set (the caller's per-call ``RegexExtractor`` fallback
+    via ``get_extractor``/``entities``); an inference failure returns ``[]``
+    too. Each failure is logged once per instance (LWM_026 error handling).
     """
 
     name = "gliner"
@@ -102,6 +107,8 @@ class GLiNERExtractor(EntityExtractor):
     def __init__(self, model_id: str = "urchade/gliner_small-v2.1") -> None:
         self.model_id = model_id
         self._model = None
+        self._load_failed = False
+        self._failure_logged = False
 
     @classmethod
     def is_available(cls) -> bool:
@@ -111,27 +118,47 @@ class GLiNERExtractor(EntityExtractor):
             return False
         return True
 
-    def _load(self):
-        if self._model is None:
-            from gliner import GLiNER
+    def _log_failure_once(self, message: str) -> None:
+        if not self._failure_logged:
+            self._failure_logged = True
+            warn("extract", f"GLiNER {message}", model_id=self.model_id)
 
-            self._model = GLiNER.from_pretrained(self.model_id)
+    def _load(self):
+        if self._model is None and not self._load_failed:
+            try:
+                from gliner import GLiNER
+
+                self._model = GLiNER.from_pretrained(self.model_id)
+            except Exception:
+                self._load_failed = True
+                self._log_failure_once(
+                    "model load failed; falling back to regex extraction"
+                )
+                self._model = None
         return self._model
 
     def extract(self, text: str, labels: Optional[Sequence[str]] = None) -> list[EntitySpan]:
         model = self._load()
-        wanted = list(labels or DEFAULT_ENTITY_LABELS)
-        raw = model.predict_entities(text, wanted)
-        return [
-            EntitySpan(
-                text=e["text"],
-                label=e.get("label", ""),
-                start=int(e.get("start", -1)),
-                end=int(e.get("end", -1)),
-                score=float(e.get("score", 1.0)),
+        if model is None:
+            return []
+        try:
+            wanted = list(labels or DEFAULT_ENTITY_LABELS)
+            raw = model.predict_entities(text, wanted)
+            return [
+                EntitySpan(
+                    text=e["text"],
+                    label=e.get("label", ""),
+                    start=int(e.get("start", -1)),
+                    end=int(e.get("end", -1)),
+                    score=float(e.get("score", 1.0)),
+                )
+                for e in raw
+            ]
+        except Exception:
+            self._log_failure_once(
+                "inference failed; returning empty span set (regex fallback)"
             )
-            for e in raw
-        ]
+            return []
 
 
 # Registry — keep the default path stdlib-only. GLiNER is opt-in via LLM_WIKI_NER.

@@ -4,6 +4,8 @@ Covers normalization, the two-signal merge safety rule, the reversible JSONL +
 derived-cache store, apply/unmerge round-trips, and the ER-F1 gate metric.
 """
 
+from pathlib import Path
+
 from llm_wiki.eval.er_metrics import er_f1, merges_to_clusters
 from llm_wiki.graph import alias_store
 from llm_wiki.graph.resolve import apply_resolution, normalize, resolve_entities, unmerge
@@ -142,6 +144,107 @@ def test_derived_cache_rebuilds_from_jsonl(tmp_path):
         assert alias_store.canonical_for(conn, "gpt-4") is not None
     finally:
         conn.close()
+
+
+# ── AD-14: ambiguous/single-signal near-misses surface as review rows ────────
+
+def test_ambiguous_leaves_unmerged(tmp_path):
+    # "Neural Net" / "Neural Networks": same block, ss ≈ 0.80 in the near-miss
+    # band, cos = 1.0 — strong second signal but below the string threshold →
+    # must NOT merge (single-signal rule) AND must surface as an audit review row.
+    emb = _ConceptEmbedder()
+    stats = apply_resolution(tmp_path, ["Neural Net", "Neural Networks"], embedder=emb)
+    assert stats["merged"] == 0
+    assert stats["review_rows"] >= 1
+
+    # the pair is not merged in the derived cache either
+    conn = open_index_db(tmp_path / ".index" / "wiki.db")
+    try:
+        assert alias_store.alias_count(conn) == 0
+    finally:
+        conn.close()
+
+    # an entity-merge audit review row exists in the wiki audit/ dir
+    audit_dir = Path(tmp_path) / "audit"
+    files = sorted(audit_dir.glob("*.md"))
+    assert files
+    content = files[0].read_text(encoding="utf-8")
+    assert "entity-merge" in content
+    assert "Neural Net" in content and "Neural Networks" in content
+
+
+def test_apply_resolution_creates_no_audit_without_near_misses(tmp_path):
+    # Identical-norm merges only → no near-misses → NO audit files are created
+    # (default behavior byte-identical: no regression for existing wikis).
+    stats = apply_resolution(tmp_path, ["GPT-4", "GPT 4", "gpt-4", "Rust", "Golang"])
+    assert stats["merged"] == 2
+    assert stats["review_rows"] == 0
+    assert stats["audit_paths"] == []
+    assert not (Path(tmp_path) / "audit").exists()
+
+
+# ── AD-20: alias_meta guard asserted by DB readers ───────────────────────────
+
+def test_readers_assert_alias_meta_guard_and_rebuild(tmp_path):
+    apply_resolution(tmp_path, ["GPT-4", "GPT 4", "gpt-4"])
+    conn = open_index_db(tmp_path / ".index" / "wiki.db")
+    try:
+        # stale guard (threshold mutated) → a plain guarded read rebuilds from
+        # the JSONL and returns correct values
+        conn.execute("UPDATE alias_meta SET threshold = 0.99 WHERE id = 1")
+        conn.commit()
+        cid = alias_store.canonical_for(
+            conn, "gpt-4", wiki_root=tmp_path, resolver_id="lightweight-v1"
+        )
+        assert cid is not None
+        assert alias_store.alias_meta_matches(conn, "lightweight-v1", 0.85) is True
+
+        # wiped tables → guarded reads recreate the cache and stay correct
+        conn.execute("DROP TABLE entity_aliases")
+        conn.execute("DROP TABLE alias_meta")
+        conn.commit()
+        assert alias_store.canonical_for(
+            conn, "gpt-4", wiki_root=tmp_path, resolver_id="lightweight-v1"
+        ) is not None
+        assert alias_store.alias_count(
+            conn, wiki_root=tmp_path, resolver_id="lightweight-v1"
+        ) == 2
+    finally:
+        conn.close()
+
+
+# ── AD-17: blocking keeps pair counts sub-quadratic ──────────────────────────
+
+def test_blocking_reduces_pairs():
+    from itertools import combinations
+    from time import monotonic
+
+    from llm_wiki.graph.resolve import _blocks
+
+    groups = [
+        "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel",
+        "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
+        "Quebec", "Romeo", "Sierra", "Tango",
+    ]
+    names = [f"{g} {i:02d}" for g in groups for i in range(1, 26)]
+    assert len(names) == 500
+
+    norms = [normalize(s) for s in names]
+    scored: set[tuple[int, int]] = set()
+    for idxs in _blocks(norms).values():
+        for a, b in combinations(sorted(idxs), 2):
+            scored.add((a, b))
+
+    naive = len(names) * (len(names) - 1) // 2
+    assert naive == 124750
+    assert 0 < len(scored) < naive // 4  # blocking scores <25% of all pairs
+
+    # the full public pipeline over the 500-name corpus stays fast (<2s) and
+    # must not false-merge distinct members
+    t0 = monotonic()
+    merges = resolve_entities(names)
+    assert monotonic() - t0 < 2.0
+    assert merges == []
 
 
 # ── ER-F1 gate metric ────────────────────────────────────────────────────────

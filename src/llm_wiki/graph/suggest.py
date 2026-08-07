@@ -349,7 +349,7 @@ def _apply_semantic(args, results, is_auto_appliable) -> int:
     are never applied (ADR-0021/0024). Resolved aliases of a target also count as
     mentions, which is what the LWM_025 resolution store unblocks.
     """
-    from llm_wiki.graph.resolve import alias_targets
+    from llm_wiki.graph.resolve import alias_targets, normalize
     from llm_wiki.operation import OperationContext
 
     layout = discover_layout(args.wiki_root)
@@ -363,9 +363,22 @@ def _apply_semantic(args, results, is_auto_appliable) -> int:
         print(f"Source page '{args.page}' not found", file=sys.stderr)
         return 1
 
+    # Mirror build_entity_registry: resolve a canonical LABEL to the page whose
+    # normalized title/stem it matches — the label ("GPT 4") can differ from the
+    # page title ("GPT-4") beyond case, so aliases are keyed by normalize(title).
+    pages_by_norm: dict[str, tuple[str, str]] = {}
+    for stem, (_, _, fm) in pages.items():
+        title = fm.get("title", stem) if fm else stem
+        pages_by_norm.setdefault(normalize(title), (stem, title))
+        pages_by_norm.setdefault(normalize(stem), (stem, title))
+
     canon_to_aliases: dict[str, list[str]] = defaultdict(list)
     for alias, label in alias_targets(args.wiki_root).items():
-        canon_to_aliases[label.lower()].append(alias)
+        hit = pages_by_norm.get(normalize(label))
+        title_key = normalize(hit[1]) if hit else normalize(label)
+        # the canonical LABEL is a real mention surface too (it appeared in wiki
+        # prose as a candidate), mirroring build_entity_registry's label routing
+        canon_to_aliases[title_key].extend([alias, label])
 
     pseudo: list[dict] = []
     for r in results:
@@ -376,7 +389,12 @@ def _apply_semantic(args, results, is_auto_appliable) -> int:
             continue
         _, _, fm = pages[target_stem]
         target_title = fm.get("title", target_stem) if fm else target_stem
-        surfaces = [target_title] + canon_to_aliases.get(target_title.lower(), [])
+        surfaces = [target_title] + canon_to_aliases.get(normalize(target_title), [])
+        # Dedupe case-insensitively: the title ("GPT-4") and an alias ("gpt-4")
+        # match the same spans under entity_pattern's IGNORECASE — applying both
+        # would corrupt the page with overlapping replacements.
+        seen: set[str] = set()
+        surfaces = [s for s in surfaces if not (s.lower() in seen or seen.add(s.lower()))]
         for surface in surfaces:
             pseudo.append({
                 "source_stem": args.page,

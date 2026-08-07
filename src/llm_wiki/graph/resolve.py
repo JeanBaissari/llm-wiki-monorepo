@@ -27,6 +27,11 @@ from llm_wiki.graph import alias_store
 
 RESOLVER_ID = "lightweight-v1"
 
+# Pairs scoring at/above this floor (string + embedding) but below the merge
+# thresholds are ambiguous near-misses: surfaced as `entity-merge` review rows
+# for a human decision, never auto-merged (LWM_025 AC#6 / error handling).
+NEAR_MISS_FLOOR = 0.5
+
 
 def normalize(s: str) -> str:
     """NFKC + casefold + collapse separators/punctuation."""
@@ -68,17 +73,43 @@ class _UnionFind:
             self.parent[ra] = rb
 
 
+def _near_miss(surface_a: str, surface_b: str, ss: float, cos: "float | None") -> dict:
+    """One ambiguous/near-miss pair dict (single-signal → review row, never a merge)."""
+    if len(surface_a) >= len(surface_b):
+        label, alias = surface_a, surface_b
+    else:
+        label, alias = surface_b, surface_a
+    cid = normalize(label).replace(" ", "-") or label
+    return {
+        "event": "near-miss",
+        "canonical_id": cid,
+        "canonical_label": label,
+        "alias": alias,
+        "method": RESOLVER_ID,
+        "signals": ["embedding", "string"] if cos is not None else ["string"],
+        "ss": round(ss, 4),
+        "cos": round(cos, 4) if cos is not None else None,
+        "score": round((ss + cos) / 2.0 if cos is not None else ss, 4),
+    }
+
+
 def resolve_entities(
     candidates: "list[str]",
     embedder=None,
     str_threshold: float = 0.85,
     cos_threshold: float = 0.80,
+    near_miss_sink: "list[dict] | None" = None,
 ) -> "list[dict]":
     """Cluster variant surface forms → proposed merge dicts.
 
     Each merge: ``{canonical_id, canonical_label, alias, method, signals, score}``.
     The canonical per cluster is the longest surface form (tie: sorted). Identical
     normalized forms always merge (identity signal).
+
+    When ``near_miss_sink`` is given, ambiguous pairs (both signals below the
+    merge thresholds but at/above ``NEAR_MISS_FLOOR``, or string-only pairs in
+    that band) are appended as review-row dicts instead of silently dropping
+    them (LWM_025 AC#6). ``None`` keeps the legacy behavior exactly.
     """
     surfaces = list(dict.fromkeys(c.strip() for c in candidates if c and c.strip()))
     n = len(surfaces)
@@ -119,10 +150,18 @@ def resolve_entities(
                 scores[(a, b)] = (ss + cos) / 2.0
                 if ss >= str_threshold and cos >= cos_threshold:
                     uf.union(a, b)  # two independent signals agree
+                elif (
+                    near_miss_sink is not None
+                    and ss >= NEAR_MISS_FLOOR
+                    and cos >= NEAR_MISS_FLOOR
+                ):
+                    near_miss_sink.append(_near_miss(surfaces[a], surfaces[b], ss, cos))
             else:
                 scores[(a, b)] = ss
                 if ss >= max(str_threshold, 0.92):  # string-only: raised bar
                     uf.union(a, b)
+                elif near_miss_sink is not None and ss >= NEAR_MISS_FLOOR:
+                    near_miss_sink.append(_near_miss(surfaces[a], surfaces[b], ss, None))
 
     clusters: "dict[int, list[int]]" = defaultdict(list)
     for i in range(n):
@@ -151,6 +190,50 @@ def resolve_entities(
     return merges
 
 
+def _write_review_rows(wiki_root, near_misses: "list[dict]", actor: str) -> "list[str]":
+    """Emit one ``entity-merge`` audit review row per ambiguous near-miss pair.
+
+    LWM_025 AC#6 / error-handling contract: single-signal and ambiguous
+    candidates surface as human-review rows instead of silently dropping (and
+    never auto-merge). Rows are written only when near-misses exist — a run
+    with none creates no audit files (no regression for existing wikis).
+    """
+    from llm_wiki.core.layout import discover_layout
+    from llm_wiki.quality.audit.writer import AuditWriter
+
+    layout = discover_layout(wiki_root)
+    audit_dir = layout.audit_dir or str(Path(wiki_root) / "audit")
+    writer = AuditWriter(audit_dir, wiki_root)
+    paths: "list[str]" = []
+    for nm in near_misses:
+        detail = {
+            "canonical_id": nm["canonical_id"],
+            "canonical_label": nm["canonical_label"],
+            "alias": nm["alias"],
+            "string_sim": nm["ss"],
+            "embedding_cos": nm["cos"],
+            "signals": ",".join(nm["signals"]),
+            "method": nm["method"],
+        }
+        body = "\n".join(f"- {k}: {v}" for k, v in detail.items())
+        p = writer.write_unanchored(
+            target=f"entity-merge: {nm['canonical_label']} ↔ {nm['alias']}",
+            target_kind="wiki",
+            target_reason=(
+                "Ambiguous entity pair left unmerged by entities resolve: at/above "
+                "the near-miss floor but below the two-signal merge thresholds — "
+                "needs a human decision (LWM_025 AC#6)."
+            ),
+            severity="suggest",
+            author=actor,
+            source="agent",
+            body=body,
+        )
+        if p:
+            paths.append(p)
+    return paths
+
+
 def apply_resolution(
     wiki_root,
     candidates: "list[str]",
@@ -158,11 +241,22 @@ def apply_resolution(
     threshold: float = 0.85,
     actor: str = "resolve",
 ) -> dict:
-    """Run resolution, append merge events to the JSONL, rebuild the derived cache."""
+    """Run resolution, append merge events to the JSONL, rebuild the derived cache.
+
+    Ambiguous/near-miss pairs (LWM_025 AC#6) are emitted as ``entity-merge``
+    audit review rows (stats keys ``review_rows`` + ``audit_paths``) — only when
+    such pairs exist; a clean run creates no audit files.
+    """
     from llm_wiki.search.index import DB_FILENAME, INDEX_DIR_NAME
     from llm_wiki.semantic.vector_schema import open_index_db
 
-    merges = resolve_entities(candidates, embedder=embedder, str_threshold=threshold)
+    near_misses: "list[dict]" = []
+    merges = resolve_entities(
+        candidates,
+        embedder=embedder,
+        str_threshold=threshold,
+        near_miss_sink=near_misses,
+    )
     for m in merges:
         alias_store.append_event(wiki_root, {"event": "merge", "actor": actor, **m})
 
@@ -173,8 +267,15 @@ def apply_resolution(
     finally:
         conn.close()
 
+    audit_paths = _write_review_rows(wiki_root, near_misses, actor) if near_misses else []
     canonicals = len({m["canonical_id"] for m in merges})
-    return {"merged": len(merges), "canonicals": canonicals, "total_aliases": n_aliases}
+    return {
+        "merged": len(merges),
+        "canonicals": canonicals,
+        "total_aliases": n_aliases,
+        "review_rows": len(audit_paths),
+        "audit_paths": audit_paths,
+    }
 
 
 def alias_targets(wiki_root) -> "dict[str, str]":

@@ -1,88 +1,34 @@
-"""Search-eval gate + gold-set integrity (LWM_032).
+"""Search-eval gate + gold-set integrity (LWM_032 / ADR-0020).
 
-Certifies the one elected default change of v0.5.0: hybrid may become the search
-default only when it does not regress keyword recall/precision on the held-out
-GATE split (fail-closed). Uses a deterministic concept embedder so the gate is
-reproducible offline; CI re-certifies with the real [semantic] embedder.
+Certifies the one elected default change of v0.5.0: hybrid may become the
+search default only when it does not regress keyword recall/precision on the
+held-out GATE split (fail-closed). Local runs use the deterministic concept
+embedder so the gate is reproducible offline; CI's `semantic` job re-certifies
+with the real [semantic] embedder (tests/eval/test_real_wiki_gate.py, which
+runs only there). Base installs stay lexical-only — hybrid degrades to keyword
+byte-identically.
 """
 
 from pathlib import Path
 
 from llm_wiki.eval.search_baseline import (
+    ConceptEmbedder,
+    build_search_gold_wiki,
     load_search_goldset,
     run_search_baseline,
     search_eval_gate,
     split_items,
 )
-from llm_wiki.search.index import index_wiki
-from llm_wiki.semantic.embed import embed_wiki
-from llm_wiki.semantic.embedder import Embedder
 
 GOLDSET = Path(__file__).parent / "eval" / "gold" / "search_goldset.json"
 
-# Topic one-hot space: ml | attn | bev | none. Concept-aware so a paraphrase
-# query ("deep learning model") matches the right pages that keyword misses.
-_TOPICS = {
-    "ml": ["neural network", "deep learning", "backpropagation", "layers"],
-    "attn": ["attention", "transformer", "sequences"],
-    "bev": ["coffee", "brewed", "beverage", "roasted", "beans"],
-}
-_DIM = {"ml": 0, "attn": 1, "bev": 2, "none": 3}
-
-
-def _topic_of(text: str) -> str:
-    t = text.lower()
-    best, score = "none", 0
-    for topic, kws in _TOPICS.items():
-        hits = sum(1 for kw in kws if kw in t)
-        if hits > score:
-            best, score = topic, hits
-    return best
-
-
-class _ConceptEmbedder(Embedder):
-    model_id = "concept"
-    revision = "r"
-    normalization = "l2"
-    quantization = "float32"
-
-    @classmethod
-    def is_available(cls):
-        return True
-
-    @property
-    def dimension(self):
-        return 4
-
-    def embed(self, texts):
-        out = []
-        for t in texts:
-            v = [0.0, 0.0, 0.0, 0.0]
-            v[_DIM[_topic_of(t)]] = 1.0
-            out.append(v)
-        return out
-
-
-_PAGES = {
-    "neural_network.md": "A neural network learns weights via backpropagation.",
-    "deep_learning.md": "Deep learning stacks many neural network layers.",
-    "transformer.md": "The transformer uses attention over sequences.",
-    "coffee.md": "Coffee is a brewed beverage from roasted beans.",
-}
-
 
 def _make_wiki(tmp_path, embed=True):
-    w = tmp_path / "wiki"
-    w.mkdir()
-    for nm, body in _PAGES.items():
-        (w / nm).write_text(
-            f"---\ntitle: {nm[:-3]}\ntype: concept\n---\n\n# {nm[:-3]}\n\n{body}\n",
-            encoding="utf-8",
-        )
-    index_wiki(tmp_path, rebuild=True)
-    if embed:
-        embed_wiki(tmp_path, embedder=_ConceptEmbedder())
-    return tmp_path
+    """Deterministic gold wiki: 4 topical pages, FTS5 index, optional vectors."""
+    return build_search_gold_wiki(
+        tmp_path,
+        embedder=ConceptEmbedder() if embed else None,
+    )
 
 
 # ── gold-set integrity ───────────────────────────────────────────────────────
@@ -111,7 +57,7 @@ def test_hybrid_ge_keyword_on_gate(tmp_path):
     root = _make_wiki(tmp_path, embed=True)
     gate_items = split_items(load_search_goldset(GOLDSET), "gate")
     kw = run_search_baseline(root, gate_items, "keyword")
-    hy = run_search_baseline(root, gate_items, "hybrid", embedder=_ConceptEmbedder())
+    hy = run_search_baseline(root, gate_items, "hybrid", embedder=ConceptEmbedder())
     allow, report = search_eval_gate(kw, hy)
     assert allow is True, report
     # The paraphrase query genuinely helps: hybrid recall strictly exceeds keyword.

@@ -43,6 +43,18 @@ class _CountingSummarizer:
                                 summary="A generated theme.", key_entities=ke)
 
 
+class _RecordingSummarizer(_CountingSummarizer):
+    """Summarizer that records every (system, user) prompt pair."""
+
+    def __init__(self, key_entities=None):
+        super().__init__(key_entities)
+        self.records = []
+
+    def __call__(self, system, user):
+        self.records.append((system, user))
+        return super().__call__(system, user)
+
+
 def test_default_unchanged_when_not_invoked(tmp_path):
     _root, wiki = _make_two_community_wiki(tmp_path)
     # Never running the operation leaves no communities/ directory.
@@ -115,3 +127,153 @@ def test_max_communities_cap(tmp_path):
     stats = summarize_communities(root, max_communities=1, summarizer=s)
     assert stats["communities"] == 1
     assert stats["summarized"] == 1
+
+
+def _summary_page(title, sha, level=0, summary="A generated theme."):
+    return (
+        "---\n"
+        f"title: {title}\n"
+        "type: community-summary\n"
+        f"community: 0\n"
+        f"level: {level}\n"
+        "members: []\n"
+        "key_entities: []\n"
+        f"member_sha: {sha}\n"
+        "generated_by: summarize-communities\n"
+        "updated: 2026-01-01\n"
+        "---\n\n"
+        f"# {title}\n\n{summary}\n"
+    )
+
+
+def test_global_summary_faithful_when_community_leaks(tmp_path):
+    """AD-9: a hallucinated entity returned by the LLM for BOTH a community and
+    the global root must never reach any rendered page — the global reference
+    is built from real member entities, not from raw (unfiltered) LLM output."""
+    root, wiki = _make_two_community_wiki(tmp_path)
+    s = _CountingSummarizer(key_entities=["A1", "HALLUCINATED-GLOBAL"])
+    summarize_communities(root, summarizer=s)
+    all_text = "\n".join(p.read_text(encoding="utf-8")
+                         for p in (wiki / "communities").glob("*.md"))
+    assert "A1" in all_text
+    assert "HALLUCINATED-GLOBAL" not in all_text  # dropped in community AND global pages
+
+
+def test_orphan_cleanup_removes_stale_pages(tmp_path):
+    """AD-12: summary pages whose member_sha left the current partition are
+    removed; unrelated files in communities/ are never touched."""
+    root, wiki = _make_two_community_wiki(tmp_path)
+    out = wiki / "communities"
+    out.mkdir()
+    stale1 = out / "L0-0000000000000000.md"
+    stale1.write_text(_summary_page("Old Theme", "0000000000000000"), encoding="utf-8")
+    stale2 = out / "L0-1111111111111111.md"
+    stale2.write_text(_summary_page("Old Theme 2", "1111111111111111"), encoding="utf-8")
+    note = out / "note.md"  # unrelated page, no community-summary type
+    note.write_text("---\ntitle: Note\ntype: concept\n---\n\n# Note\n", encoding="utf-8")
+    fake_summary = out / "L0-2222222222222222.md"  # matches naming, wrong type
+    fake_summary.write_text(
+        "---\ntitle: Not Summary\ntype: concept\nmember_sha: 2222222222222222\n---\n\n# N\n",
+        encoding="utf-8")
+
+    s = _CountingSummarizer()
+    stats = summarize_communities(root, summarizer=s)
+
+    assert stats["removed"] == 2
+    assert not stale1.exists()
+    assert not stale2.exists()
+    assert note.exists()
+    assert fake_summary.exists()
+    # Expected current pages: derive the partition the same way production does
+    # (isolated non-summary pages in communities/ are legitimate singleton
+    # communities — the cleanup must never touch them).
+    from llm_wiki.core.layout import discover_layout
+    from llm_wiki.graph.insights import detect_communities_for_insights
+    from llm_wiki.graph.suggest import load_pages
+
+    layout = discover_layout(root)
+    pages = load_pages(wiki, frozenset(f"{s}.md" for s in layout.skip_stems))
+    member_pages = {stem: v for stem, v in pages.items()
+                    if (v[2] or {}).get("type") != "community-summary"}
+    nodes, edges = summarize._build_graph(member_pages)
+    assignments = detect_communities_for_insights(nodes, edges, engine=None)
+    by_comm = {}
+    for stem, cid in assignments.items():
+        if stem in pages and (pages[stem][2] or {}).get("type") == "community-summary":
+            continue
+        by_comm.setdefault(cid, []).append(stem)
+    current = {summarize._member_sha(members) for members in by_comm.values()}
+    summary_files = {p.name for p in out.glob("L0-*.md")
+                     if "type: community-summary" in p.read_text(encoding="utf-8")}
+    assert summary_files == {f"L0-{sha}.md" for sha in current}
+    # Re-run is idempotent: no new removals, unchanged communities skipped.
+    stats2 = summarize_communities(root, summarizer=_CountingSummarizer())
+    assert stats2["removed"] == 0
+    assert stats2["skipped"] == len(current)
+
+
+def test_levels_flag_hierarchy(tmp_path):
+    """AD-13: --levels 2 produces level-0 AND level-1 pages, one call per
+    community per level, and the level-1 parent prompt includes its children's
+    summary text (parents summarize child summaries)."""
+    root, wiki = _make_two_community_wiki(tmp_path)
+    s = _RecordingSummarizer()
+    stats = summarize_communities(root, levels=2, summarizer=s)
+
+    assert stats["levels"] == 2
+    l0 = sorted((wiki / "communities").glob("L0-*.md"))
+    l1 = list((wiki / "communities").glob("L1-*.md"))
+    assert len(l0) == 2
+    assert len(l1) == 1
+    assert "level: 1" in l1[0].read_text(encoding="utf-8")
+    # 2 level-0 + 1 level-1 parent + 1 global root.
+    assert s.calls == 4
+    parent_user = s.records[2][1]
+    assert "Child summaries" in parent_user
+    assert "Theme 1" in parent_user and "Theme 2" in parent_user
+
+
+def test_degrade_flat_when_no_hierarchy(tmp_path):
+    """AD-13: with no Leiden hierarchy source (opt-in [leiden] extra), an
+    explicit --engine leiden caps at flat + global — levels > 1 are no-ops
+    with the degrade noted in the stats, no crash."""
+    root, wiki = _make_two_community_wiki(tmp_path)
+    s = _CountingSummarizer()
+    stats = summarize_communities(root, levels=3, engine="leiden", summarizer=s)
+
+    assert stats["hierarchy"] == "flat"
+    assert stats["levels"] == 1
+    assert not list((wiki / "communities").glob("L1-*.md"))
+    assert (wiki / "communities" / "global-summary.md").exists()
+    assert stats["calls"] == 3  # 2 flat communities + global only
+
+
+def test_partition_levels_deterministic(tmp_path):
+    root, wiki = _make_two_community_wiki(tmp_path)
+    from llm_wiki.core.layout import discover_layout
+    from llm_wiki.graph.suggest import load_pages
+
+    layout = discover_layout(root)
+    pages = load_pages(wiki, frozenset())
+    nodes, edges = summarize._build_graph(pages)
+    a = summarize._partition_levels(nodes, edges, engine=None, max_levels=2)
+    b = summarize._partition_levels(nodes, edges, engine=None, max_levels=2)
+    assert a == b  # deterministic coarsening
+    levels, source = a
+    assert source == "agglomerated"
+    assert len(levels) == 2
+    assert levels[1]["level"] == 1
+
+
+def test_summary_faithfulness_metric():
+    """LWM_030 AC#7 metric: rate of key_entities ⊆ member entities (1.0 perfect)."""
+    members = {0: {"A1", "A2"}, 1: {"B1"}}
+    assert summarize.summary_faithfulness([(0, ["A1", "A2"]), (1, ["B1"])], members) == 1.0
+    assert summarize.summary_faithfulness(
+        [{"community": 0, "key_entities": ["A1"]},
+         {"community": 1, "key_entities": ["B1", "BOGUS"]}], members) == 0.5
+    assert summarize.summary_faithfulness([(0, ["NOPE"]), (1, ["ALSO-NOPE"])], members) == 0.0
+    # Case-normalized comparison; empty key_entities counts as faithful.
+    assert summarize.summary_faithfulness([(0, ["a1"])], {0: {"A1"}}) == 1.0
+    assert summarize.summary_faithfulness([(0, [])], members) == 1.0
+    assert summarize.summary_faithfulness([], members) == 1.0  # vacuous

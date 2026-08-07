@@ -142,6 +142,25 @@ jobs:
       - name: Run full suite (with vector paths active)
         run: python3 -m pytest tests/ -q -m "not slow"
 
+  # LWM_027/ADR-0025: exercise the optional Leiden engine in an isolated lane —
+  # per-component hierarchical_leiden (AD-18), the B4/B6 hierarchy seam, and the
+  # ADR-0012 Leiden-vs-Louvain NMI/modularity gate data (AD-5) — so the base
+  # install and other lanes stay free of the [leiden] extra.
+  leiden-verification:
+    name: Leiden engine verification ([leiden] extra)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test deps + [leiden] extra
+        run: pip install -e ".[dev,test,leiden]"
+      - name: Run Leiden connectivity + NMI/modularity verification
+        run: |
+          python3 -m pytest tests/test_leiden.py tests/test_verification.py tests/test_communities_internally_connected.py -q -m "not slow"
+          python3 tests/verification/run_verification.py
+
   # LWM_023: prove the base install stays lexical-only — no numpy / model2vec /
   # sqlite-vec pulled in, and the new semantic/eval modules import safely and are
   # inert without the extra.

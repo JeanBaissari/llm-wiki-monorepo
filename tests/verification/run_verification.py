@@ -81,6 +81,113 @@ def run_python_louvain(
     return assignments
 
 
+# ── Python Leiden (ADR-0012 gate: Leiden vs Louvain NMI/modularity) ────────
+def run_python_leiden(
+    edges: list[dict], node_ids: list[str], seed: int
+) -> Optional[dict[str, int]]:
+    """Run Python Leiden and return assignments, or None when unavailable."""
+    try:
+        from llm_wiki.graph.leiden import detect_communities, is_leiden_available
+    except ImportError:
+        return None
+    if not is_leiden_available():
+        return None
+    nodes_py = [{"id": nid} for nid in node_ids]
+    edges_py = [
+        {"source": e["source"], "target": e["target"], "weight": e.get("weight", 1)}
+        for e in edges
+    ]
+    try:
+        assignments, _ = detect_communities(nodes_py, edges_py, seed=seed)
+        return assignments
+    except Exception:
+        return None
+
+
+def verify_leiden_vs_louvain(graph: dict) -> dict[str, Any]:
+    """ADR-0012 gate data: Leiden vs Louvain NMI + modularity per graph fixture.
+
+    For every seed, run Leiden and Louvain on the fixture, compute the NMI
+    between their partitions and the modularity of each. Also asserts Leiden's
+    internal-connectivity guarantee over the graph. The flip to Leiden as the
+    default is a separate gated decision (Leiden ≥ Louvain on a disjoint gate
+    set, ADR-0025) — this only *reports* the metrics.
+
+    Returns a dict with ``available`` (False when the [leiden] extra is
+    missing — NMI values then stay empty and no assertion applies) plus
+    per-seed NMI / modularity rows and connectivity status.
+    """
+    name = graph["name"]
+    edges = graph["edges"]
+    nodes = graph["nodes"]
+    result: dict[str, Any] = {
+        "graph": name,
+        "available": False,
+        "seeds": {},
+        "nmi_values": [],
+        "nmi_mean": None,
+        "modularity_leiden": [],
+        "modularity_louvain": [],
+        "connectivity_pass": False,
+    }
+    try:
+        from llm_wiki.graph.leiden import (
+            _induced_connected,
+            detect_communities as leiden_detect,
+            is_leiden_available,
+        )
+        available = bool(is_leiden_available())
+    except ImportError:
+        available = False
+        leiden_detect = None
+        _induced_connected = None
+    result["available"] = available
+
+    nodes_py = [{"id": nid} for nid in nodes]
+    edges_py = [
+        {"source": e["source"], "target": e["target"], "weight": e.get("weight", 1)}
+        for e in edges
+    ]
+    for seed in SEEDS:
+        leiden_ass = run_python_leiden(edges, nodes, seed)
+        louvain_ass = run_python_louvain(edges, nodes, seed)
+        row: dict[str, Any] = {
+            "leiden_communityCount": len(set(leiden_ass.values())) if leiden_ass else 0,
+            "louvain_communityCount": len(set(louvain_ass.values())) if louvain_ass else 0,
+            "nmi": None,
+            "leiden_modularity": _compute_q(leiden_ass, edges) if leiden_ass else None,
+            "louvain_modularity": _compute_q(louvain_ass, edges) if louvain_ass else None,
+        }
+        if leiden_ass and louvain_ass and len(leiden_ass) == len(louvain_ass):
+            nodes_sorted = sorted(leiden_ass.keys())
+            row["nmi"] = nmi(
+                [leiden_ass[n] for n in nodes_sorted],
+                [louvain_ass[n] for n in nodes_sorted],
+            )
+            result["nmi_values"].append(row["nmi"])
+            result["modularity_leiden"].append(row["leiden_modularity"])
+            result["modularity_louvain"].append(row["louvain_modularity"])
+        result["seeds"][str(seed)] = row
+
+    # Connectivity: Leiden's guarantee must hold on the finest partition
+    # (AD-5) — and no node may be dropped (AD-18).
+    if available:
+        result["connectivity_pass"] = True
+        for seed in SEEDS:
+            ass, comms = leiden_detect(nodes_py, edges_py, seed=seed)
+            if set(ass) != set(nodes):
+                result["connectivity_pass"] = False
+            for c in comms:
+                members = {nid for nid, cid in ass.items() if cid == c["id"]}
+                if not _induced_connected(members, edges):
+                    result["connectivity_pass"] = False
+        result["nmi_mean"] = (
+            sum(result["nmi_values"]) / len(result["nmi_values"])
+            if result["nmi_values"] else None
+        )
+    return result
+
+
 # ── TypeScript Louvain ─────────────────────────────────────────────────────
 def run_ts_louvain(graph_path: str, seed: int) -> Optional[dict[str, int]]:
     """Run TypeScript Louvain via tsx runner and return assignments dict."""
@@ -277,6 +384,9 @@ def verify_graph(
 
     result["modularity_consistent"] = q_pass
 
+    # ── Phase 5b: Leiden vs Louvain NMI/modularity (ADR-0012 gate data) ──
+    result["leiden_vs_louvain"] = verify_leiden_vs_louvain(graph)
+
     # ── Overall pass/fail ───────────────────────────────────────────
     failures = []
 
@@ -353,6 +463,26 @@ def print_report(results: list[dict]):
                 f"mean NMI={wp['nmi_diff_seed_mean']:.4f}  "
                 f"vals={[round(v, 4) for v in wp['nmi_diff_seed']]}"
             )
+
+        lvl = r.get("leiden_vs_louvain")
+        if lvl is not None:
+            if lvl["available"]:
+                print(
+                    f"       Leiden vs Louvain:     "
+                    f"NMI mean={lvl['nmi_mean']:.4f}  "
+                    f"vals={[round(v, 4) for v in lvl['nmi_values']]}"
+                )
+                if lvl["modularity_leiden"]:
+                    print(
+                        f"       Q mean:  Leiden={sum(lvl['modularity_leiden'])/len(lvl['modularity_leiden']):.4f}  "
+                        f"Louvain={sum(lvl['modularity_louvain'])/len(lvl['modularity_louvain']):.4f}"
+                    )
+                print(
+                    f"       Leiden connectivity:    "
+                    f"{'PASS' if lvl['connectivity_pass'] else 'FAIL'}"
+                )
+            else:
+                print("       Leiden vs Louvain:     skipped ([leiden] extra not installed)")
 
         # Per-seed modularity
         for seed_str, sd in r["seeds"].items():

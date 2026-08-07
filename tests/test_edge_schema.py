@@ -25,6 +25,13 @@ ANNOTATED_EDGES = [
      "valid_from": "2020-01-01T00:00:00Z", "observed_at": "2026-08-07T00:00:00Z"}
     for e in PLAIN_EDGES
 ]
+# The FULL additive schema: directed opt-in + all bitemporal fields.
+FULL_ANNOTATED_EDGES = [
+    {**e, "relType": "is-a", "directed": True,
+     "valid_from": "2020-01-01T00:00:00Z", "valid_to": "2021-01-01T00:00:00Z",
+     "observed_at": "2026-08-07T00:00:00Z"}
+    for e in PLAIN_EDGES
+]
 
 
 def test_optional_fields_default_absent_and_partition_stable():
@@ -43,11 +50,17 @@ def test_legacy_edge_still_works():
         assert set(c) == {"id", "nodeCount", "cohesion", "topNodes"}
 
 
-def test_bitemporal_fields_roundtrip_as_plain_dict():
-    # Edge carriers are plain dicts; bitemporal fields persist untouched.
-    e = {"source": "a", "target": "b", "weight": 1,
-         "valid_from": "2020-01-01T00:00:00Z", "valid_to": "2021-01-01T00:00:00Z",
-         "observed_at": "2026-08-07T00:00:00Z", "directed": True, "relType": "is-a"}
-    assert e["valid_from"] == "2020-01-01T00:00:00Z"
-    assert e["directed"] is True
-    assert e["relType"] == "is-a"
+def test_full_additive_fields_are_inert_with_partition_stability():
+    # Edges carrying the FULL additive schema (relType + directed + the
+    # valid_from/valid_to/observed_at bitemporal trio) are accepted by the
+    # community engine and leave the undirected default partition unchanged.
+    plain_assign, plain_comms = detect_communities(NODES, PLAIN_EDGES, seed=42)
+    full_assign, full_comms = detect_communities(NODES, FULL_ANNOTATED_EDGES, seed=42)
+    assert plain_assign == full_assign
+    assert plain_comms == full_comms
+    # The carriers survive untouched — no field coercion, no dropping.
+    for e in FULL_ANNOTATED_EDGES:
+        assert e["directed"] is True and e["relType"] == "is-a"
+        assert e["valid_from"] == "2020-01-01T00:00:00Z"
+        assert e["valid_to"] == "2021-01-01T00:00:00Z"
+        assert e["observed_at"] == "2026-08-07T00:00:00Z"

@@ -9,7 +9,6 @@ inclusion gate (positive + negative).
 import json
 
 from llm_wiki.graph import derived_edges as de
-from llm_wiki.graph.insights import detect_communities_for_insights
 
 
 def _make_wiki(tmp_path):
@@ -58,17 +57,28 @@ def test_wikilink_duplicates_dropped(tmp_path):
 
 
 def test_default_exclusion_analytics_identical(tmp_path):
-    root, wiki = _make_wiki(tmp_path)
-    nodes = {"rag": {"label": "RAG", "linkCount": 1},
-             "retrieval": {"label": "Retrieval", "linkCount": 0},
-             "notes": {"label": "Notes", "linkCount": 1}}
-    edges = [("notes", "rag")]  # the only wikilink edge
+    root, _wiki = _make_wiki(tmp_path)
 
-    before = detect_communities_for_insights(nodes, edges)
-    de.generate_derived_edges(root, min_shared_sources=2)
-    after = detect_communities_for_insights(nodes, edges)
-    # The derived layer existing on disk changes nothing for default consumers.
+    # Baseline through the REAL on-disk consumer: `compute_insights` is the
+    # exact entry point `llm-wiki insights` runs — it re-reads the pages from
+    # disk and detects communities from the wikilink graph alone.
+    from llm_wiki.graph.insights import compute_insights
+
+    before = compute_insights(root, fmt="json")
+
+    # Build the derived layer ON DISK (co-occurrence mode runs on the base
+    # install). The layer must be non-empty, or the comparison is vacuous.
+    stats = de.generate_derived_edges(root, min_shared_sources=2)
+    assert stats["co_occurs_with"] >= 1
+    assert len(de.load_derived_edges(root)) >= 1
+
+    after = compute_insights(root, fmt="json")
+
+    # Default consumers never open the layer → identical output. This test
+    # FAILS if anyone wires derived edges into the insights path: the summary
+    # edgeCount (and likely the partition) would change.
     assert before == after
+    assert before["summary"]["edgeCount"] == 1  # only the notes<->rag wikilink
 
 
 def test_include_derived_off_by_default(tmp_path):

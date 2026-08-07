@@ -51,9 +51,11 @@ def _run_cli(*args: str) -> subprocess.CompletedProcess:
 
 class TestCliBaseline:
     def test_version(self):
+        from llm_wiki import __version__
         r = _run_cli("--version")
         assert r.returncode == 0
-        assert r.stdout.strip() == "llm-wiki 0.3.4"
+        # Read the version dynamically so this snapshot survives version bumps.
+        assert r.stdout.strip() == f"llm-wiki {__version__}"
 
     def test_no_args_shows_help(self):
         r = _run_cli()

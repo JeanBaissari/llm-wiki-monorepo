@@ -156,6 +156,7 @@ class TestSidecarVsDirect:
     vs calling the same function in-process.
     """
 
+    @pytest.mark.slow  # absolute-overhead benchmark: env-dependent, opt-in (LWM_023)
     def test_lint_sidecar_vs_direct(self, populated_wiki: Path):
         """Sidecar lint dispatch overhead compared to direct lint_files()."""
         wiki_root = str(populated_wiki)

@@ -31,6 +31,8 @@ COMMANDS = {
     "insights": "llm_wiki.graph.insights",
     "link-suggest": "llm_wiki.graph.suggest",
     "entities": "llm_wiki.graph.entities",
+    "derive-edges": "llm_wiki.graph.derived_edges",
+    "summarize-communities": "llm_wiki.graph.summarize",
     "backup": "llm_wiki.wiki.backup",
     "deep-research": "llm_wiki.research.deep_research",
     "audit": "llm_wiki.quality.audit",

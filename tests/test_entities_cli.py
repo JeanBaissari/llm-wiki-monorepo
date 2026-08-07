@@ -117,3 +117,44 @@ def test_apply_preserves_surface_text(tmp_path):
         assert link.split("|")[0] == "GPT-4"
     # Prose surface forms survive (inside links as labels or as the link text).
     assert "gpt-4" in new_text and "GPT 4" in new_text
+
+
+# ── AD-21: _apply_semantic keys aliases by normalized page title ─────────────
+
+def test_apply_gated_on_two_signals(tmp_path):
+    from types import SimpleNamespace
+
+    from llm_wiki.graph.suggest import _apply_semantic
+    from llm_wiki.semantic.linking import is_auto_appliable
+
+    root, wiki = _make_wiki(tmp_path)
+    (wiki / "lone.md").write_text(
+        "---\ntitle: Lone Wolf\ntype: concept\n---\n\n# Lone Wolf\n\nUnrelated.\n",
+        encoding="utf-8",
+    )
+
+    # Canonical LABEL ("GPT 4", the tie-sorted canonical) differs from the page
+    # title ("GPT-4") beyond case — the alias-attach lookup must be keyed by
+    # normalize(title), not the raw label.
+    apply_resolution(root, ["GPT-4", "GPT 4", "gpt-4"])
+    targets = alias_targets(root)
+    assert "GPT 4" in targets.values()  # the canonical label ≠ page title
+
+    args = SimpleNamespace(wiki_root=str(root), page="notes", limit=20)
+
+    # Case A: auto-appliable (two-signal) row for the GPT-4 page, and the alias
+    # IS mentioned in the source prose → the link is applied as [[GPT-4|surface]].
+    rc = _apply_semantic(args, [{"target_stem": "gpt-4", "signals": ["lexical", "ppr"]}],
+                         is_auto_appliable)
+    assert rc == 0
+    new_text = (wiki / "notes.md").read_text(encoding="utf-8")
+    assert "[[GPT-4|GPT 4]]" in new_text
+
+    # Case B: auto-appliable row whose target is NOT mentioned in the prose
+    # (no title and no alias mention) → nothing applied, page unchanged.
+    before = (wiki / "notes.md").read_text(encoding="utf-8")
+    rc = _apply_semantic(args, [{"target_stem": "lone", "signals": ["lexical", "ppr"]}],
+                         is_auto_appliable)
+    assert rc == 0
+    assert (wiki / "notes.md").read_text(encoding="utf-8") == before
+    assert "Lone Wolf" not in (wiki / "notes.md").read_text(encoding="utf-8")

@@ -64,3 +64,90 @@ def test_gliner_availability_probe_matches_import():
     except ImportError:
         expected = False
     assert GLiNERExtractor.is_available() is expected
+
+
+# ── AD-10: load/inference failures degrade, never raise ─────────────────────
+
+def _inject_fake_gliner(monkeypatch, load_error=None, predict_error=None):
+    """Install a fake `gliner` module so is_available() is True and the backend
+    can be forced to fail at load or at inference time."""
+    import sys
+    import types
+
+    if load_error is not None:
+        class _GLiNER:
+            @classmethod
+            def from_pretrained(cls, model_id):
+                raise load_error
+        predict_raises = None
+    else:
+        class _Model:
+            def predict_entities(self, text, wanted):
+                if predict_error is not None:
+                    raise predict_error
+                return [
+                    {"text": "Transformer", "label": "model",
+                     "start": 0, "end": 11, "score": 0.99},
+                ]
+
+        class _GLiNER:
+            @classmethod
+            def from_pretrained(cls, model_id):
+                return _Model()
+
+    fake = types.ModuleType("gliner")
+    fake.GLiNER = _GLiNER
+    monkeypatch.setitem(sys.modules, "gliner", fake)
+
+
+def test_gliner_load_failure_falls_back(monkeypatch, capsys):
+    _inject_fake_gliner(monkeypatch, load_error=RuntimeError("model download failed"))
+    assert GLiNERExtractor.is_available() is True
+    ex = get_extractor("gliner")
+    assert isinstance(ex, GLiNERExtractor)
+    # extraction must degrade (empty spans) without raising
+    assert ex.extract(SAMPLE) == []
+    assert ex.extract_surfaces(SAMPLE) == []
+
+
+def test_gliner_inference_failure_falls_back(monkeypatch):
+    _inject_fake_gliner(
+        monkeypatch, predict_error=RuntimeError("onnxruntime inference failed")
+    )
+    ex = get_extractor("gliner")
+    assert isinstance(ex, GLiNERExtractor)
+    # a failing predict_entities() degrades to [] instead of crashing
+    assert ex.extract(SAMPLE) == []
+
+
+def test_gliner_failure_logged_once(monkeypatch, capsys):
+    _inject_fake_gliner(monkeypatch, load_error=RuntimeError("offline"))
+    ex = get_extractor("gliner")
+    for _ in range(3):
+        assert ex.extract(SAMPLE) == []
+    out, err = capsys.readouterr()
+    # structured log (core/logging.py → stderr) fires exactly once per instance
+    assert err.count("GLiNER") == 1
+
+
+def test_no_download_base_path(monkeypatch):
+    import builtins
+
+    real_import = builtins.__import__
+
+    def blocking_import(name, *args, **kwargs):
+        if name == "gliner" or name.startswith("gliner."):
+            raise ImportError("No module named 'gliner' (base path must not import it)")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", blocking_import)
+    monkeypatch.delenv("LLM_WIKI_NER", raising=False)
+    # base path: no [ner] extra → get_extractor() is the regex default and the
+    # blocked import proves GLiNER is never even imported (so no model download).
+    ex = get_extractor()
+    assert isinstance(ex, RegexExtractor)
+    assert ex.extract_surfaces(SAMPLE) == extract_entities(SAMPLE)
+    # a requested gliner backend also degrades to regex when [ner] is absent
+    ex2 = get_extractor("gliner")
+    assert isinstance(ex2, RegexExtractor)
+    assert GLiNERExtractor.is_available() is False

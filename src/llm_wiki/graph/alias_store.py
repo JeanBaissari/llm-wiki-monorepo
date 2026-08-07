@@ -159,20 +159,71 @@ def rebuild_derived(
     return len(state)
 
 
-def canonical_for(conn: sqlite3.Connection, alias: str) -> Optional[str]:
-    """Canonical id for an alias, or ``None`` (readers degrade to identity)."""
+def _guard_or_rebuild(
+    conn: sqlite3.Connection, wiki_root, resolver_id: str, threshold: float
+) -> None:
+    """Assert the ``alias_meta`` guard; on mismatch/absence rebuild from the JSONL.
+
+    Every DB reader that gets a ``wiki_root`` + ``resolver_id`` runs this before
+    reading, so a stale or wiped derived cache is never served stale merges
+    (LWM_025 module boundary — the ``embed_meta`` pattern).
+    """
+    if not alias_meta_matches(conn, resolver_id, threshold):
+        rebuild_derived(conn, wiki_root, resolver_id, threshold)
+
+
+def canonical_for(
+    conn: sqlite3.Connection,
+    alias: str,
+    *,
+    wiki_root=None,
+    resolver_id: Optional[str] = None,
+    threshold: float = 0.85,
+) -> Optional[str]:
+    """Canonical id for an alias, or ``None`` (readers degrade to identity).
+
+    Guarded: when ``wiki_root`` + ``resolver_id`` are provided, the
+    ``alias_meta`` guard is asserted first; on mismatch or missing tables the
+    derived cache is rebuilt from the JSONL source of truth before reading.
+    """
+    if wiki_root is not None and resolver_id is not None:
+        _guard_or_rebuild(conn, wiki_root, resolver_id, threshold)
     try:
         row = conn.execute(
             "SELECT canonical_id FROM entity_aliases WHERE alias = ?", (alias,)
         ).fetchone()
     except sqlite3.OperationalError:
-        return None
+        if wiki_root is not None and resolver_id is not None:
+            _guard_or_rebuild(conn, wiki_root, resolver_id, threshold)
+            row = conn.execute(
+                "SELECT canonical_id FROM entity_aliases WHERE alias = ?", (alias,)
+            ).fetchone()
+        else:
+            return None
     return row[0] if row else None
 
 
-def alias_count(conn: sqlite3.Connection) -> int:
+def alias_count(
+    conn: sqlite3.Connection,
+    *,
+    wiki_root=None,
+    resolver_id: Optional[str] = None,
+    threshold: float = 0.85,
+) -> int:
+    """Number of resolved aliases.
+
+    Guarded: when ``wiki_root`` + ``resolver_id`` are provided, the
+    ``alias_meta`` guard is asserted first; on mismatch or missing tables the
+    derived cache is rebuilt from the JSONL source of truth before counting.
+    """
+    if wiki_root is not None and resolver_id is not None:
+        _guard_or_rebuild(conn, wiki_root, resolver_id, threshold)
     try:
         row = conn.execute("SELECT COUNT(*) FROM entity_aliases").fetchone()
     except sqlite3.OperationalError:
-        return 0
+        if wiki_root is not None and resolver_id is not None:
+            _guard_or_rebuild(conn, wiki_root, resolver_id, threshold)
+            row = conn.execute("SELECT COUNT(*) FROM entity_aliases").fetchone()
+        else:
+            return 0
     return row[0] if row else 0

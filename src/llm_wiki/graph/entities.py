@@ -30,6 +30,7 @@ from llm_wiki.graph.resolve import RESOLVER_ID, apply_resolution, unmerge
 
 def _gather_candidates(wiki_root: str) -> list[str]:
     """Collect deduped entity surface forms from every page via the active extractor."""
+    from llm_wiki.graph.extract import RegexExtractor, get_extractor
     from llm_wiki.graph.suggest import load_pages
 
     layout = discover_layout(wiki_root)
@@ -40,9 +41,16 @@ def _gather_candidates(wiki_root: str) -> list[str]:
     pages = load_pages(wiki_dir, skip_files)
 
     extractor = get_extractor()
+    regex_fallback = RegexExtractor()
     seen: dict[str, None] = {}
     for _stem, (_p, text, _fm) in pages.items():
-        for surface in extractor.extract_surfaces(text):
+        try:
+            surfaces = extractor.extract_surfaces(text)
+        except Exception:
+            # GLiNERExtractor never raises (AD-10), but any extractor that does
+            # degrades to the regex path for that page rather than crashing.
+            surfaces = regex_fallback.extract_surfaces(text)
+        for surface in surfaces:
             surface = surface.strip()
             if surface:
                 seen.setdefault(surface, None)
@@ -67,6 +75,8 @@ def _cmd_resolve(args) -> int:
         stats = apply_resolution(
             args.wiki_root, candidates, embedder=embedder, threshold=args.threshold
         )
+        for audit_path in stats.get("audit_paths", []):
+            ctx.add_artifact_ref("audit_ids", audit_path)
         ctx.succeed()
 
     extractor = get_extractor().name

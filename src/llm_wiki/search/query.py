@@ -4,14 +4,14 @@
 Adds a Python query surface (`llm-wiki search`) — until now querying lived only
 in the MCP/TS server. Two modes:
 
-  * keyword (default): FTS5 native BM25 over the `.index/wiki.db` `pages` table.
-  * hybrid (`--hybrid`, opt-in): Reciprocal-Rank-Fusion of BM25 + vector KNN.
-    Requires the `[semantic]` extra + an embedded index; without either it
-    transparently falls back to keyword-only (byte-identical), per LWM_013
-    invariant #2/#3. A cosine floor keeps gibberish queries returning empty.
+  * hybrid (default): Reciprocal-Rank-Fusion of BM25 + vector KNN. Requires the
+    `[semantic]` extra + an embedded index; without either it transparently falls
+    back to keyword-only (byte-identical), per LWM_013 invariant #2/#3. A cosine
+    floor keeps gibberish queries returning empty.
+  * keyword (`--keyword`): FTS5 native BM25 over the `.index/wiki.db` `pages` table.
 
-Hybrid is opt-in in v0.4.0; promoting it to the default is deferred to v0.5.0
-after the eval harness proves no keyword-recall regression (ADR-0020).
+Hybrid became the default in v0.5.0 once the search-eval gate proved no
+keyword-recall regression on the held-out GATE split. See ADR-0020 / LWM_032.
 """
 
 from __future__ import annotations
@@ -100,6 +100,7 @@ def hybrid_search(
     k: int = 10,
     embedder=None,
     sim_floor: float = DEFAULT_SIM_FLOOR,
+    rrf_k: int = 60,
 ) -> "list[dict]":
     """RRF fusion of BM25 + vector KNN, with keyword-only fallback.
 
@@ -131,7 +132,7 @@ def hybrid_search(
         if not kw_ids and not vec_ids:
             return []  # no lexical hit and no strong neighbor → empty
 
-        fused = rrf_order([kw_ids, vec_ids])
+        fused = rrf_order([kw_ids, vec_ids], k=rrf_k)
         kw_by_path = {r["path"]: r for r in kw}
         titles = _titles_for(conn, [i for i in fused if i not in kw_by_path])
 
@@ -164,24 +165,41 @@ def _print_results(results: "list[dict]", query: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Search the wiki (keyword by default; --hybrid adds semantic)."
+        description="Search the wiki (hybrid by default; --keyword forces lexical-only). "
+                    "See ADR-0020."
     )
     parser.add_argument("wiki_root", help="Path to the wiki project root")
     parser.add_argument("query", help="Search query")
+    # Hybrid is the v0.5.0 default (LWM_032/ADR-0020); it degrades to keyword
+    # byte-identically without the [semantic] extra. --keyword forces lexical-only.
+    parser.add_argument("--keyword", action="store_true",
+                        help="Force keyword-only ranking (pre-v0.5.0 default)")
     parser.add_argument("--hybrid", action="store_true",
-                        help="Fuse keyword + semantic (requires the [semantic] extra)")
+                        help=argparse.SUPPRESS)  # back-compat no-op: hybrid is now default
     parser.add_argument("--top-k", type=int, default=10, dest="top_k",
                         help="Number of results (default: 10)")
+    parser.add_argument("--set", action="append", default=[], dest="overrides",
+                        metavar="section.key=value",
+                        help="Tuning override, e.g. retrieval.simFloor=0.4 (LWM_031)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
     layout = discover_layout(args.wiki_root)
     root = layout.root
 
-    if args.hybrid:
-        results = hybrid_search(root, args.query, args.top_k)
-    else:
+    from llm_wiki.core.config import ConfigError, resolve_tuning
+    try:
+        tuning = resolve_tuning(root, cli_overrides=args.overrides)
+    except ConfigError as e:
+        print(f"config error: {e}", file=sys.stderr)
+        return 2
+
+    if args.keyword:
         results = keyword_search(root, args.query, args.top_k)
+    else:
+        results = hybrid_search(root, args.query, args.top_k,
+                                sim_floor=tuning.retrieval.simFloor,
+                                rrf_k=tuning.retrieval.rrfK)
 
     if args.json:
         print(json.dumps(results, indent=2))

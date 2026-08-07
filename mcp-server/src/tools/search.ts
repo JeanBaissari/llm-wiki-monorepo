@@ -13,10 +13,12 @@ export async function handleSearch(args: Record<string, unknown>): Promise<ToolR
 
     const topK = Math.min(Math.max((args.top_k as number) ?? 10, 1), 100);
 
-    // Hybrid mode (opt-in, LWM_020): fuse keyword + semantic via the Python
-    // sidecar. Any unavailability/error falls through to the byte-identical
-    // keyword path below, so the default is never affected.
-    if ((args.mode as string) === "hybrid") {
+    // Hybrid is the v0.5.0 default (LWM_032 / ADR-0020): fuse keyword + semantic
+    // via the Python sidecar. mode="keyword" forces lexical-only, and any
+    // sidecar unavailability/error/empty-index falls through to the byte-identical
+    // keyword path below — so the default degrades gracefully with no [semantic].
+    const mode = (args.mode as string) ?? "hybrid";
+    if (mode !== "keyword") {
       const sidecar = getSidecar();
       if (sidecar?.isRunning()) {
         try {

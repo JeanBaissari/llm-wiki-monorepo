@@ -10,6 +10,25 @@ import { detectCommunities, buildGraphologyGraph } from './louvain.js';
 
 export { buildGraphologyGraph };
 
+/**
+ * Edge dedup key (LWM_028 / ADR-0026). The undirected default (`directed`
+ * absent/false) sorts the two ids so A↔B and B↔A collapse — verbatim the
+ * pre-v0.5.0 behaviour, keeping `graph-data.json` byte-identical. When a
+ * producer opts into `directed`, the key includes orientation + `relType`, so
+ * A→B ≠ B→A and A→B#is-a ≠ A→B#cites.
+ */
+export function edgeDedupKey(
+  source: string,
+  target: string,
+  directed?: boolean,
+  relType?: string,
+): string {
+  if (directed === true) {
+    return `${source}->${target}#${relType ?? ''}`;
+  }
+  return source < target ? `${source}|${target}` : `${target}|${source}`;
+}
+
 // ============================================================
 // Types
 // ============================================================
@@ -279,11 +298,9 @@ export async function buildWikiGraph(wikiPath: string): Promise<GraphData> {
 
       // Only create edges to known nodes
       if (targetId && nodeMap.has(targetId)) {
-        // Deduplicate: sort IDs so A↔B and B↔A collapse to same key
-        const key =
-          page.id < targetId
-            ? `${page.id}|${targetId}`
-            : `${targetId}|${page.id}`;
+        // Undirected default: A↔B and B↔A collapse (see ADR-0026). No wikilink
+        // producer sets `directed`, so this stays byte-identical to pre-v0.5.0.
+        const key = edgeDedupKey(page.id, targetId);
 
         if (!edgeSet.has(key)) {
           edgeSet.add(key);

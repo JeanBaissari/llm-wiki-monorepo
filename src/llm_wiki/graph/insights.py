@@ -60,24 +60,45 @@ def build_graph(files, wiki_root):
     for nid, attrs in nodes.items(): attrs["degree"] = deg.get(nid, 0)
     return nodes, edges
 
-def detect_communities_for_insights(nodes, edges):
-    """Community assignments via the canonical Louvain engine (graph/louvain.py).
+def _select_community_engine(engine: str | None = None):
+    """Return the ``detect_communities`` callable for the selected engine.
+
+    Default is Louvain (byte-identical). Leiden (LWM_027 / ADR-0025) is opt-in via
+    ``engine="leiden"`` or ``LLM_WIKI_COMMUNITY_ENGINE=leiden`` and only when the
+    optional ``[leiden]`` extra is importable — otherwise it falls back to Louvain
+    without raising. The default is never silently flipped (gated on the ADR-0012
+    NMI/modularity gate).
+    """
+    import os
+
+    name = (engine or os.environ.get("LLM_WIKI_COMMUNITY_ENGINE", "louvain")).lower()
+    if name == "leiden":
+        from llm_wiki.graph import leiden
+        if leiden.is_leiden_available():
+            return leiden.detect_communities
+    return detect_communities
+
+
+def detect_communities_for_insights(nodes, edges, engine: str | None = None):
+    """Community assignments via the canonical Python engine (graph/louvain.py).
 
     Replaces the former label-propagation pass so `llm-wiki insights` and the
     TypeScript graph-engine share one community-detection algorithm (LWM_024 /
     ADR-0017). Returns {node_id: community_id} renumbered size-descending — the
     same shape the old label-propagation returned, so downstream scoring is
     unchanged. The Louvain transition warning is suppressed here because this IS
-    the intended, completed migration for insights.
+    the intended, completed migration for insights. ``engine`` selects Louvain
+    (default) or the opt-in Leiden sidecar (LWM_027).
     """
     node_list = [
         {"id": pid, "label": a["label"], "linkCount": a.get("linkCount", 0)}
         for pid, a in nodes.items()
     ]
     edge_list = [{"source": s, "target": t, "weight": 1} for s, t in edges]
+    _detect = _select_community_engine(engine)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        assignments, _ = detect_communities(node_list, edge_list, seed=42)
+        assignments, _ = _detect(node_list, edge_list, seed=42)
     # Ensure every node (incl. isolated) has an assignment.
     for pid in nodes:
         assignments.setdefault(pid, len(assignments))

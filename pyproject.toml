@@ -85,6 +85,9 @@ eval = ["deepeval>=1.0"]
 # an optional entity extractor for LWM_026 — both degrade to the pure-Python path.
 entity-resolution = ["splink>=4.0"]
 ner = ["gliner>=0.2.13", "onnxruntime>=1.17"]
+# Leiden community detection (LWM_027/ADR-0025): graspologic is MIT (chosen over
+# GPLv3 leidenalg). Optional; the community engine falls back to Louvain without it.
+leiden = ["graspologic>=3.4", "networkx>=3.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

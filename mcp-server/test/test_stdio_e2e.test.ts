@@ -274,7 +274,7 @@ describe('MCP Stdio E2E', () => {
     it('reads a valid wiki page', async () => {
       const response = await sendRequest('tools/call', {
         name: 'llm_wiki_read_file',
-        arguments: { path: 'concepts/test_page.md' },
+        arguments: { path: 'wiki/concepts/test_page.md' },
       }) as { result?: { content?: Array<{ type: string; text: string }> }; error?: unknown };
 
       expect(response).toBeDefined();

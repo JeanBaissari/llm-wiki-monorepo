@@ -59,6 +59,28 @@ def handle_health(params: dict) -> dict:
     return {"status": "ok", "wiki_root": WIKI_ROOT}
 
 
+@register("hybrid_search")
+def handle_hybrid_search(params: dict) -> dict:
+    """Hybrid (semantic + keyword) search via RRF (LWM_020).
+
+    Falls back to keyword-only inside hybrid_search() when the [semantic] extra
+    is absent or no vectors are indexed, so the caller always gets results.
+    """
+    try:
+        from llm_wiki.core.layout import discover_layout
+        from llm_wiki.search.query import hybrid_search
+    except ImportError as e:
+        return {"error": f"search module not available: {e}"}
+
+    root = params.get("wiki_root", WIKI_ROOT)
+    query = params.get("query", "")
+    if not query:
+        return {"error": "query is required"}
+    top_k = max(1, min(int(params.get("top_k", 10)), 100))
+    layout = discover_layout(root)
+    return {"results": hybrid_search(layout.root, query, top_k)}
+
+
 @register("lint_wiki")
 def handle_lint_wiki(params: dict) -> dict:
     """Run lint checks on wiki pages. Dynamic import for graceful fallback."""

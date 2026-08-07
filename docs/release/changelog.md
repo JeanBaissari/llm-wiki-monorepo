@@ -1,5 +1,60 @@
 # Changelog
 
+## [0.5.0] — 2026-08-07
+
+### Graph Precision
+
+The precision-focused minor after the Semantic Core. Everything is additive and
+either opt-in or behind an optional extra — the base install stays lexical-only
+and byte-identical, and the **one** elected default change (hybrid search) is
+gated on an eval proving no keyword-recall regression. `graph-data.json` shape is
+unchanged.
+
+- **Entity resolution** (LWM_025): `llm-wiki entities resolve/list/unmerge` — a
+  lightweight normalize → block → two-signal-merge pipeline that collapses
+  variant surface forms ("GPT-4"/"GPT 4"/"gpt-4") to one canonical id. A merge
+  needs two independent signals (string **and** embedding) to agree; embedding
+  similarity alone can never merge. Reversible by construction: an append-only,
+  git-diffable `.llm-wiki/entities/aliases.jsonl` is the source of truth, with a
+  regenerable `.index/wiki.db` cache. `link-suggest --resolve-entities` routes
+  alias mentions to the canonical page (`[[Canonical|surface]]`, surface
+  preserved), unblocking the v0.4.0 suggest-only semantic `--apply`.
+- **GLiNER extractor** (LWM_026): a pluggable `EntityExtractor` interface;
+  `RegexExtractor` default is byte-identical, `GLiNERExtractor` is an optional
+  `[ner]` backend (Apache-2.0, CPU/ONNX/INT8) with a deferred model load and an
+  always-safe import/fallback.
+- **Leiden community detection** (LWM_027): `graph/leiden.py` — an optional
+  `[leiden]` sidecar engine (graspologic, MIT — not GPL leidenalg) with the
+  identical `detect_communities` contract and an internal-connectivity guarantee.
+  Louvain stays the default until the NMI/modularity gate proves Leiden ≥ Louvain.
+- **Typed/directed/bitemporal edges** (LWM_028): `GraphEdge` gains optional
+  `relType`/`directed`/`validFrom`/`validTo`/`observedAt`. The `build.ts` dedup
+  key is guarded so the undirected default stays byte-identical; directed opt-in
+  makes `A→B ≠ B→A`. File-format change done once.
+- **Derived edges** (LWM_029): `llm-wiki derive-edges` builds a **quarantined**
+  sibling layer (`.index/derived-edges.json`) of `similar_to` (cosine-KNN over
+  the v0.4.0 vectors) + `co_occurs_with` (shared sources/entities) edges,
+  excluded by default from every analytics consumer and `graph-data.json`.
+  Opt-in inclusion is **fail-closed** on a modularity gate vs the wikilink
+  baseline.
+- **Community summaries** (LWM_030): opt-in `llm-wiki summarize-communities` —
+  one structured LLM call per community (agent-native `$0.00` default) written as
+  first-class `type: community-summary` pages with `[[member]]` links.
+  Cost-bounded (`--dry-run`, SHA-keyed idempotency, `--max-communities`) and
+  faithfulness-filtered (`key_entities ⊆ member entities`).
+- **Tuning config** (LWM_031): a canonical `TuningConfig` (`core/config.py`)
+  owning ~17 precision constants; defaults equal today's literals byte-for-byte;
+  resolution is `CLI > env > file > code-default` and fails closed on unknown
+  keys / out-of-range values. `search --set section.key=value`.
+- **Hybrid search is now the default** (LWM_032): `llm-wiki search` and the MCP
+  `llm_wiki_search` tool default to hybrid, gated by a committed search gold set
+  + fail-closed eval gate (recall parity + precision no-regress on a held-out
+  GATE split). `--keyword` / `mode="keyword"` escape hatch retained; both degrade
+  to keyword byte-identically without the `[semantic]` extra.
+
+New optional extras: `[entity-resolution]` (splink), `[ner]` (gliner,
+onnxruntime), `[leiden]` (graspologic, networkx). Base install unchanged.
+
 ## [0.4.0] — 2026-08-06
 
 ### Semantic Core

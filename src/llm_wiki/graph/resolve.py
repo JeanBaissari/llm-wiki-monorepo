@@ -177,6 +177,19 @@ def apply_resolution(
     return {"merged": len(merges), "canonicals": canonicals, "total_aliases": n_aliases}
 
 
+def alias_targets(wiki_root) -> "dict[str, str]":
+    """``{alias_surface -> canonical_label}`` from the JSONL source of truth.
+
+    Lets ``link_suggest`` route a mention of an alias ("gpt-4") to the canonical
+    entity's page ("GPT-4"). Empty when no resolution has run — so the default
+    lexical path stays byte-identical.
+    """
+    events = alias_store.read_events(wiki_root)
+    state = alias_store.resolve_state(events)
+    labels = alias_store.canonical_labels(events)
+    return {alias: labels.get(cid, cid) for alias, cid in state.items()}
+
+
 def unmerge(wiki_root, alias: str, actor: str = "unmerge") -> bool:
     """Reverse a merge by appending an unmerge event + rebuilding. Returns True if known."""
     from llm_wiki.search.index import DB_FILENAME, INDEX_DIR_NAME

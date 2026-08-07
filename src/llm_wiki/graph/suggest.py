@@ -112,25 +112,60 @@ def load_pages(wiki_dir: Path, skip_files: frozenset = SKIP_FILES) -> dict[str, 
     return pages
 
 
-def build_entity_registry(pages: dict[str, tuple[Path, str, dict | None]]) -> dict:
+def build_entity_registry(
+    pages: dict[str, tuple[Path, str, dict | None]],
+    alias_targets: dict[str, str] | None = None,
+) -> dict:
+    """Map entity surface forms to their target page.
+
+    ``alias_targets`` (``{alias_surface -> canonical_label}``, from the LWM_025
+    resolution store) routes a mention of an alias to the canonical entity's page
+    even when the alias itself matches no page title. It is empty by default, so
+    the lexical path is byte-identical until ``entities resolve`` has run.
+    """
     pages_by_stem_lower = {}
     pages_by_title_lower = {}
+    pages_by_norm = {}  # normalized title/stem -> (stem, title), for alias routing
     for stem, (_, _, fm) in pages.items():
         pages_by_stem_lower[stem.lower()] = stem
         title = fm.get("title", stem) if fm else stem
         pages_by_title_lower[title.lower()] = (stem, title)
+        if alias_targets:
+            from llm_wiki.graph.resolve import normalize
+            pages_by_norm.setdefault(normalize(title), (stem, title))
+            pages_by_norm.setdefault(normalize(stem), (stem, title))
 
     entity_candidates = set()
     for stem, (_, text, _) in pages.items():
         for ent in extract_entities(text):
             entity_candidates.add(ent.strip())
+    # Alias surfaces AND canonical labels are also candidates: a mention of any
+    # variant ("gpt-4" / "GPT 4") should link to the canonical entity's page.
+    if alias_targets:
+        for alias, label in alias_targets.items():
+            if alias.strip():
+                entity_candidates.add(alias.strip())
+            if label.strip():
+                entity_candidates.add(label.strip())
 
     registry = {}
     for entity in entity_candidates:
         key = entity.lower()
+
+        # Direct title/stem match (the byte-identical v0.4.0 path).
         target_stem = pages_by_title_lower.get(key, (None, None))[0]
         if target_stem is None:
             target_stem = pages_by_stem_lower.get(key)
+
+        # Alias routing: if this surface is a known variant, resolve it to the
+        # page whose normalized title/stem matches the canonical (LWM_025).
+        if target_stem is None and alias_targets:
+            from llm_wiki.graph.resolve import normalize
+            canon_label = alias_targets.get(entity, entity)
+            hit = pages_by_norm.get(normalize(canon_label)) or pages_by_norm.get(normalize(entity))
+            if hit is not None:
+                target_stem = hit[0]
+
         if target_stem is None:
             continue
         _, _, fm = pages[target_stem]
@@ -306,14 +341,69 @@ def output_json(suggestions: list[dict]) -> None:
     print(json.dumps(out, indent=2))
 
 
-def _run_semantic(args) -> int:
-    """`link-suggest --semantic --page <stem>` — suggest-only related notes.
+def _apply_semantic(args, results, is_auto_appliable) -> int:
+    """Apply only auto-appliable (two-signal) related notes, and only where the
 
-    Fuses embedding + Personalized PageRank + lexical signals (LWM_021). Falls
-    back to PPR+lexical when the [semantic] extra is absent. Suggest-only: the
-    `--apply` path is not offered here because a static-embedding similarity may
-    not auto-apply a link on its own (ADR-0021); each row is tagged with whether
-    it is auto-appliable.
+    target entity is actually mentioned in the source prose — reusing the
+    surface-preserving `apply_suggestions` machinery. Static-embedding-only rows
+    are never applied (ADR-0021/0024). Resolved aliases of a target also count as
+    mentions, which is what the LWM_025 resolution store unblocks.
+    """
+    from llm_wiki.graph.resolve import alias_targets
+    from llm_wiki.operation import OperationContext
+
+    layout = discover_layout(args.wiki_root)
+    wiki_dir = Path(layout.pages_dir)
+    if not wiki_dir.is_dir():
+        print("Error: pages directory not found", file=sys.stderr)
+        return 1
+    skip_files = frozenset(f"{stem}.md" for stem in layout.skip_stems)
+    pages = load_pages(wiki_dir, skip_files)
+    if args.page not in pages:
+        print(f"Source page '{args.page}' not found", file=sys.stderr)
+        return 1
+
+    canon_to_aliases: dict[str, list[str]] = defaultdict(list)
+    for alias, label in alias_targets(args.wiki_root).items():
+        canon_to_aliases[label.lower()].append(alias)
+
+    pseudo: list[dict] = []
+    for r in results:
+        if not is_auto_appliable(r):
+            continue
+        target_stem = r["target_stem"]
+        if target_stem not in pages or target_stem == args.page:
+            continue
+        _, _, fm = pages[target_stem]
+        target_title = fm.get("title", target_stem) if fm else target_stem
+        surfaces = [target_title] + canon_to_aliases.get(target_title.lower(), [])
+        for surface in surfaces:
+            pseudo.append({
+                "source_stem": args.page,
+                "entity": surface,
+                "target_title": target_title,
+            })
+
+    if not pseudo:
+        print("No auto-appliable related notes mentioned in prose to apply.")
+        return 0
+
+    with OperationContext("link_suggest.semantic_apply", wiki_root=args.wiki_root,
+                          inputs={"page": args.page, "limit": args.limit}) as ctx:
+        modified = apply_suggestions(pages, pseudo)
+        print(f"Applied auto-appliable related links across {modified} page(s)")
+        ctx.succeed()
+    return 0
+
+
+def _run_semantic(args) -> int:
+    """`link-suggest --semantic --page <stem>` — related notes.
+
+    Fuses embedding + Personalized PageRank + lexical signals (LWM_021); falls
+    back to PPR+lexical when the [semantic] extra is absent. `--apply` (LWM_025
+    unblock) applies only auto-appliable (two-signal) rows whose target entity is
+    actually mentioned in prose; static-embedding-only rows stay suggest-only and
+    each row is tagged with which it is (ADR-0021).
     """
     if not args.page:
         print("--semantic requires --page <stem>", file=sys.stderr)
@@ -324,6 +414,8 @@ def _run_semantic(args) -> int:
     results = semantic_related(
         args.wiki_root, args.page, args.limit, embedder=get_embedder()
     )
+    if args.apply:
+        return _apply_semantic(args, results, is_auto_appliable)
     if args.format == "json":
         print(json.dumps(
             [{**r, "auto_appliable": is_auto_appliable(r)} for r in results],
@@ -358,6 +450,10 @@ def main() -> int:
                              "fused via RRF); requires --page. Suggest-only.")
     parser.add_argument("--page", default=None,
                         help="Source page stem for --semantic mode")
+    parser.add_argument("--resolve-entities", action="store_true",
+                        help="Route alias mentions to their canonical page using "
+                             "the LWM_025 resolution store (.llm-wiki/entities/). "
+                             "No-op until `entities resolve` has run.")
     args = parser.parse_args()
 
     if args.semantic:
@@ -375,7 +471,11 @@ def main() -> int:
         print("No wiki pages found.", file=sys.stderr)
         return 0
 
-    registry = build_entity_registry(pages)
+    alias_map = None
+    if args.resolve_entities:
+        from llm_wiki.graph.resolve import alias_targets
+        alias_map = alias_targets(args.wiki_root) or None
+    registry = build_entity_registry(pages, alias_targets=alias_map)
     if not registry:
         print("No entities found to suggest links for.", file=sys.stderr)
         return 0

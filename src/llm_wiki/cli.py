@@ -17,6 +17,7 @@ Usage:
     llm-wiki serve <wiki-root> [--projects <names>]
     llm-wiki embed <wiki-root> [--rebuild]        # requires [semantic] extra; no-op without it
     llm-wiki eval <wiki-root> [--goldset <path>] [--split gate|tune|all]
+    llm-wiki entities resolve <wiki-root>         # reversible entity resolution (canonical<->alias)
 """
 
 import sys
@@ -29,6 +30,7 @@ COMMANDS = {
     "ingest": "llm_wiki.ingest.pipeline",
     "insights": "llm_wiki.graph.insights",
     "link-suggest": "llm_wiki.graph.suggest",
+    "entities": "llm_wiki.graph.entities",
     "backup": "llm_wiki.wiki.backup",
     "deep-research": "llm_wiki.research.deep_research",
     "audit": "llm_wiki.quality.audit",

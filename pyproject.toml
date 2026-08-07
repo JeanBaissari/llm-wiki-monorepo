@@ -79,6 +79,12 @@ graph = ["networkx>=3.0"]
 # fallback (LWM_017/ADR-0016) so search degrades to keyword when it can't load.
 semantic = ["model2vec>=0.3", "numpy>=1.24", "sqlite-vec>=0.1.1"]
 eval = ["deepeval>=1.0"]
+# v0.5.0 Graph Precision — optional extras. Base install stays lexical/keyword-only
+# with pure-Python fallbacks (v0.5.0 invariant #3). entity-resolution (Splink) is a
+# precision-upgrade backend for LWM_025; ner (GLiNER, Apache-2.0, CPU/ONNX/INT8) is
+# an optional entity extractor for LWM_026 — both degrade to the pure-Python path.
+entity-resolution = ["splink>=4.0"]
+ner = ["gliner>=0.2.13", "onnxruntime>=1.17"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

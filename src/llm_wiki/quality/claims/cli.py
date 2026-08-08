@@ -65,15 +65,22 @@ def cmd_diff(wiki_root_a: str, wiki_root_b: str) -> int:
     return 1 if diff["added"] > 0 or diff["removed"] > 0 or diff["changed"] > 0 else 0
 
 
-def cmd_redteam(wiki_root: str, as_json: bool = False) -> int:
+def cmd_redteam(wiki_root: str, as_json: bool = False, overrides: "list[str] | None" = None) -> int:
     """Run red-team analysis and print recommendations."""
     import json as json_mod
+    from llm_wiki.core.config import ConfigError, resolve_tuning
     if not has_sidecar(wiki_root):
         print("No claim sidecar found. This wiki has no claim tracking enabled.")
         return 0
 
+    try:
+        tuning = resolve_tuning(wiki_root, cli_overrides=overrides)
+    except ConfigError as e:
+        print(f"config error: {e}", file=sys.stderr)
+        return 2
+
     mgr = ClaimsManager(wiki_root)
-    report = mgr.redteam_report()
+    report = mgr.redteam_report(tuning=tuning)
 
     if as_json:
         print(json_mod.dumps(report, indent=2, default=str))
@@ -91,7 +98,8 @@ def cmd_redteam(wiki_root: str, as_json: bool = False) -> int:
             for i, rec in enumerate(report["recommendations"], 1):
                 print(f"  {i}. [{rec['action']}] {rec['detail']}")
 
-    return 1 if report["health_score"] < 70 else 0
+    # fail line: claims.failBelow (LWM_031), default 70 — byte-identical.
+    return 1 if report["health_score"] < tuning.claims.failBelow else 0
 
 
 def main() -> int:
@@ -116,6 +124,9 @@ def main() -> int:
     redteam_parser = subparsers.add_parser("redteam", help="Red-team analysis of claim quality")
     redteam_parser.add_argument("wiki_root", help="Path to the wiki root directory")
     redteam_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    redteam_parser.add_argument("--set", action="append", default=[], dest="overrides",
+                                metavar="section.key=value",
+                                help="Tuning override, e.g. claims.penaltyStale=4 (LWM_031)")
 
     args = parser.parse_args()
 
@@ -124,7 +135,8 @@ def main() -> int:
     elif args.subcommand == "diff":
         return cmd_diff(args.wiki_root_a, args.wiki_root_b)
     elif args.subcommand == "redteam":
-        return cmd_redteam(args.wiki_root, args.json if hasattr(args, 'json') else False)
+        return cmd_redteam(args.wiki_root, args.json if hasattr(args, 'json') else False,
+                           overrides=args.overrides)
     else:
         parser.print_help()
         return 1

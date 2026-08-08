@@ -25,9 +25,9 @@
 - **§Eval-tuned-defaults:** a shipped default may only move with an attached eval report — re-tuned on the LWM_022 **TUNE** split (never the GATE split), per-constant annotated with the gate metric it moves.
 - **Python canonical, TS consumes:** the graph-engine consumes the resolved tuning through its existing `RelevanceOptions` / `InsightsOptions` / `LouvainOptions` interfaces via `to_graph_engine_json()` — one source of truth, no TS re-derivation (v0.5.0 invariant #4).
 
-## Delivered State (defe7e0)
+## Delivered State (defe7e0 + B9)
 
-`core/config.py` defines all **22 constants + validators + the CLI/env/file precedence** (fail-closed, exit 2). **Today only 2 constants are effective**: `retrieval.rrfK` and `retrieval.simFloor`, threaded through `llm-wiki search` (`--set`, `resolve_tuning`). **Remediation batch B9 threads the remaining 20 constants** (relevance weights, insights thresholds, community resolution/seed, BM25 k1/b, claims penalties) into their consumers, adds the type-affinity matrix + insights signal scores, and makes `to_graph_engine_json()` live for graph-engine consumption.
+`core/config.py` defines all **22 constants + the 5×5 type-affinity matrix + 5 insights signal scores + validators + the CLI/env/file precedence** (fail-closed, exit 2). Since remediation batch **B9**, **all constants are effective**: relevance weights + matrix flow to the graph-engine via `llm-wiki tuning --json` → `--tuning-json` (consumed through `RelevanceOptions`/`LouvainOptions`), insights thresholds + signal scores flow into `llm-wiki insights` (Python) and `InsightsOptions` (TS), `community.resolution/seed` into both Louvain engines, `bm25.k1/b` into the Python keyword path (Python BM25 rescoring on override), and `claims.penalty*`/`failBelow` into `llm-wiki claims redteam`. `to_graph_engine_json()` is live (emitted by `llm-wiki tuning`). Defaults remain byte-identical, pinned by `tests/eval/baseline/tuning_defaults.json` + `graph-engine/test/tuning-parity.test.ts`.
 
 ## Consequences
 

@@ -5,10 +5,15 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { GraphNode, GraphEdge, GraphData } from './types.js';
-import { calculateRelevance, buildGraphStructure } from './relevance.js';
-import { detectCommunities, buildGraphologyGraph } from './louvain.js';
+import { calculateRelevance, buildGraphStructure, RelevanceOptions } from './relevance.js';
+import { detectCommunities, buildGraphologyGraph, LouvainOptions } from './louvain.js';
 
 export { buildGraphologyGraph };
+
+export interface BuildOptions {
+  relevance?: RelevanceOptions;
+  louvain?: LouvainOptions;
+}
 
 /**
  * Edge dedup key (LWM_028 / ADR-0026). The undirected default (`directed`
@@ -228,9 +233,12 @@ function findMdFiles(dir: string): string[] {
  * 6. Run calculateRelevance on each edge to set weight
  *
  * @param wikiPath - Path to the wiki/ directory
+ * @param options  - Optional tuning options (LWM_031): relevance weights +
+ *                   type-affinity matrix + Louvain resolution/seed. When absent
+ *                   every consumer uses its built-in defaults (byte-identical).
  * @throws {Error} If wikiPath does not exist
  */
-export async function buildWikiGraph(wikiPath: string): Promise<GraphData> {
+export async function buildWikiGraph(wikiPath: string, options?: BuildOptions): Promise<GraphData> {
   // Validate wiki path
   if (!fs.existsSync(wikiPath)) {
     throw new Error(`Wiki directory not found: ${wikiPath}`);
@@ -348,12 +356,13 @@ export async function buildWikiGraph(wikiPath: string): Promise<GraphData> {
         nodes,
         graphStructure,
         enrichedMap,
+        options?.relevance,
       );
     }
   }
 
   // ── Step 7: Louvain community detection ──────────────────
-  const communityResult = detectCommunities(nodes, edges);
+  const communityResult = detectCommunities(nodes, edges, options?.louvain);
   for (const node of nodes) {
     const cid = communityResult.assignments.get(node.id);
     if (cid !== undefined) {

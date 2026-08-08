@@ -158,6 +158,7 @@ export function getRelatedNodes(
   nodes: GraphNode[],
   structure: GraphStructure,
   limit: number = 5,
+  options?: RelevanceOptions,
 ): { node: GraphNode; score: number }[] {
   const nodeMap = new Map<string, GraphNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
@@ -169,7 +170,7 @@ export function getRelatedNodes(
 
   for (const other of nodes) {
     if (other.id === nodeId) continue;
-    const score = calculateRelevance(targetNode, other, nodes, structure, nodeMap);
+    const score = calculateRelevance(targetNode, other, nodes, structure, nodeMap, options);
     scored.push({ node: other, score });
   }
 

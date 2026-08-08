@@ -55,6 +55,52 @@ unchanged.
 New optional extras: `[entity-resolution]` (splink), `[ner]` (gliner,
 onnxruntime), `[leiden]` (graspologic, networkx). Base install unchanged.
 
+### QA Remediation (2026-08-07, pre-tag)
+
+Post-build 6-reviewer QA + master-auditor pass (23 findings AD-1…AD-23)
+remediated before the tag, per the spec-driven plan in
+`~/.claude/plans/glowing-bouncing-swing.md`:
+
+- **Evidence & gates now committed**: ER-F1 gate (`er_goldset.json` +
+  `er_baseline.json`, F1 0.917 on the gate split, fail-on-drop),
+  search-eval baseline + `split_manifest.json` SHA256 freeze +
+  reproducibility test, Leiden NMI/modularity verification over all
+  `fixtures/graphs/*.json`, derived-edge + community-summary gate metrics in
+  `eval_baseline.json`, defaults-snapshot golden for the tuning config.
+- **ADRs 0016–0028 authored** (index + decision register) — every `# See
+  ADR-00xx` citation in code now resolves.
+- **Correctness fixes**: GLiNER load/inference failures now fall back to the
+  regex extractor; ambiguous/single-signal entity near-misses emit
+  `entity-merge` audit review rows; the alias DB readers assert the
+  `alias_meta` guard and auto-rebuild from the JSONL; semantic `--apply`
+  routes aliases by normalized page title; the two-signal must-not-merge
+  guarantee is now tested non-vacuously (same-block pair, `resolve.py`
+  union path exercised).
+- **Derived-edge gate completed**: NMI ≥ 1−tol AND modularity ≥ baseline
+  (was modularity-only); `--include-derived` wired fail-closed into
+  insights/summarize consumers; on-disk edge fields unified to camelCase.
+- **Community summaries**: global reference built from real member entities
+  (faithfulness leak closed), SHA-keyed filenames with orphan cleanup,
+  `--levels` hierarchy (Leiden levels seam + deterministic agglomeration
+  fallback), `summary_faithfulness` metric.
+- **Leiden**: per-connected-component execution (no node loss), exposed
+  `hierarchical_levels` for the summary hierarchy, `[leiden]` CI lane,
+  networkx probed in availability check.
+- **LWM_031 fully threaded**: all 22 constants + the 5×5 type-affinity
+  matrix + insights signal scores are effective via `--set`/env/`tuning.toml`;
+  `to_graph_engine_json()` is live; graph-engine consumes the same resolved
+  tuning (TS parity test); new `llm-wiki tuning` command.
+- **Release gate fixed**: `release_certify.py` gains a search-eval step and
+  a pytest timeout large enough for the grown suite; the CI `certify` job's
+  `needs: [ci]` (non-existent job) is fixed; the `semantic` CI job now
+  installs `[semantic]` and re-certifies the search gate with the real
+  embedder; MCP `handleSearch` hybrid-default path covered by tests.
+- **Docs SoT**: `cli.md` (4 new commands + flags), `mcp-tools.md` 10→14
+  tools (phantom tools removed), `templates/_shared/base-schema.md`
+  (`community-summary` type), `file-map.md`, `README.md`, `tuning.md`,
+  `docs/operations/`, `GOLD_SET.md`; all 8 v0.5.0 PRD Evidence Matrices
+  flipped to `delivered` (6 rows deferred with reasons).
+
 ## [0.4.0] — 2026-08-06
 
 ### Semantic Core

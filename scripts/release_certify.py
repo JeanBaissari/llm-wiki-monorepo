@@ -112,7 +112,7 @@ def gate_pytest(env: dict | None = None) -> dict:
     """Gate 3: Python tests (excluding slow benchmarks)."""
     result = run_command(
         [sys.executable, "-m", "pytest", "tests/", "-q", "--tb=short"],
-        cwd=REPO_ROOT, env=env,
+        cwd=REPO_ROOT, env=env, timeout=900,
     )
     return {"gate": "pytest", **result}
 

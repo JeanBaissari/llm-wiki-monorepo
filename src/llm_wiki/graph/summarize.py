@@ -277,6 +277,7 @@ def summarize_communities(
     timeout: int | None = 60,
     summarizer=None,
     engine: str | None = None,
+    include_derived: bool = False,
 ) -> dict:
     """Summarize each community at each hierarchy level into first-class pages.
 
@@ -307,6 +308,21 @@ def summarize_communities(
     member_pages = {stem: v for stem, v in pages.items()
                     if (v[2] or {}).get("type") != "community-summary"}
     nodes, edges = _build_graph(member_pages)
+
+    # --include-derived: opt-in layer inclusion, fail-closed on the NMI+modularity
+    # gate (ADR-0027 §gate). Default (flag unset) never opens the layer.
+    derived_gate = None
+    if include_derived:
+        from llm_wiki.graph import derived_edges as _de
+        derived = _de.load_derived_edges(wiki_root)
+        wiki_edges = [{"source": s, "target": t, "weight": 1} for s, t in edges]
+        include, derived_gate = _de.should_include_derived(nodes, wiki_edges, derived)
+        if include:
+            # Derived edges are keyed by page stem — summarize's id space too.
+            extra = [(e["source"], e["target"]) for e in derived
+                     if e.get("source") in nodes and e.get("target") in nodes]
+            edges = edges + [pair for pair in extra if pair not in edges]
+
     partitions, hierarchy = _partition_levels(nodes, edges, engine=engine,
                                               max_levels=levels)
     out_dir = wiki_dir / "communities"
@@ -316,6 +332,8 @@ def summarize_communities(
     stats = {"communities": 0, "summarized": 0, "skipped": 0, "calls": 0,
              "written": 0, "failed": 0, "dry_run": dry_run, "removed": 0,
              "levels": len(partitions), "hierarchy": hierarchy}
+    if derived_gate is not None:
+        stats["derived_gate"] = derived_gate
     existing = _existing_summary_files(out_dir)  # member_sha → page paths
     current_shas: set[str] = set()
     level_summaries: dict[str, CommunitySummary] = {}  # sha → summary (all levels)
@@ -516,6 +534,9 @@ def main() -> int:
     parser.add_argument("--engine", default=None, help="community engine: louvain|leiden")
     parser.add_argument("--force", action="store_true", help="Regenerate unchanged communities")
     parser.add_argument("--dry-run", action="store_true", help="Plan only; no LLM calls, no writes")
+    parser.add_argument("--include-derived", action="store_true",
+                        help="Opt in to the derived-edge layer, fail-closed on the "
+                             "NMI+modularity gate (ADR-0027 §gate)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
@@ -528,8 +549,15 @@ def main() -> int:
             args.wiki_root, max_communities=args.max_communities, levels=args.levels,
             provider=args.provider, model=args.model, force=args.force,
             dry_run=args.dry_run, engine=args.engine,
+            include_derived=args.include_derived,
         )
         ctx.succeed()
+
+    if args.include_derived and isinstance(stats.get("derived_gate"), dict):
+        g = stats["derived_gate"]
+        verdict = "included" if g.get("included") else "refused (fail-closed)"
+        print(f"Derived layer gate: {verdict} — {g.get('reason', 'no layer')}",
+              file=sys.stderr)
 
     if args.json:
         import json

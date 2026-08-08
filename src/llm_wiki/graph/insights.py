@@ -214,7 +214,8 @@ def fmt_md(connections, gaps, nc, ec, cc):
     else: lines.append("*None.*\n")
     return "\n".join(lines)
 
-def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10, fmt: str = "markdown"):
+def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10,
+                     fmt: str = "markdown", include_derived: bool = False):
     layout = discover_layout(wiki_root)
     root = Path(layout.pages_dir)
     if not root.is_dir():
@@ -231,6 +232,32 @@ def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10, fmt:
             return empty
         return "# Wiki Graph Insights\n\n*No content pages found to analyze.*"
     nodes, edges = build_graph(files, root)
+
+    # --include-derived: opt-in layer inclusion, fail-closed on the NMI+modularity
+    # gate (ADR-0027 §gate). Default (flag unset) never opens the layer.
+    derived_report = None
+    if include_derived:
+        from llm_wiki.graph import derived_edges as _de
+        derived = _de.load_derived_edges(wiki_root)
+        # Derived edges are keyed by page stem; map them into this consumer's
+        # id space (relative paths without extension) so the gate and the
+        # combined graph evaluate the SAME edge set.
+        stem_to_id = {}
+        for pid in nodes:
+            stem_to_id.setdefault(pid.rsplit("/", 1)[-1].lower(), pid)
+        mapped = []
+        for e in derived:
+            s = stem_to_id.get(str(e["source"]).lower())
+            t = stem_to_id.get(str(e["target"]).lower())
+            if s and t and s != t:
+                mapped.append({"source": s, "target": t,
+                               "weight": e.get("weight", 1)})
+        wiki_edges = [{"source": s, "target": t, "weight": 1} for s, t in edges]
+        include, derived_report = _de.should_include_derived(nodes, wiki_edges, mapped)
+        if include:
+            extra = [(e["source"], e["target"]) for e in mapped]
+            edges = edges + [pair for pair in extra if pair not in edges]
+
     adj = {nid: set() for nid in nodes}
     for s, t in edges: adj[s].add(t); adj[t].add(s)
     comm = detect_communities_for_insights(nodes, edges)
@@ -238,10 +265,13 @@ def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10, fmt:
     top_conns = score_connections(nodes, edges, comm, cstats, connections)
     ks = find_gaps(nodes, edges, adj, comm, cstats, gaps)
     if fmt == "json":
-        return {
+        out = {
             "summary": {"nodeCount": len(nodes), "edgeCount": len(edges), "communityCount": len(cstats)},
             "surprisingConnections": top_conns, "knowledgeGaps": ks,
         }
+        if derived_report is not None:
+            out["derivedGate"] = derived_report
+        return out
     return fmt_md(top_conns, ks, len(nodes), len(edges), len(cstats))
 
 def main() -> int:
@@ -254,9 +284,18 @@ def main() -> int:
                         help="Max items per gap category (default: 10)")
     parser.add_argument("--format", choices=["json", "markdown"], default="markdown",
                         help="Output format (default: markdown)")
+    parser.add_argument("--include-derived", action="store_true",
+                        help="Opt in to the derived-edge layer, fail-closed on the "
+                             "NMI+modularity gate (ADR-0027 §gate)")
     args = parser.parse_args()
-    result = compute_insights(args.wiki_root, args.connections, args.gaps, args.format)
+    result = compute_insights(args.wiki_root, args.connections, args.gaps,
+                              args.format, include_derived=args.include_derived)
     if isinstance(result, dict):
+        if args.include_derived:
+            g = result.get("derivedGate") or {}
+            verdict = ("included" if g.get("included") else "refused (fail-closed)")
+            print(f"Derived layer gate: {verdict} — {g.get('reason', 'no layer')}",
+                  file=sys.stderr)
         print(json.dumps(result, indent=2, default=str))
     else:
         print(result)

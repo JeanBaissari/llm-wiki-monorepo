@@ -1,8 +1,10 @@
 """Tests for the additive edge schema on the Python side (LWM_028).
 
 The Python community engine treats edges as ``dict[str, Any]`` and must accept +
-ignore the new optional fields (relType/directed/valid_from/valid_to/observed_at)
+ignore the new optional fields (relType/directed/validFrom/validTo/observedAt)
 on the undirected default path, leaving the community partition unchanged.
+Field spelling on disk is camelCase, matching ``GraphEdge`` in
+``packages/shared-types`` (ADR-0026).
 """
 
 from llm_wiki.graph.louvain import detect_communities
@@ -22,14 +24,14 @@ PLAIN_EDGES = [
 # Same topology, but every edge also carries the new optional fields.
 ANNOTATED_EDGES = [
     {**e, "relType": "cites", "directed": False,
-     "valid_from": "2020-01-01T00:00:00Z", "observed_at": "2026-08-07T00:00:00Z"}
+     "validFrom": "2020-01-01T00:00:00Z", "observedAt": "2026-08-07T00:00:00Z"}
     for e in PLAIN_EDGES
 ]
 # The FULL additive schema: directed opt-in + all bitemporal fields.
 FULL_ANNOTATED_EDGES = [
     {**e, "relType": "is-a", "directed": True,
-     "valid_from": "2020-01-01T00:00:00Z", "valid_to": "2021-01-01T00:00:00Z",
-     "observed_at": "2026-08-07T00:00:00Z"}
+     "validFrom": "2020-01-01T00:00:00Z", "validTo": "2021-01-01T00:00:00Z",
+     "observedAt": "2026-08-07T00:00:00Z"}
     for e in PLAIN_EDGES
 ]
 
@@ -52,7 +54,7 @@ def test_legacy_edge_still_works():
 
 def test_full_additive_fields_are_inert_with_partition_stability():
     # Edges carrying the FULL additive schema (relType + directed + the
-    # valid_from/valid_to/observed_at bitemporal trio) are accepted by the
+    # validFrom/validTo/observedAt bitemporal trio) are accepted by the
     # community engine and leave the undirected default partition unchanged.
     plain_assign, plain_comms = detect_communities(NODES, PLAIN_EDGES, seed=42)
     full_assign, full_comms = detect_communities(NODES, FULL_ANNOTATED_EDGES, seed=42)
@@ -61,6 +63,6 @@ def test_full_additive_fields_are_inert_with_partition_stability():
     # The carriers survive untouched — no field coercion, no dropping.
     for e in FULL_ANNOTATED_EDGES:
         assert e["directed"] is True and e["relType"] == "is-a"
-        assert e["valid_from"] == "2020-01-01T00:00:00Z"
-        assert e["valid_to"] == "2021-01-01T00:00:00Z"
-        assert e["observed_at"] == "2026-08-07T00:00:00Z"
+        assert e["validFrom"] == "2020-01-01T00:00:00Z"
+        assert e["validTo"] == "2021-01-01T00:00:00Z"
+        assert e["observedAt"] == "2026-08-07T00:00:00Z"

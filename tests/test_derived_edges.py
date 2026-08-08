@@ -2,7 +2,7 @@
 
 Covers the separate-layer persistence, default-exclusion (analytics byte-identical
 whether or not the layer exists), co-occurrence generation on the base install,
-rel_type tagging + wikilink-duplicate dropping, and the fail-closed NMI/modularity
+relType tagging + wikilink-duplicate dropping, and the fail-closed NMI+modularity
 inclusion gate (positive + negative).
 """
 
@@ -43,7 +43,7 @@ def test_generate_writes_separate_layer_only(tmp_path):
     assert stats["co_occurs_with"] >= 1  # rag<->retrieval share 2 sources
     edges = de.load_derived_edges(root)
     assert all(e["layer"] == "derived" for e in edges)
-    assert all(e["rel_type"] in (de.REL_SIMILAR, de.REL_COOCCUR) for e in edges)
+    assert all(e["relType"] in (de.REL_SIMILAR, de.REL_COOCCUR) for e in edges)
     assert all(e["directed"] is False for e in edges)
 
 
@@ -81,15 +81,50 @@ def test_default_exclusion_analytics_identical(tmp_path):
     assert before["summary"]["edgeCount"] == 1  # only the notes<->rag wikilink
 
 
-def test_include_derived_off_by_default(tmp_path):
+def test_include_derived_off_by_default(tmp_path, monkeypatch):
     root, _wiki = _make_wiki(tmp_path)
     de.generate_derived_edges(root, min_shared_sources=2)
-    # No consumer reads the layer unless it explicitly calls load_derived_edges.
-    # (Contract: the default insights/community path never imports it.)
-    import llm_wiki.graph.insights as insights_mod
-    src = insights_mod.__file__
-    with open(src, encoding="utf-8") as f:
-        assert "derived_edges" not in f.read()  # default path does not import it
+
+    # The DEFAULT insights path must never open the layer: make any attempt to
+    # load it explode, then run the consumer without the flag. (Contract:
+    # --include-derived is the only door into the layer.)
+    from llm_wiki.graph import insights as insights_mod
+
+    def _boom(*_a, **_k):
+        raise AssertionError("default insights path must never open the derived layer")
+
+    monkeypatch.setattr("llm_wiki.graph.derived_edges.load_derived_edges", _boom)
+    out = insights_mod.compute_insights(root, fmt="json")
+    assert out["summary"]["edgeCount"] == 1  # only the notes<->rag wikilink
+
+
+def test_include_derived_wired_into_insights(tmp_path):
+    # Two path clusters (a-b-c, d-e-f) with NO cross wikilinks.
+    wiki = tmp_path / "wiki"
+    wiki.mkdir()
+    links = {"a": "b", "b": "c", "d": "e", "e": "f"}
+    for name in "abcdef":
+        target = links.get(name)
+        body = f"---\ntitle: {name.upper()}\ntype: concept\n---\n\n# {name.upper()}\n\n"
+        body += f"See [[{target.upper()}]].\n" if target else f"Page {name.upper()}.\n"
+        (wiki / f"{name}.md").write_text(body, encoding="utf-8")
+
+    # Derived layer: INTRA-community completion edges (a-c, d-f) — the partition
+    # is unchanged, so the gate allows and the consumer reflects the layer.
+    de.derived_path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
+    de.derived_path(tmp_path).write_text(json.dumps({"version": 1, "edges": [
+        {"source": "a", "target": "c", "weight": 1, "relType": de.REL_SIMILAR,
+         "layer": "derived"},
+        {"source": "d", "target": "f", "weight": 1, "relType": de.REL_SIMILAR,
+         "layer": "derived"},
+    ]}), encoding="utf-8")
+
+    from llm_wiki.graph import insights as insights_mod
+
+    plain = insights_mod.compute_insights(tmp_path, fmt="json")
+    out = insights_mod.compute_insights(tmp_path, fmt="json", include_derived=True)
+    assert out["derivedGate"]["included"] is True
+    assert out["summary"]["edgeCount"] == plain["summary"]["edgeCount"] + 2
 
 
 def test_gate_allows_when_not_degrading(tmp_path):
@@ -103,7 +138,7 @@ def test_gate_allows_when_not_degrading(tmp_path):
         {"source": "e", "target": "f", "weight": 1},
         {"source": "d", "target": "f", "weight": 1},
     ]
-    intra = [{"source": "a", "target": "c", "weight": 1, "rel_type": de.REL_SIMILAR,
+    intra = [{"source": "a", "target": "c", "weight": 1, "relType": de.REL_SIMILAR,
               "layer": "derived"}]  # within community {a,b,c}
     include, report = de.should_include_derived(nodes, wikilink, intra)
     assert include is True
@@ -122,7 +157,7 @@ def test_gate_fail_closed_when_degrading(tmp_path):
         {"source": "d", "target": "f", "weight": 1},
     ]
     # Flood every cross-community pair — classic community-blobbing case.
-    bridging = [{"source": s, "target": t, "weight": 5, "rel_type": de.REL_SIMILAR,
+    bridging = [{"source": s, "target": t, "weight": 5, "relType": de.REL_SIMILAR,
                  "layer": "derived"}
                 for s in ["a", "b", "c"] for t in ["d", "e", "f"]]
     include, report = de.should_include_derived(nodes, wikilink, bridging)

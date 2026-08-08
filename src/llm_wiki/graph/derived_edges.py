@@ -14,10 +14,14 @@ The graph today has edges only where a ``[[wikilink]]`` resolves. This module
 
 Default-exclusion is guaranteed by construction: the layer is a new artifact that
 ``build.ts`` / ``graph-data.json`` / ``linkCount`` / insights / community
-detection never open. Inclusion is opt-in per consumer and **fail-closed** on a
-modularity gate — the derived-influenced partition must explain the curated
-wikilink structure at least as well as the wikilink-only baseline, else inclusion
-is refused (``should_include_derived``).
+detection never open. Inclusion is opt-in per consumer and **fail-closed** on an
+NMI+modularity gate (ADR-0027 §gate) — the derived-influenced partition must
+keep the curated wikilink structure (NMI(with-derived, wikilink-only) ≥ 1 − tol)
+and explain it at least as well as the wikilink-only baseline (modularity ≥
+baseline), else inclusion is refused (``should_include_derived``).
+
+Edge fields are spelled camelCase on disk (``relType``, ``directed``), matching
+the shared ``GraphEdge`` interface in ``packages/shared-types`` (ADR-0026).
 """
 
 from __future__ import annotations
@@ -88,7 +92,7 @@ def _cooccurrence_edges(pages, min_shared_sources: int, min_shared_entities: int
             if weight > 0 and reasons:
                 edges.append({
                     "source": a, "target": b, "weight": float(weight),
-                    "rel_type": REL_COOCCUR, "directed": False, "layer": "derived",
+                    "relType": REL_COOCCUR, "directed": False, "layer": "derived",
                     "provenance": reasons,
                 })
     return edges
@@ -144,7 +148,7 @@ def _similarity_edges(wiki_root, pages, tau: float, top_m: int) -> "list[dict]":
             seen.add(key)
             edges.append({
                 "source": name, "target": other, "weight": round(float(score), 4),
-                "rel_type": REL_SIMILAR, "directed": False, "layer": "derived",
+                "relType": REL_SIMILAR, "directed": False, "layer": "derived",
                 "provenance": {"cosine": round(float(score), 4)},
             })
     return edges
@@ -220,40 +224,94 @@ def _adjacency(edges) -> "dict[str, set[str]]":
     return adj
 
 
-def should_include_derived(nodes, wikilink_edges, derived_edges) -> "tuple[bool, dict]":
-    """Fail-closed gate for ``--include-derived`` (ADR-0027 §gate).
+def should_include_derived(nodes, wikilink_edges, derived_edges,
+                           tol: float = 1e-6) -> "tuple[bool, dict]":
+    """Fail-closed NMI+modularity gate for ``--include-derived`` (ADR-0027 §gate).
 
-    Inclusion is allowed only when the derived-influenced partition explains the
-    curated wikilink structure at least as well as the wikilink-only baseline —
-    ``modularity(with-derived partition, wikilink graph) ≥ modularity(baseline)``.
+    Inclusion is allowed only when BOTH halves pass (AC#5):
+      1. ``NMI(with-derived partition, wikilink-only partition) ≥ 1 − tol`` —
+         the derived layer must not destroy the curated community structure
+         (ADR-0012 NMI/ARI machinery; ``tol`` mirrors the search-gate epsilon).
+      2. ``modularity(with-derived partition, wikilink graph) ≥ modularity(
+         baseline partition, wikilink graph)`` — both partitions scored on the
+         SAME (wikilink) graph, apples-to-apples.
     On any degradation (or empty derived layer) inclusion is **refused**.
     Returns ``(include: bool, report: dict)``.
     """
+    from llm_wiki.eval.cluster_metrics import nmi
     from llm_wiki.graph.louvain import _compute_modularity, louvain
 
     if not derived_edges:
-        return False, {"reason": "no derived edges", "baseline_modularity": None}
+        return False, {"included": False, "reason": "no derived edges",
+                       "baseline_modularity": None}
 
-    node_ids = [n.get("id", "") for n in nodes] if nodes and isinstance(nodes[0], dict) else list(nodes)
+    if isinstance(nodes, dict):
+        node_ids = list(nodes)
+    elif nodes and isinstance(nodes[0], dict):
+        node_ids = [n.get("id", "") for n in nodes]
+    else:
+        node_ids = list(nodes)
     wiki_adj = _adjacency(wikilink_edges)
     combined = list(wikilink_edges) + list(derived_edges)
 
     baseline_part = louvain(wikilink_edges, nodes=node_ids, seed=42)
     with_part = louvain(combined, nodes=node_ids, seed=42)
 
+    # NMI between the two partitions, aligned by node id (order-independent).
+    baseline_labels = [baseline_part.get(nid, -1) for nid in node_ids]
+    with_labels = [with_part.get(nid, -1) for nid in node_ids]
+    nmi_val = nmi(baseline_labels, with_labels)
+
     # Both partitions scored on the SAME (wikilink) graph — apples-to-apples.
     baseline_mod = _compute_modularity(wiki_adj, baseline_part)
     with_mod = _compute_modularity(wiki_adj, with_part)
 
-    include = with_mod >= baseline_mod
+    nmi_ok = nmi_val >= 1.0 - tol
+    mod_ok = with_mod >= baseline_mod
+    include = nmi_ok and mod_ok
+
+    if not include:
+        if not nmi_ok and not mod_ok:
+            reason = "fail-closed: NMI and modularity below baseline"
+        elif not nmi_ok:
+            reason = "fail-closed: NMI below baseline"
+        else:
+            reason = "fail-closed: modularity below baseline"
+    else:
+        reason = "NMI >= 1-tol and modularity >= baseline"
+
     report = {
+        "nmi_with_vs_baseline": round(nmi_val, 6),
+        "tol": tol,
         "baseline_modularity": round(baseline_mod, 6),
         "with_derived_modularity": round(with_mod, 6),
         "delta": round(with_mod - baseline_mod, 6),
         "included": include,
-        "reason": "modularity >= baseline" if include else "fail-closed: modularity below baseline",
+        "reason": reason,
     }
     return include, report
+
+
+def _wikilink_edges(pages) -> "list[dict]":
+    """Wikilink edges as ``{source, target, weight}`` dicts (the gate baseline)."""
+    return [
+        {"source": a, "target": b, "weight": 1}
+        for key in sorted(_wikilink_pairs(pages))
+        for a, b in [key.split("|", 1)]
+    ]
+
+
+def _gate_after_build(wiki_root) -> "tuple[bool, dict]":
+    """Run ``should_include_derived`` over the freshly built on-disk layer."""
+    from llm_wiki.core.layout import discover_layout
+    from llm_wiki.graph.suggest import load_pages
+
+    layout = discover_layout(wiki_root)
+    wiki_dir = Path(layout.pages_dir)
+    skip_files = frozenset(f"{stem}.md" for stem in layout.skip_stems)
+    pages = load_pages(wiki_dir, skip_files)
+    return should_include_derived(pages, _wikilink_edges(pages),
+                                  load_derived_edges(wiki_root))
 
 
 def main() -> int:
@@ -262,13 +320,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         prog="llm-wiki derive-edges",
         description="Build the quarantined derived-edge layer (LWM_029). "
-                    "Excluded by default from all analytics; opt-in + NMI-gated.",
+                    "Excluded by default from all analytics; consumers opt in "
+                    "via --include-derived, gated on NMI+modularity (fail-closed).",
     )
     parser.add_argument("wiki_root", help="Path to the wiki root directory")
     parser.add_argument("--tau", type=float, default=0.80, help="Cosine similarity floor")
     parser.add_argument("--top-m", type=int, default=5, help="Max similarity neighbors per node")
     parser.add_argument("--min-shared-sources", type=int, default=1)
     parser.add_argument("--min-shared-entities", type=int, default=2)
+    parser.add_argument("--include-derived", action="store_true",
+                        help="After building, run the NMI+modularity gate and report "
+                             "whether consumers may include the layer")
     parser.add_argument("--json", action="store_true", help="JSON output")
     args = parser.parse_args()
 
@@ -277,12 +339,26 @@ def main() -> int:
         min_shared_sources=args.min_shared_sources,
         min_shared_entities=args.min_shared_entities,
     )
+    gate_report = None
+    if args.include_derived:
+        _include, gate_report = _gate_after_build(args.wiki_root)
     if args.json:
-        print(json.dumps(stats, indent=2))
+        out = dict(stats)
+        if gate_report is not None:
+            out["gate"] = gate_report
+        print(json.dumps(out, indent=2))
     else:
         print(f"Derived layer: {stats['similar_to']} similar_to + "
               f"{stats['co_occurs_with']} co_occurs_with = {stats['written']} edges "
               f"(→ {derived_path(args.wiki_root)}). Excluded from analytics by default.")
+        if gate_report is not None:
+            verdict = ("included" if gate_report["included"]
+                       else "refused (fail-closed)")
+            print(f"Gate: NMI {gate_report['nmi_with_vs_baseline']} "
+                  f"(tol {gate_report['tol']}), modularity "
+                  f"{gate_report['with_derived_modularity']} vs baseline "
+                  f"{gate_report['baseline_modularity']} → {verdict} "
+                  f"({gate_report['reason']})")
     return 0
 
 

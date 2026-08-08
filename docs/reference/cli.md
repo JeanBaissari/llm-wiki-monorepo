@@ -61,7 +61,29 @@ python3 skill/scripts/lint_wiki.py ~/my-wiki --json
 
 ---
 
-## 3. Graph Insights
+## 3. Search (hybrid by default)
+
+**Hybrid is the v0.5.0 default** (LWM_032/ADR-0020): BM25 + semantic vector KNN fused via RRF. It degrades to keyword byte-identically when the `[semantic]` extra is absent — no config needed. `--keyword` forces lexical-only (the pre-v0.5.0 behavior).
+
+```bash
+# Hybrid default (degrades to keyword without [semantic])
+llm-wiki search ~/my-wiki "attention mechanisms"
+
+# Force keyword-only ranking
+llm-wiki search ~/my-wiki "attention" --keyword
+
+# Ranked results with snippets; --json for machine-readable output
+llm-wiki search ~/my-wiki "attention" --top-k 20 --json
+
+# One-off tuning override (LWM_031; see docs/reference/tuning.md)
+llm-wiki search ~/my-wiki "attention" --set retrieval.simFloor=0.45
+```
+
+**Flags:** `--keyword` (force lexical-only), `--top-k N` (default 10), `--set section.key=value` (tuning override, repeatable), `--json`. `--hybrid` is accepted as a back-compat no-op.
+
+---
+
+## 4. Graph Insights
 
 ### Python engine (via CLI)
 
@@ -97,7 +119,7 @@ node graph-engine/dist/index.js --wiki ~/my-wiki --action relevance --node "enti
 
 ---
 
-## 4. Link Suggestions
+## 5. Link Suggestions
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -117,7 +139,78 @@ Entity extraction from frontmatter, headings, and bold terms. 4-signal scoring: 
 
 ---
 
-## 5. Deep Research
+## 6. Entity Resolution
+
+Reversible canonical↔alias entity resolution (LWM_025/ADR-0024). Every merge is an append-only line in `.llm-wiki/entities/aliases.jsonl` (git-tracked source of truth); derived alias tables in `.index/wiki.db` are rebuilt from it. No page prose is ever rewritten — `--apply` on link suggestions writes only `[[Canonical|surface]]`.
+
+```bash
+# Resolve entity candidates into canonicals (two-signal rule; pure-Python default)
+llm-wiki entities resolve ~/my-wiki
+llm-wiki entities resolve ~/my-wiki --threshold 0.9 --json
+
+# List canonical entities and their aliases
+llm-wiki entities list ~/my-wiki --json
+
+# Reverse one merge (restores the exact pre-merge derived state)
+llm-wiki entities unmerge ~/my-wiki "GPT-4"
+```
+
+**Flags (resolve):** `--threshold` (merge threshold, default 0.85), `--json`. **Flags (list):** `--json`. The Splink `[entity-resolution]` extra is an optional precision upgrade; without it the stdlib path runs, never raising.
+
+---
+
+## 7. Derived Edges (quarantined layer)
+
+Build the similarity/co-occurrence derived-edge layer (LWM_029/ADR-0027). The layer is **excluded from all analytics by default**; consumers may include it only when the NMI+modularity gate passes (fail-closed).
+
+```bash
+# Build the layer (writes .index/derived-edges.json; graph-data.json untouched)
+llm-wiki derive-edges ~/my-wiki
+
+# Similarity floor + per-node neighbor cap
+llm-wiki derive-edges ~/my-wiki --tau 0.85 --top-m 10
+
+# Co-occurrence floors
+llm-wiki derive-edges ~/my-wiki --min-shared-sources 2 --min-shared-entities 1
+
+# Run the NMI+modularity gate and report whether consumers may include the layer
+llm-wiki derive-edges ~/my-wiki --include-derived
+
+# JSON report (includes the gate report when --include-derived)
+llm-wiki derive-edges ~/my-wiki --include-derived --json
+```
+
+**Flags:** `--tau` (cosine floor for similar_to edges, default 0.80), `--top-m` (max similarity neighbors per node, default 5), `--min-shared-sources` (default 1), `--min-shared-entities` (default 2), `--include-derived` (run the NMI+modularity gate and report), `--json`. Consumers (`insights`, `summarize-communities`) accept `--include-derived` to opt in, fail-closed on the gate.
+
+---
+
+## 8. Community Summaries (opt-in, generated)
+
+Hierarchical LLM summaries per community as first-class `community-summary` pages (LWM_030/ADR-0025) — `wiki/summaries/L{level}-{sha}.md` per community, `wiki/summaries/global-summary.md` at the root. Pages are generated artifacts keyed on the member-set SHA; stale pages are cleaned up automatically. One structured LLM call per community per level.
+
+```bash
+# Dry-run plan: no LLM calls, no writes
+llm-wiki summarize-communities ~/my-wiki --dry-run
+
+# Flat communities + global summary (default)
+llm-wiki summarize-communities ~/my-wiki
+
+# Hierarchical levels (parents summarize child summaries), capped per level
+llm-wiki summarize-communities ~/my-wiki --levels 3 --max-communities 10
+
+# Regenerate unchanged communities + explicit provider/model/engine
+llm-wiki summarize-communities ~/my-wiki --force --provider anthropic --model claude-sonnet-4-20250514
+llm-wiki summarize-communities ~/my-wiki --engine leiden
+
+# Include the derived-edge layer (fail-closed on the NMI+modularity gate)
+llm-wiki summarize-communities ~/my-wiki --include-derived --json
+```
+
+**Flags:** `--max-communities N`, `--levels N` (hierarchy depth; default 1 = flat + global; degrades to flat + global when the Leiden `[leiden]` extra is absent), `--provider`, `--model`, `--engine louvain|leiden`, `--force` (regenerate unchanged communities), `--dry-run` (plan only), `--include-derived`, `--json`.
+
+---
+
+## 9. Deep Research
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -133,7 +226,7 @@ python3 skill/scripts/deep_research.py ~/my-wiki "topic" --depth 3 --sources 10
 
 ---
 
-## 6. Backup & Recovery
+## 10. Backup & Recovery
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -163,7 +256,7 @@ python3 skill/scripts/backup.py ~/my-wiki --auto
 
 ---
 
-## 7. Audit Reviews
+## 11. Audit Reviews
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -179,7 +272,7 @@ python3 skill/scripts/audit_review.py ~/my-wiki --all
 
 ---
 
-## 8. Performance Benchmarks
+## 12. Performance Benchmarks
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -193,7 +286,7 @@ Outputs CSV with timing for: lint, graph build, graph insights, Python insights.
 
 ---
 
-## 9. Wiki Structure Discovery
+## 13. Wiki Structure Discovery
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -211,7 +304,7 @@ Auto-detects wiki layout: content pages, source documents, log/audit directories
 
 ---
 
-## 10. Migrate Old Wikis
+## 14. Migrate Old Wikis
 
 ```bash
 # llm-wiki CLI (pip-installed usage)
@@ -225,7 +318,7 @@ Converts v1 `log.md` → v2 `log/` directory structure.
 
 ---
 
-## 11. Hermes Agent Install
+## 15. Hermes Agent Install
 
 ```bash
 # Symlink skill into Hermes (also offered by install.sh)
@@ -299,7 +392,7 @@ node graph-engine/dist/index.js --wiki ~/quant-wiki --action insights
 llm-wiki backup ~/quant-wiki --auto
 ```
 
-## 14. Tuning Constants (`llm-wiki tuning`)
+## 16. Tuning Constants (`llm-wiki tuning`)
 
 One canonical config surface for every precision-steering constant (LWM_031 /
 ADR-0028): relevance weights + type-affinity matrix, insights thresholds +

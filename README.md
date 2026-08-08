@@ -45,6 +45,22 @@ pip install baissarienterprises-llm-wiki
 
 **7 pre-existing test failures eliminated.** OpenCode imports fixed. MCP integration tests now match the sidecar response schema. Link suggest optimization added. 472 tests pass (up from 445).
 
+## What's New in v0.5.0 — "Graph Precision"
+
+**Entity resolution.** `llm-wiki entities resolve|list|unmerge` collapses variant surface forms ("GPT-4" / "GPT 4" / "gpt-4") into one canonical id through a reversible canonical↔alias table (JSONL source of truth + additive SQLite alias tables). Every merge is reversible; no page prose is ever rewritten. ER-F1 on a committed gold set gates it (ADR-0024).
+
+**Leiden community detection.** Optional `[leiden]` sidecar (graspologic) with hierarchical levels — guaranteed-connected communities, NMI/modularity verification against Louvain, TS still only consumes (no TS Leiden, ADR-0025).
+
+**Typed + directed + bitemporal edges.** One additive edge-schema evolution (`relType`/`directed`/`validFrom`/`validTo`/`observedAt`) — the undirected default output is byte-identical (ADR-0026).
+
+**Derived edges, quarantined.** The graph discovers similarity + co-occurrence edges into a separate layer, excluded from all analytics by default and included only when the NMI+modularity gate passes (fail-closed, ADR-0027).
+
+**Hierarchical community summaries.** `llm-wiki summarize-communities` writes first-class `community-summary` pages per community level + a global summary, with faithfulness filtering and stale-page cleanup (LWM_030).
+
+**Tuning constants → config.** Every precision constant (relevance weights + type-affinity matrix, insights thresholds + signal scores, community resolution/seed, RRF k, BM25 k1/b, claim penalties — 52 settable keys) lives in one canonical `TuningConfig` surfaced by `llm-wiki tuning` with CLI > env > file > default precedence, emitted to the graph-engine via `--tuning-json` (ADR-0028).
+
+**Hybrid search is the default.** Search fuses BM25 + semantic KNN via RRF by default, degrades to keyword byte-identically without the `[semantic]` extra, and keeps `--keyword` as the escape hatch — certified by a committed search gold set + gate (ADR-0020).
+
 ## What is this?
 
 LLM Wiki is a **production-grade knowledge engine** that turns raw documents into a living, cross-linked Markdown wiki. Instead of re-retrieving documents on every query (RAG), the system **incrementally builds and maintains** a persistent knowledge base. Sources are compiled once, kept current, and compound over time.
@@ -70,11 +86,19 @@ It's everything needed to run a self-building wiki in one monorepo: a Python CLI
 
 - **SQLite FTS5 Search** — full-text search with SHA256 freshness detection. Pre-builds at startup, incremental updates, BM25 fallback. Rebuild with `--rebuild`.
 
-- **Inverted Entity Index** — dual-map entity→pages + page→entities for O(1) link suggestions. 4-signal scoring with automatic wikilink insertion.
+- **Inverted Entity Index** — dual-map entity→pages + page→entities for O(1) link suggestions. 4-signal scoring with automatic wikilink insertion. Reversible entity resolution (canonical↔alias) collapses duplicate surface forms.
 
 - **MCP Server** — 14 stdio tools for programmatic wiki access. Direct Python sidecar with zero subprocess overhead. Integrates with Claude Desktop, Codex, Cursor, and any MCP-compatible client.
 
-- **Community Verification Suite** — NMI/ARI cross-validation across 5 seeds, statistical similarity metrics, modularity tolerance within 1% relative error.
+- **Hybrid Search (default)** — BM25 + semantic vector KNN fused via RRF with a `--keyword` escape hatch; degrades to keyword byte-identically without the `[semantic]` extra. Gold-set gate certifies no keyword regression.
+
+- **Tuning Config Surface** — `llm-wiki tuning` exposes every precision constant (relevance weights + type-affinity matrix, insights signal scores, community resolution/seed, RRF k, BM25 k1/b, claim penalties) with CLI > env > file > default precedence and a `--emit` boundary for the graph-engine.
+
+- **Community Verification Suite** — NMI/ARI cross-validation across 5 seeds, statistical similarity metrics, modularity tolerance within 1% relative error. Optional Leiden engine with hierarchical levels (graspologic, `[leiden]` extra).
+
+- **Derived-Edge Layer** — similarity + co-occurrence edges the graph discovers into a separate quarantined layer, excluded from analytics by default and NMI+modularity-gated on inclusion (fail-closed).
+
+- **Hierarchical Community Summaries** — opt-in LLM summaries per community level + global summary as first-class generated pages, with faithfulness filtering and orphan cleanup.
 
 - **Backup & Recovery** — tar.gz snapshots with restore, integrity verification, and automatic pruning. One-command `--auto` for safe state.
 
@@ -185,14 +209,16 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 |------|---------------|
 | `README.md` | You are here |
 | `docs/getting-started/quickstart.md` | Every command with real examples |
-| `docs/reference/cli.md` | Full CLI reference — all 15 commands with flags and examples |
+| `docs/reference/cli.md` | Full CLI reference — all 23 commands with flags and examples |
 | `docs/reference/mcp-tools.md` | All 14 MCP tools with schemas and usage examples |
 | `AGENTS.md` | Architecture, conventions, build/test commands, Python Dependency Policy |
 | `docs/release/changelog.md` | Full version history — all features, changes, and breaking changes |
 | `docs/reference/file-map.md` | Complete file tree with descriptions |
+| `docs/reference/tuning.md` | Tuning config surface — every constant, precedence, emit boundary |
+| `docs/operations/` | Operations runbooks — hybrid-default search migration note, index |
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
 | `docs/architecture/overview.md` | Why this system exists — design philosophy and goals |
-| `docs/adr/` | Architecture Decision Records — 14 design decisions with tradeoffs |
+| `docs/adr/` | Architecture Decision Records — ADRs 0001–0028 + index + decision register |
 | `skill/references/` | 13 detailed reference guides including concurrency, observability, and ingest |
 
 ## Requirements

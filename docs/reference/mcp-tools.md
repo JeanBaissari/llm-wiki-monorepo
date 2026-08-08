@@ -8,28 +8,35 @@ MCP server, web viewer, and browser extension reference. For CLI commands, see [
 
 ```bash
 # Single-wiki mode
-node mcp-server/dist/index.js --wiki ~/my-wiki
+node mcp-server/dist/main.js --wiki ~/my-wiki
 
 # Multi-wiki mode (serve all wikis in a directory)
-node mcp-server/dist/index.js --projects ~/wikis
+node mcp-server/dist/main.js --projects ~/wikis
 
 # Via env var
-LLM_WIKI_PATH=~/my-wiki node mcp-server/dist/index.js
+LLM_WIKI_PATH=~/my-wiki node mcp-server/dist/main.js
 ```
 
 No `llm-wiki` CLI equivalent — the MCP server is a TypeScript package accessed via stdio.
 
-**10 MCP Tools:**
-- `llm_wiki_status` — Health, page count, last ingest, open reviews
-- `llm_wiki_files` — File tree listing (wiki/sources/all)
-- `llm_wiki_read_file` — Read any file (120KB limit)
-- `llm_wiki_reviews` — List review items (open/resolved/all)
-- `llm_wiki_search` — SQLite FTS5 full-text search
-- `llm_wiki_graph` — Graph operations (build/insights/search)
-- `llm_wiki_lint` — Run automated lint checks
-- `llm_wiki_ingest` — Trigger two-step ingest on a source
-- `llm_wiki_audit_save` — Save audit feedback responses
-- `llm_wiki_links_suggest` — Suggest missing wikilinks
+**14 MCP Tools** (source of truth: `mcp-server/src/registry.ts`):
+
+| Tool | Side effect | Purpose |
+|------|-------------|---------|
+| `llm_wiki_status` | read-only | Wiki health, page count, last ingest, open reviews |
+| `llm_wiki_files` | read-only | File tree listing (wiki/sources/all) |
+| `llm_wiki_read_file` | read-only | Read any project-relative file (120KB limit, allow-listed dirs) |
+| `llm_wiki_reviews` | read-only | List review items (open/resolved/all) |
+| `llm_wiki_search` | read-only | Search wiki pages — hybrid by default (BM25 + semantic KNN via RRF, LWM_032/ADR-0020); `mode="keyword"` forces lexical-only |
+| `llm_wiki_graph` | write | Graph operations (build/insights/search) — backward-compatible wrapper |
+| `llm_wiki_graph_build` | write | Build the knowledge graph from wiki markdown (direct graph-engine import) |
+| `llm_wiki_graph_insights` | read-only | Graph insights — surprising connections and knowledge gaps |
+| `llm_wiki_graph_search` | read-only | Search graph nodes matching a query |
+| `llm_wiki_lint` | external | Run automated lint checks via Python sidecar |
+| `llm_wiki_ingest` | write | Trigger two-step ingest on a source |
+| `llm_wiki_suggest_links` | read-only | Suggest missing wikilinks with confidence scores (threshold/limit/pages params) |
+| `llm_wiki_backup` | write | Timestamped tar.gz snapshot with integrity verification |
+| `llm_wiki_discover_entities` | read-only | List the entity registry (names, paths, types, aliases; optional type filter) |
 
 **Multi-wiki mode:** Add `"project": "project-name"` to tool call arguments.
 
@@ -39,7 +46,7 @@ No `llm-wiki` CLI equivalent — the MCP server is a TypeScript package accessed
   "mcpServers": {
     "llm-wiki": {
       "command": "node",
-      "args": ["/path/to/llm-wiki-monorepo/mcp-server/dist/index.js", "--projects", "/path/to/wikis"]
+      "args": ["/path/to/llm-wiki-monorepo/mcp-server/dist/main.js", "--projects", "/path/to/wikis"]
     }
   }
 }

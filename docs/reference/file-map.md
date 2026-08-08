@@ -10,14 +10,19 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 | `docs/getting-started/quickstart.md` | Installation and first wiki — quick start guide |
 | `docs/reference/cli.md` | Full CLI command reference with examples |
 | `docs/reference/mcp-tools.md` | MCP server, web viewer, browser extension reference |
+| `docs/reference/tuning.md` | Tuning-config surface — every precision constant, precedence, emit boundary (LWM_031/ADR-0028) |
 | `docs/reference/file-map.md` | This file — complete file tree |
+| `docs/operations/index.md` | Operations notes index (runbooks for shipped behavior changes) |
+| `docs/operations/hybrid-default-search.md` | Hybrid-search default migration note — what changed, how to opt back to keyword (LWM_032/ADR-0020) |
 | `AGENTS.md` | Architecture and conventions for AI agents |
 | `docs/architecture/overview.md` | Why this system exists, core principles, success criteria |
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
 | `install.sh` | One-command install — detects deps, builds, creates wrappers |
 | `package.json` | NPM workspace root — scripts for build/test/run |
 | `.gitignore` | Git ignore rules |
-| `.github/workflows/ci.yml` | GitHub Actions CI — syntax checks, builds, integration tests |
+| `.github/workflows/ci.yml` | GitHub Actions CI — syntax checks, builds, integration tests, eval gates, release certify |
+| `tests/eval/gold/GOLD_SET.md` | Search-eval gold-set provenance and regeneration rules (LWM_032) |
+| `docs/adr/index.md` + `docs/adr/decision-register.md` | ADR index and decision register — every ADR 0001–0028 plus deliberate gaps |
 
 ---
 
@@ -43,7 +48,7 @@ Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit
 | `eow-cron-pipeline.md` | Weekly automated maintenance — discover repos, assess health, conditional graph rebuild, lint, report |
 | `migration-guide.md` | Migrating v1 wikis (flat structure, log.md) to v2 format (log/ directory, wiki/ subdirectory) |
 
-### `skill/scripts/` — 11 Python scripts
+### `skill/scripts/` — 23 Python scripts
 
 All scripts are thin wrappers that delegate to `src/llm_wiki/` modules.
 
@@ -60,6 +65,66 @@ All scripts are thin wrappers that delegate to `src/llm_wiki/` modules.
 | `benchmark.py` | ~280 | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages, CSV output |
 | `audit_review.py` | 147 | Group open/resolved audit files by target for processing |
 | `migrate_log.py` | 117 | Convert v1 log.md to v2 log/ directory format |
+| `health_check.py` | — | Thin wrapper — delegates to `llm_wiki.ops.health` |
+| `index_wiki.py` | — | Thin wrapper — delegates to `llm_wiki.search` (FTS5 index build/rebuild) |
+| `serve.py` | — | Thin wrapper — delegates to `llm_wiki.ops.serve` (MCP server entry) |
+| `sidecar.py` | — | Python sidecar used by the MCP server (long-lived process) |
+| `atomic_write.py`, `content_hash.py`, `lock_wiki.py`, `wiki_logging.py` | — | Shared primitives delegated to `core/` |
+| `louvain.py` | — | Thin wrapper — delegates to `llm_wiki.graph.louvain` |
+| `regenerate_fixtures.py` / `validate_fixtures.py` | — | Fixture regeneration / validation used by CI |
+| `providers/` | — | LLM provider wrapper scripts |
+
+---
+
+## `src/llm_wiki/` — Python Package (core)
+
+PyPI package — CLI dispatch (`cli.py`), 23 commands via `COMMANDS`, domain-organized packages. All skill scripts delegate here.
+
+| Module | Purpose |
+|------|---------|
+| `cli.py` | Unified CLI entry — `COMMANDS` dict (23 commands) + aliases, dispatches to module `main()` |
+| `graph/extract.py` | Pluggable entity extractor — regex default, optional GLiNER `[ner]` backend with fail-soft degradation (LWM_026) |
+| `graph/resolve.py` | Entity-resolution pipeline — normalize → block → two-signal score → merge (LWM_025/ADR-0024) |
+| `graph/alias_store.py` | Reversible canonical↔alias store — append-only JSONL source of truth + additive `.index/wiki.db` alias tables with `alias_meta` guard |
+| `graph/entities.py` | `llm-wiki entities resolve/list/unmerge` CLI |
+| `graph/leiden.py` | Optional Leiden community engine (`[leiden]` extra) + hierarchical levels seam (LWM_027) |
+| `graph/derived_edges.py` | Quarantined derived-edge layer — similar_to + co_occurs_with, NMI+modularity fail-closed gate (LWM_029/ADR-0027) |
+| `graph/summarize.py` | `llm-wiki summarize-communities` — hierarchical community summaries as first-class pages, faithfulness filtering (LWM_030) |
+| `graph/suggest.py` / `louvain.py` / `insights.py` / `alias_store.py` | Link suggestions, Louvain communities, insights, alias persistence |
+| `core/config.py` | Canonical `TuningConfig` — all 22 constants + type-affinity matrix + signal scores (LWM_031/ADR-0028) |
+| `core/tuning.py` | `llm-wiki tuning` CLI — resolve/precedence/`--set`/`--emit` to graph-engine JSON |
+| `eval/er_metrics.py` | Pairwise merge precision/recall/F1 (ER-F1 gate, LWM_025) |
+| `eval/cluster_metrics.py` | Community NMI/modularity metrics (Leiden verification, LWM_027) |
+| `eval/search_baseline.py` | Search-eval harness — goldset splits, hybrid/keyword baseline, `search_eval_gate` (LWM_032) |
+| `eval/goldset.py` / `baseline.py` / `metrics.py` / `harness.py` / `cli.py` | Eval harness core — gold-set load/splits, committed baselines, `llm-wiki eval` CLI |
+
+---
+
+## `tests/` — Python Test Suite
+
+pytest. Run from the repo root with `PYTHONPATH=src`.
+
+| File / Dir | Purpose |
+|------|---------|
+| `tests/eval/gold/` | Committed gold sets: `er_goldset.json` (ER, disjoint tune/gate), `search_goldset.json`, `split_manifest.json` (SHA256 freeze), `GOLD_SET.md` |
+| `tests/eval/baseline/` | Committed gate baselines: `er_baseline.json`, `search_eval_baseline.json`, `eval_baseline.json`, `tuning_defaults.json` |
+| `tests/eval/test_derived_edge_nmi_gate.py` | Derived-edge NMI+modularity gate — inclusion/refusal, fail-closed (LWM_029) |
+| `tests/eval/test_search_goldset_integrity.py` | Goldset disjointness, manifest SHA256 freeze, query→pages labels (LWM_032) |
+| `tests/eval/test_real_wiki_gate.py` | Real-wiki gate lane with the real `[semantic]` embedder (CI `semantic` job only) |
+| `tests/test_entity_resolution.py` | Normalization, blocking (sub-quadratic), two-signal rule, reversibility, alias-meta guard (LWM_025) |
+| `tests/test_er_eval.py` | ER-F1 fail-on-drop gate + must-not-merge negatives + GLiNER-holds-ER-F1 (LWM_025/026) |
+| `tests/test_extract.py` | Extractor import-safety, regex baseline, GLiNER fail-soft, no-download base path (LWM_026) |
+| `tests/test_leiden.py` | Leiden selector, hierarchy seam, NMI/modularity vs Louvain (LWM_027) |
+| `tests/test_communities_internally_connected.py` | Connectivity over `tests/fixtures/graphs/*.json` — Louvain + Leiden |
+| `tests/test_derived_edges.py` | Derived-layer persistence, default exclusion, wikilink dupes, gate (LWM_029) |
+| `tests/test_community_summaries.py` | Summaries — dry-run, idempotence, hierarchy, faithfulness, orphan cleanup (LWM_030) |
+| `tests/test_tuning_config.py` + `test_tuning_config_defaults.py` | All 22 constants + matrix + signal scores configurable; defaults golden snapshot (LWM_031) |
+| `tests/test_search_hybrid.py` / `test_search_eval_gate.py` / `test_search_baseline_reproducible.py` | Hybrid default, RRF, keyword escape hatch, gibberish→empty, gate fail-closed, baseline reproducibility (LWM_032) |
+| `tests/test_eval_regression.py` | Committed-baseline regression — lexical, derived-edge gate, summary faithfulness |
+| `tests/test_edge_schema.py` | Additive edge fields inert on the Python default path; partition stable (LWM_028) |
+| `tests/test_verification.py` + `tests/verification/run_verification.py` | Community verification suite — NMI/ARI across seeds |
+| `tests/fixtures/graphs/*.json` | Topology fixtures (barbell, ring_of_cliques, sbm, star, …) for community verification |
+| `tests/` others | ingest, lint, concurrency, link-suggest, scaffold, MCP transcripts/benchmark, semantic, claims, docs-examples, CLI snapshots |
 
 ---
 
@@ -103,7 +168,10 @@ TypeScript. Relevance model, Louvain communities, graph insights.
 | `src/louvain.ts` | Louvain community detection via graphology — cohesion scoring, top nodes, sequential renumbering |
 | `src/insights.ts` | Surprising connections (cross-community, peripheral-to-hub) + knowledge gaps (isolated, sparse, bridge) |
 | `src/search.ts` | Token-based graph filtering — match nodes by label/id/type/path |
-| `src/index.ts` | CLI wrapper + public API — `--action build|insights|search|relevance`, JSON output |
+| `src/index.ts` | CLI wrapper + public API — `--action build|insights|search|relevance`, JSON output; `--tuning-json` consumes the Python-emitted tuning profile |
+| `test/tuning-parity.test.ts` | TS-resolved tuning options == Python-resolved profile (non-default + default golden) |
+| `test/test_edge_schema.test.ts` | Edge dedup key (undirected byte-identical / directed opt-in), optional-field round-trip, golden build-through snapshot |
+| `test/fixtures/graph-data.golden.json` | Golden graph build output — byte-identity freeze through `build` (AD-15) |
 
 ---
 

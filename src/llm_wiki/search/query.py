@@ -48,12 +48,24 @@ def _match_expr(query: str) -> str:
     return " OR ".join(f'"{t}"' for t in toks)
 
 
-def keyword_search(wiki_root, query: str, k: int = 10) -> "list[dict]":
+def keyword_search(wiki_root, query: str, k: int = 10, k1: float | None = None,
+                   b: float | None = None) -> "list[dict]":
     """FTS5/BM25 keyword results: ``[{path, title, snippet, score}]`` best-first.
 
     Byte-compatible default: returns ``[]`` when the index is missing/empty or
     the query has no indexable tokens.
+
+    LWM_031 BM25 threading: FTS5's native ``bm25()`` has fixed k1/b, so when
+    tuning overrides are present (non-default ``bm25.k1``/``bm25.b`` — the
+    values differ from the config defaults 1.5/0.75) a deterministic
+    Python-side BM25 rescoring runs over the FTS5 candidate rows with those
+    parameters; with the defaults (None or the config defaults) the current
+    FTS5-native path is used byte-identical. The rescoring model mirrors
+    mcp-server/src/search.ts (same IDF formula, same K1/B defaults).
     """
+    from llm_wiki.core.config import TuningConfig
+    defaults = TuningConfig().bm25
+    native = k1 is None or (k1 == defaults.k1 and b == defaults.b)
     conn = _open_ro(wiki_root)
     if conn is None:
         return []
@@ -62,13 +74,18 @@ def keyword_search(wiki_root, query: str, k: int = 10) -> "list[dict]":
         if not expr:
             return []
         try:
-            rows = conn.execute(
-                "SELECT path, title, "
-                "snippet(pages, 2, '', '', ' … ', 12) AS snip, "
-                "bm25(pages) AS score "
-                "FROM pages WHERE pages MATCH ? ORDER BY score LIMIT ?",
-                (expr, int(k)),
-            ).fetchall()
+            if native:
+                rows = conn.execute(
+                    "SELECT path, title, "
+                    "snippet(pages, 2, '', '', ' … ', 12) AS snip, "
+                    "bm25(pages) AS score "
+                    "FROM pages WHERE pages MATCH ? ORDER BY score LIMIT ?",
+                    (expr, int(k)),
+                ).fetchall()
+            else:
+                rows = _bm25_rescore(conn, expr, int(k),
+                                     float(k1 if k1 is not None else defaults.k1),
+                                     float(b if b is not None else defaults.b))
         except sqlite3.OperationalError:
             return []  # no pages table yet
         # bm25 is negative (more negative = better); expose a positive relevance.
@@ -78,6 +95,65 @@ def keyword_search(wiki_root, query: str, k: int = 10) -> "list[dict]":
         ]
     finally:
         conn.close()
+
+
+def _bm25_rescore(conn: sqlite3.Connection, expr: str, k: int, k1: float, b: float):
+    """Python-side BM25(k1, b) over FTS5 candidates (tuned path only).
+
+    Deterministic: same IDF formula as mcp-server/src/search.ts
+    (``log((N - df + 0.5) / (df + 0.5) + 1)``), same length normalization, ties
+    broken by path so repeated runs agree. Candidate rows come from the FTS5
+    MATCH (with ``snippet()``), so ranking is the only thing that changes.
+    """
+    import math
+
+    stats = {}
+    for key in ("doc_count", "avg_length"):
+        row = conn.execute(
+            "SELECT value FROM index_stats WHERE key = ?", (key,)
+        ).fetchone()
+        stats[key] = float(row[0]) if row and row[0] is not None else 0.0
+    n_docs = int(stats["doc_count"])
+    avg_length = stats["avg_length"]
+    if n_docs == 0 or avg_length <= 0:
+        return []
+
+    terms = expr.replace('"', "").split(" OR ")
+    idf: dict[str, float] = {}
+    for term in terms:
+        try:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM pages WHERE pages MATCH ?", (term,)
+            ).fetchone()
+            df = row[0] if row else 0
+            idf[term] = math.log((n_docs - df + 0.5) / (df + 0.5) + 1)
+        except sqlite3.OperationalError:
+            idf[term] = math.log((n_docs + 0.5) / 0.5 + 1)
+
+    rows = conn.execute(
+        "SELECT path, title, snippet(pages, 2, '', '', ' … ', 12) AS snip, content "
+        "FROM pages WHERE pages MATCH ?",
+        (expr,),
+    ).fetchall()
+
+    scored: list[tuple] = []
+    for path, title, snip, content in rows:
+        tokens = content.split() if content else []
+        doc_len = len(tokens)
+        score = 0.0
+        for term in terms:
+            tf = sum(1 for t in tokens if t == term)
+            if tf == 0:
+                continue
+            denom = tf + k1 * (1 - b + b * (doc_len / avg_length))
+            score += idf.get(term, 0.0) * (tf * (k1 + 1)) / denom
+        if score > 0:
+            # bm25 native returns negative scores; the caller negates, so the
+            # rescored path mirrors that sign convention (positive relevance).
+            scored.append((path, title, snip, -score))
+
+    scored.sort(key=lambda r: (r[3], r[0]))  # ascending bm25 == best first
+    return scored[:k]
 
 
 def _titles_for(conn: sqlite3.Connection, paths: "list[str]") -> "dict[str, str]":
@@ -99,21 +175,43 @@ def hybrid_search(
     query: str,
     k: int = 10,
     embedder=None,
-    sim_floor: float = DEFAULT_SIM_FLOOR,
-    rrf_k: int = 60,
+    sim_floor: "Optional[float]" = None,
+    rrf_k: "Optional[int]" = None,
+    bm25_k1: "Optional[float]" = None,
+    bm25_b: "Optional[float]" = None,
 ) -> "list[dict]":
     """RRF fusion of BM25 + vector KNN, with keyword-only fallback.
 
     Falls back to :func:`keyword_search` (byte-identical) when the ``[semantic]``
     extra is absent, no vectors are indexed, or the ``embed_meta`` guard fails.
+
+    LWM_031 tuning: when the caller does not pass explicit values (e.g. the MCP
+    sidecar), the wiki's resolved tuning (``tuning.toml`` at the wiki root + env
+    + defaults) supplies ``retrieval.simFloor`` / ``retrieval.rrfK`` and the
+    ``bm25.k1``/``bm25.b`` overrides; defaults stay byte-identical.
     """
+    from llm_wiki.core.config import resolve_tuning
     from llm_wiki.semantic.embedder import get_embedder
     from llm_wiki.semantic.fusion import rrf_order
     from llm_wiki.semantic.vector_schema import open_index_db, vector_count
     from llm_wiki.semantic.vectorstore import semantic_retrieve
 
+    if sim_floor is None or rrf_k is None or bm25_k1 is None or bm25_b is None:
+        tuning = resolve_tuning(wiki_root)
+        if sim_floor is None:
+            sim_floor = tuning.retrieval.simFloor
+        if rrf_k is None:
+            rrf_k = tuning.retrieval.rrfK
+        over = tuning.overridden()
+        # Only non-default bm25 values switch keyword_search to Python
+        # rescoring; the default path stays FTS5-native (byte-identical).
+        if bm25_k1 is None:
+            bm25_k1 = tuning.bm25.k1 if "bm25.k1" in over else None
+        if bm25_b is None:
+            bm25_b = tuning.bm25.b if "bm25.b" in over else None
+
     over = max(k * 3, 20)
-    kw = keyword_search(wiki_root, query, over)
+    kw = keyword_search(wiki_root, query, over, k1=bm25_k1, b=bm25_b)
     kw_ids = [r["path"] for r in kw]
 
     p = _db_path(wiki_root)
@@ -195,7 +293,12 @@ def main() -> int:
         return 2
 
     if args.keyword:
-        results = keyword_search(root, args.query, args.top_k)
+        over = tuning.overridden()
+        results = keyword_search(
+            root, args.query, args.top_k,
+            k1=tuning.bm25.k1 if "bm25.k1" in over else None,
+            b=tuning.bm25.b if "bm25.b" in over else None,
+        )
     else:
         results = hybrid_search(root, args.query, args.top_k,
                                 sim_floor=tuning.retrieval.simFloor,

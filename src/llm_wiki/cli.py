@@ -40,6 +40,7 @@ COMMANDS = {
     "migrate-log": "llm_wiki.ops.migrate",
     "ops": "llm_wiki.ops.list",
     "discover": "llm_wiki.core.layout",
+    "tuning": "llm_wiki.core.tuning",
     "index": "llm_wiki.search",
     "search": "llm_wiki.search.query",
     "embed": "llm_wiki.semantic.embed",

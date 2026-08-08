@@ -12,6 +12,14 @@ import {
 // Configurable options
 // ---------------------------------------------------------------------------
 
+export interface InsightsSignalScores {
+  crossCommunity: number;
+  crossTypeStrong: number;
+  crossTypeWeak: number;
+  peripheralToHub: number;
+  lowWeight: number;
+}
+
 export interface InsightsOptions {
   surpriseThreshold?: number;
   sparseCohesionThreshold?: number;
@@ -19,24 +27,44 @@ export interface InsightsOptions {
   bridgeCommunityMin?: number;
   peripheralMaxDegree?: number;
   peripheralHubRatio?: number;
+  isolatedMaxDegree?: number;
   structuralTypes?: string[];
   limit?: number;
+  signalScores?: Partial<InsightsSignalScores>;
 }
 
-export const DEFAULT_INSIGHTS_OPTIONS: Required<InsightsOptions> = {
+/** Fully-resolved options after merging defaults (what the signal functions see). */
+export interface MergedInsightsOptions extends Omit<Required<InsightsOptions>, 'signalScores'> {
+  signalScores: InsightsSignalScores;
+}
+
+export const DEFAULT_INSIGHTS_OPTIONS: MergedInsightsOptions = {
   surpriseThreshold: 3,
   sparseCohesionThreshold: 0.15,
   sparseMinNodes: 3,
   bridgeCommunityMin: 3,
   peripheralMaxDegree: 2,
   peripheralHubRatio: 0.5,
+  isolatedMaxDegree: 1,
   structuralTypes: [],
   limit: 8,
+  signalScores: {
+    crossCommunity: 3,
+    crossTypeStrong: 2,
+    crossTypeWeak: 1,
+    peripheralToHub: 2,
+    lowWeight: 1,
+  },
 };
 
-function mergeOptions(overrides?: InsightsOptions): Required<InsightsOptions> {
+function mergeOptions(overrides?: InsightsOptions): MergedInsightsOptions {
   if (!overrides) return DEFAULT_INSIGHTS_OPTIONS;
-  return { ...DEFAULT_INSIGHTS_OPTIONS, ...overrides };
+  return {
+    ...DEFAULT_INSIGHTS_OPTIONS,
+    ...overrides,
+    structuralTypes: overrides.structuralTypes ?? DEFAULT_INSIGHTS_OPTIONS.structuralTypes,
+    signalScores: { ...DEFAULT_INSIGHTS_OPTIONS.signalScores, ...(overrides.signalScores ?? {}) },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -76,7 +104,7 @@ export type SurpriseSignalFn = (
   target: GraphNode,
   degree: Map<string, number>,
   maxDegree: number,
-  options: Required<InsightsOptions>,
+  options: MergedInsightsOptions,
 ) => { score: number; reason: string } | null;
 
 export function crossCommunitySignal(
@@ -85,10 +113,10 @@ export function crossCommunitySignal(
   target: GraphNode,
   _degree: Map<string, number>,
   _maxDegree: number,
-  _options: Required<InsightsOptions>,
+  options: MergedInsightsOptions,
 ): { score: number; reason: string } | null {
   if (source.community !== target.community) {
-    return { score: 3, reason: 'cross-community edge' };
+    return { score: options.signalScores.crossCommunity, reason: 'cross-community edge' };
   }
   return null;
 }
@@ -99,13 +127,13 @@ export function crossTypeSignal(
   target: GraphNode,
   _degree: Map<string, number>,
   _maxDegree: number,
-  _options: Required<InsightsOptions>,
+  _options: MergedInsightsOptions,
 ): { score: number; reason: string } | null {
   if (source.type !== target.type) {
     if (isDistantTypePair(source.type, target.type)) {
-      return { score: 2, reason: 'cross-type edge (distant pair)' };
+      return { score: _options.signalScores.crossTypeStrong, reason: 'cross-type edge (distant pair)' };
     }
-    return { score: 1, reason: 'cross-type edge' };
+    return { score: _options.signalScores.crossTypeWeak, reason: 'cross-type edge' };
   }
   return null;
 }
@@ -116,14 +144,14 @@ export function peripheralToHubSignal(
   target: GraphNode,
   degree: Map<string, number>,
   maxDegree: number,
-  options: Required<InsightsOptions>,
+  options: MergedInsightsOptions,
 ): { score: number; reason: string } | null {
   const sourceDeg = degree.get(source.id) ?? 0;
   const targetDeg = degree.get(target.id) ?? 0;
   const minDeg = Math.min(sourceDeg, targetDeg);
   const maxDeg = Math.max(sourceDeg, targetDeg);
   if (minDeg <= options.peripheralMaxDegree && maxDeg >= maxDegree * options.peripheralHubRatio) {
-    return { score: 2, reason: 'peripheral-to-hub connection' };
+    return { score: options.signalScores.peripheralToHub, reason: 'peripheral-to-hub connection' };
   }
   return null;
 }
@@ -134,10 +162,10 @@ export function lowWeightSignal(
   _target: GraphNode,
   _degree: Map<string, number>,
   _maxDegree: number,
-  _options: Required<InsightsOptions>,
+  _options: MergedInsightsOptions,
 ): { score: number; reason: string } | null {
   if (edge.weight > 0 && edge.weight < 2) {
-    return { score: 1, reason: 'low-weight edge' };
+    return { score: _options.signalScores.lowWeight, reason: 'low-weight edge' };
   }
   return null;
 }
@@ -287,7 +315,7 @@ export function detectKnowledgeGaps(
   for (const node of nodes) {
     if (structuralTypes.has(node.type)) continue;
     const deg = degree.get(node.id) ?? 0;
-    if (deg <= 1) {
+    if (deg <= opts.isolatedMaxDegree) {
       gaps.push({
         type: 'isolated-node',
         title: `Isolated Node: "${node.label}"`,

@@ -2,11 +2,12 @@
 """config.py — Canonical tuning-config surface (LWM_031). See ADR-0028.
 
 One place for every magic tuning constant that steers precision — relevance
-weights, insights thresholds, community detection, RRF/hybrid retrieval, BM25,
-and claim-health penalties. Defaults equal today's source literals byte-for-byte,
-so nothing changes until a constant is measured and re-tuned on the LWM_022 TUNE
-split. Resolution precedence is **CLI > env > file > code-default**; unknown keys
-and out-of-range values **fail closed** (raise ``ConfigError`` → CLI exit 2).
+weights, the 5×5 type-affinity matrix, insights thresholds + per-signal scores,
+community detection, RRF/hybrid retrieval, BM25, and claim-health penalties.
+Defaults equal today's source literals byte-for-byte, so nothing changes until a
+constant is measured and re-tuned on the LWM_022 TUNE split. Resolution
+precedence is **CLI > env > file > code-default**; unknown keys and out-of-range
+values **fail closed** (raise ``ConfigError`` → CLI exit 2).
 
 The Python ``TuningConfig`` is the single source of truth; the TypeScript
 graph-engine consumes ``to_graph_engine_json()`` through its existing
@@ -21,6 +22,34 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+# Canonical node/page types for the type-affinity matrix (LWM_031 #5) —
+# mirrors graph-engine/src/relevance.ts TYPE_AFFINITY rows/columns.
+TYPE_TYPES: "tuple[str, ...]" = ("entity", "concept", "source", "query", "synthesis")
+
+# The 5×5 type-affinity matrix — byte-identical to graph-engine/src/relevance.ts
+# TYPE_AFFINITY (lines 34–40). Lookup is affinity[row][col]; a pair absent from
+# the matrix falls back to 0.5 on the TS side (`?? 0.5`, relevance.ts:117).
+DEFAULT_TYPE_AFFINITY: "dict[str, dict[str, float]]" = {
+    "entity": {"concept": 1.2, "entity": 0.8, "source": 1.0, "synthesis": 1.0, "query": 0.8},
+    "concept": {"entity": 1.2, "concept": 0.8, "source": 1.0, "synthesis": 1.2, "query": 1.0},
+    "source": {"entity": 1.0, "concept": 1.0, "source": 0.5, "query": 0.8, "synthesis": 1.0},
+    "query": {"concept": 1.0, "entity": 0.8, "synthesis": 1.0, "source": 0.8, "query": 0.5},
+    "synthesis": {"concept": 1.2, "entity": 1.0, "source": 1.0, "query": 1.0, "synthesis": 0.8},
+}
+
+# Surprise per-signal scores (LWM_031 #7) — byte-identical to the literals in
+# graph-engine/src/insights.ts (crossCommunitySignal +3, crossTypeSignal +2/+1,
+# peripheralToHubSignal +2, lowWeightSignal +1).
+DEFAULT_SIGNAL_SCORES: "dict[str, float]" = {
+    "crossCommunity": 3,
+    "crossTypeStrong": 2,
+    "crossTypeWeak": 1,
+    "peripheralToHub": 2,
+    "lowWeight": 1,
+}
+
+SIGNAL_KEYS: "tuple[str, ...]" = tuple(DEFAULT_SIGNAL_SCORES)
+
 
 class ConfigError(ValueError):
     """Raised on an unknown key or an out-of-range value (fail-closed)."""
@@ -28,12 +57,23 @@ class ConfigError(ValueError):
 
 # ── sections (defaults == today's literals) ──────────────────────────────────
 
+def _matrix_factory() -> "dict[str, dict[str, float]]":
+    return {row: dict(cols) for row, cols in DEFAULT_TYPE_AFFINITY.items()}
+
+
+def _signals_factory() -> "dict[str, float]":
+    return dict(DEFAULT_SIGNAL_SCORES)
+
+
 @dataclass(frozen=True)
 class RelevanceCfg:
     directLink: float = 3.0
     sourceOverlap: float = 4.0
     commonNeighbor: float = 1.5
     typeAffinity: float = 1.0
+    # 5×5 matrix; the scalar `typeAffinity` weight multiplies the looked-up cell
+    # (exactly as relevance.ts: `(affinityMap?.[t] ?? 0.5) * w.typeAffinity`).
+    typeAffinityMatrix: "dict[str, dict[str, float]]" = field(default_factory=_matrix_factory)
 
 
 @dataclass(frozen=True)
@@ -45,6 +85,7 @@ class InsightsCfg:
     peripheralMaxDegree: int = 2
     peripheralHubRatio: float = 0.5
     isolatedMaxDegree: int = 1
+    signalScores: "dict[str, float]" = field(default_factory=_signals_factory)
 
 
 @dataclass(frozen=True)
@@ -84,19 +125,52 @@ class TuningConfig:
     claims: ClaimsCfg = field(default_factory=ClaimsCfg)
 
     def to_graph_engine_json(self) -> dict:
-        """Resolved tuning for the TS graph-engine option interfaces."""
+        """The resolved tuning as the graph-engine consumes it.
+
+        Shape matches the TS ``RelevanceOptions`` / ``InsightsOptions`` /
+        ``LouvainOptions`` interfaces (relevance.weights + typeAffinityMatrix,
+        insights thresholds + signalScores, community.resolution/seed) plus the
+        retrieval/bm25/claims sections for completeness. Emitted by
+        ``llm-wiki tuning --json`` and consumed by graph-engine ``--tuning-json``.
+        """
+        rel, ins = self.relevance, self.insights
         return {
-            "relevance": {"weights": asdict(self.relevance)},
-            "insights": asdict(self.insights),
+            "relevance": {
+                "weights": {
+                    "directLink": rel.directLink,
+                    "sourceOverlap": rel.sourceOverlap,
+                    "commonNeighbor": rel.commonNeighbor,
+                    "typeAffinity": rel.typeAffinity,
+                },
+                "typeAffinityMatrix": {r: dict(c) for r, c in rel.typeAffinityMatrix.items()},
+            },
+            "insights": asdict(ins),
             "community": asdict(self.community),
+            "retrieval": asdict(self.retrieval),
+            "bm25": asdict(self.bm25),
+            "claims": asdict(self.claims),
         }
 
     def to_flat(self) -> "dict[str, Any]":
+        """Every settable key as a dotted flat map (matrix cells + signal scores
+        included as ``section.key.subkey`` entries)."""
         out: dict[str, Any] = {}
         for section in _SECTIONS:
             for k, v in asdict(getattr(self, section)).items():
-                out[f"{section}.{k}"] = v
+                _flatten(f"{section}.{k}", v, out)
         return out
+
+    def overridden(self) -> "dict[str, Any]":
+        """Flat map of keys whose resolved value differs from the code defaults.
+
+        Lets consumers with their own model literals (e.g. the Python insights
+        scorer's cross-community base 1.0 vs the canonical signal score 3) apply
+        an override only when the user actually changed it — keeping the
+        no-config path byte-identical.
+        """
+        defaults = TuningConfig().to_flat()
+        flat = self.to_flat()
+        return {k: v for k, v in flat.items() if v != defaults.get(k)}
 
 
 _SECTIONS = ("relevance", "insights", "community", "retrieval", "bm25", "claims")
@@ -127,15 +201,47 @@ _VALIDATORS: "dict[str, Callable[[Any], bool]]" = {
     "claims.penaltyLowConf": _nonnegint, "claims.penaltyContested": _nonnegint,
     "claims.failBelow": _nonnegint,
 }
+# 5×5 type-affinity matrix cells: relevance.typeAffinityMatrix.<row>.<col>
+for _row in TYPE_TYPES:
+    for _col in TYPE_TYPES:
+        _VALIDATORS[f"relevance.typeAffinityMatrix.{_row}.{_col}"] = _nonneg
+# Insights per-signal scores: insights.signalScores.<name>
+for _sig in SIGNAL_KEYS:
+    _VALIDATORS[f"insights.signalScores.{_sig}"] = _nonneg
+
+
+def _flatten(prefix: str, value: Any, out: "dict[str, Any]") -> None:
+    """Flatten nested dicts into dotted keys (matrix cells, signal scores)."""
+    if isinstance(value, dict):
+        for k, v in value.items():
+            _flatten(f"{prefix}.{k}", v, out)
+    else:
+        out[prefix] = value
+
+
+def _nest(sec_vals: "dict[str, Any]") -> "dict[str, Any]":
+    """Re-nest flat section keys (e.g. ``typeAffinityMatrix.entity.concept``)
+    into nested dicts for the dataclass fields."""
+    out: dict[str, Any] = {}
+    for key, value in sec_vals.items():
+        parts = key.split(".")
+        d = out
+        for part in parts[:-1]:
+            d = d.setdefault(part, {})
+        d[parts[-1]] = value
+    return out
 
 
 def _coerce(key: str, raw: Any) -> Any:
     """Coerce a scalar (from env/CLI strings) to the field's declared type."""
-    section, _, name = key.partition(".")
+    section, _, rest = key.partition(".")
     cls = _SECTION_CLS.get(section)
-    if cls is None or name not in cls.__dataclass_fields__:
+    if cls is None or not rest:
         raise ConfigError(f"unknown tuning key: {key}")
-    declared = cls.__dataclass_fields__[name].type
+    head = rest.partition(".")[0]
+    if head not in cls.__dataclass_fields__:
+        raise ConfigError(f"unknown tuning key: {key}")
+    declared = cls.__dataclass_fields__[head].type
     if isinstance(raw, str):
         # int fields must parse as int (not float); float fields accept both.
         want_int = declared in ("int", int)
@@ -169,12 +275,13 @@ def _load_file(path: Path) -> "dict[str, Any]":
     for section, tbl in data.items():
         if isinstance(tbl, dict):
             for k, v in tbl.items():
-                flat[f"{section}.{k}"] = v
+                _flatten(f"{section}.{k}", v, flat)
     return flat
 
 
 def _load_env(env: "dict[str, str]") -> "dict[str, Any]":
-    """Parse ``LLM_WIKI_TUNE__<section>__<key>`` overrides."""
+    """Parse ``LLM_WIKI_TUNE__<section>__<key>`` overrides (nested keys use
+    further ``__`` segments, e.g. ``LLM_WIKI_TUNE__relevance__typeAffinityMatrix__entity__concept``)."""
     out: dict[str, Any] = {}
     prefix = "LLM_WIKI_TUNE__"
     for name, val in env.items():
@@ -183,13 +290,13 @@ def _load_env(env: "dict[str, str]") -> "dict[str, Any]":
         body = name[len(prefix):]
         if "__" not in body:
             raise ConfigError(f"malformed tuning env var: {name}")
-        section, _, key = body.partition("__")
-        out[f"{section}.{key}"] = val
+        out[".".join(body.split("__"))] = val
     return out
 
 
 def _parse_cli(pairs: "list[str]") -> "dict[str, Any]":
-    """Parse repeatable ``--set section.key=value`` overrides."""
+    """Parse repeatable ``--set section.key=value`` overrides (nested keys keep
+    dots, e.g. ``--set relevance.typeAffinityMatrix.entity.concept=1.5``)."""
     out: dict[str, Any] = {}
     for p in pairs or []:
         if "=" not in p:
@@ -225,5 +332,5 @@ def resolve_tuning(
     for section in _SECTIONS:
         cls = _SECTION_CLS[section]
         sec_vals = {k.split(".", 1)[1]: v for k, v in flat.items() if k.startswith(section + ".")}
-        kwargs[section] = cls(**sec_vals)
+        kwargs[section] = cls(**_nest(sec_vals))
     return TuningConfig(**kwargs)

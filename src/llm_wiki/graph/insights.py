@@ -8,6 +8,7 @@ import argparse, json, os, re, sys, warnings
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from llm_wiki.core.config import TuningConfig
 from llm_wiki.core.layout import discover_layout
 from llm_wiki.core.frontmatter import parse_frontmatter
 from llm_wiki.graph.louvain import detect_communities
@@ -79,7 +80,8 @@ def _select_community_engine(engine: str | None = None):
     return detect_communities
 
 
-def detect_communities_for_insights(nodes, edges, engine: str | None = None):
+def detect_communities_for_insights(nodes, edges, engine: str | None = None,
+                                    *, resolution: float = 1.0, seed: int = 42):
     """Community assignments via the canonical Python engine (graph/louvain.py).
 
     Replaces the former label-propagation pass so `llm-wiki insights` and the
@@ -88,7 +90,10 @@ def detect_communities_for_insights(nodes, edges, engine: str | None = None):
     same shape the old label-propagation returned, so downstream scoring is
     unchanged. The Louvain transition warning is suppressed here because this IS
     the intended, completed migration for insights. ``engine`` selects Louvain
-    (default) or the opt-in Leiden sidecar (LWM_027).
+    (default) or the opt-in Leiden sidecar (LWM_027). ``resolution``/``seed`` are
+    threaded from ``community.*`` (LWM_031); Leiden consumes seed only (its
+    resolution is fixed by LWM_027's own surface), so default values are
+    byte-identical for both engines.
     """
     node_list = [
         {"id": pid, "label": a["label"], "linkCount": a.get("linkCount", 0)}
@@ -98,7 +103,10 @@ def detect_communities_for_insights(nodes, edges, engine: str | None = None):
     _detect = _select_community_engine(engine)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        assignments, _ = _detect(node_list, edge_list, seed=42)
+        if _detect is detect_communities:  # Louvain accepts resolution
+            assignments, _ = _detect(node_list, edge_list, seed=seed, resolution=resolution)
+        else:  # Leiden sidecar (resolution governed by LWM_027)
+            assignments, _ = _detect(node_list, edge_list, seed=seed)
     # Ensure every node (incl. isolated) has an assignment.
     for pid in nodes:
         assignments.setdefault(pid, len(assignments))
@@ -119,7 +127,29 @@ def comm_stats(edges, community):
                        "cohesion": round(cohesion, 4), "nodes": sorted(members)}
     return stats
 
-def score_connections(nodes, edges, community, cstats, top_n):
+def score_connections(nodes, edges, community, cstats, top_n, *,
+                      signal_scores=None, peripheral_hub_gate=None,
+                      surprise_threshold=None):
+    """Score surprising connections, top ``top_n`` by score.
+
+    LWM_031 threading: ``signal_scores`` (only keys the user overrode — the
+    cross-community base via ``crossCommunity``, the cross-type contribution via
+    ``crossTypeWeak``, the peripheral→hub factor via ``peripheralToHub``) and
+    ``peripheral_hub_gate`` (from ``insights.peripheralHubRatio``) replace this
+    model's own literals (1.0 / 0.5 / 0.8 / 0.4). ``surprise_threshold`` (from
+    ``insights.surpriseThreshold``) filters candidates by minimum score, mirroring
+    the TS signal registry. When nothing is overridden the literals are used
+    unchanged, so direct calls are byte-identical. ``crossTypeStrong`` and
+    ``lowWeight`` steer the TS signal registry only — this coarser model has no
+    distant-pair or low-weight signals (documented in docs/reference/tuning.md).
+    """
+    if signal_scores is None:
+        xc_base, ct_score, ph_factor = 1.0, 0.5, 0.8
+    else:
+        xc_base = float(signal_scores.get("crossCommunity", 1.0))
+        ct_score = float(signal_scores.get("crossTypeWeak", 0.5))
+        ph_factor = float(signal_scores.get("peripheralToHub", 0.8))
+    gate = 0.4 if peripheral_hub_gate is None else float(peripheral_hub_gate)
     scored = []
     for s, t in edges:
         ns, nt = nodes.get(s), nodes.get(t)
@@ -130,17 +160,17 @@ def score_connections(nodes, edges, community, cstats, top_n):
         deg_ratio = min_d / max_d
         score, reasons = 0.0, []
         if cs != ct:
-            xc = 1.0
+            xc = xc_base
             if cs in cstats and ct in cstats:
                 avg = (cstats[cs]["nodeCount"] + cstats[ct]["nodeCount"]) / 2
                 xc += min(avg / 20, 1.0)
             score += xc; reasons.append(f"cross-community (C{cs}↔C{ct})")
-        ph = (1.0 - deg_ratio) * 0.8
-        if ph > 0.4 and max_d > 5:
+        ph = (1.0 - deg_ratio) * ph_factor
+        if ph > gate and max_d > 5:
             score += ph; reasons.append(f"peripheral→hub (deg {min_d}↔{max_d})")
         ts, tt = ns.get("type", "concept"), nt.get("type", "concept")
         if ts != tt:
-            score += 0.5; reasons.append(f"cross-type ({ts}↔{tt})")
+            score += ct_score; reasons.append(f"cross-type ({ts}↔{tt})")
         if reasons:
             scored.append({
                 "source": s, "target": t, "sourceLabel": ns["label"],
@@ -148,25 +178,35 @@ def score_connections(nodes, edges, community, cstats, top_n):
                 "sourceDegree": ds, "targetDegree": dt, "score": round(score, 3),
                 "reasons": reasons, "communities": (cs, ct),
             })
+    if surprise_threshold is not None:
+        scored = [x for x in scored if x["score"] >= surprise_threshold]
     scored.sort(key=lambda x: -x["score"])
     return scored[:top_n]
 
-def find_gaps(nodes, edges, adj, community, cstats, top_n):
+def find_gaps(nodes, edges, adj, community, cstats, top_n, *,
+              sparse_min_nodes=3, sparse_cohesion_threshold=0.15,
+              bridge_min=3, isolated_max_degree=1):
+    """Detect knowledge gaps (isolated nodes / sparse communities / bridge nodes).
+
+    ``sparse_min_nodes``/``sparse_cohesion_threshold``/``bridge_min``/
+    ``isolated_max_degree`` thread the ``insights.*`` tuning keys (LWM_031);
+    defaults equal the model's literals, so direct calls are byte-identical.
+    """
     gaps = {"isolatedNodes": [], "sparseCommunities": [], "bridgeNodes": []}
     for nid, attrs in nodes.items():
         deg = attrs.get("degree", 0)
-        if deg <= 1:
+        if deg <= isolated_max_degree:
             gaps["isolatedNodes"].append({
                 "id": nid, "label": attrs["label"], "type": attrs.get("type", "concept"),
                 "degree": deg, "community": community.get(nid, -1),
             })
     for cid, st in cstats.items():
-        if st["nodeCount"] >= 3 and st["cohesion"] < 0.15:
+        if st["nodeCount"] >= sparse_min_nodes and st["cohesion"] < sparse_cohesion_threshold:
             gaps["sparseCommunities"].append(st)
     for nid in nodes:
         seen = set()
         for nb in adj.get(nid, set()): seen.add(community.get(nb, -1))
-        if len(seen) >= 3:
+        if len(seen) >= bridge_min:
             gaps["bridgeNodes"].append({
                 "id": nid, "label": nodes[nid]["label"], "type": nodes[nid].get("type", "concept"),
                 "degree": nodes[nid].get("degree", 0),
@@ -215,7 +255,8 @@ def fmt_md(connections, gaps, nc, ec, cc):
     return "\n".join(lines)
 
 def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10,
-                     fmt: str = "markdown", include_derived: bool = False):
+                     fmt: str = "markdown", include_derived: bool = False,
+                     tuning=None):
     layout = discover_layout(wiki_root)
     root = Path(layout.pages_dir)
     if not root.is_dir():
@@ -260,10 +301,30 @@ def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10,
 
     adj = {nid: set() for nid in nodes}
     for s, t in edges: adj[s].add(t); adj[t].add(s)
-    comm = detect_communities_for_insights(nodes, edges)
+
+    # LWM_031: thread the resolved tuning. When no tuning is passed (or nothing
+    # was overridden), every value equals the model literals → byte-identical.
+    if tuning is None:
+        tuning = TuningConfig()
+    ins_cfg = tuning.insights
+    comm = detect_communities_for_insights(nodes, edges,
+                                           resolution=tuning.community.resolution,
+                                           seed=tuning.community.seed)
     cstats = comm_stats(edges, comm)
-    top_conns = score_connections(nodes, edges, comm, cstats, connections)
-    ks = find_gaps(nodes, edges, adj, comm, cstats, gaps)
+    over = tuning.overridden()
+    sig_over = {k.rsplit(".", 1)[-1]: v
+                for k, v in over.items() if k.startswith("insights.signalScores")}
+    top_conns = score_connections(
+        nodes, edges, comm, cstats, connections,
+        signal_scores=sig_over or None,
+        peripheral_hub_gate=over.get("insights.peripheralHubRatio"),
+        surprise_threshold=over.get("insights.surpriseThreshold"),
+    )
+    ks = find_gaps(nodes, edges, adj, comm, cstats, gaps,
+                   sparse_min_nodes=ins_cfg.sparseMinNodes,
+                   sparse_cohesion_threshold=ins_cfg.sparseCohesionThreshold,
+                   bridge_min=ins_cfg.bridgeCommunityMin,
+                   isolated_max_degree=ins_cfg.isolatedMaxDegree)
     if fmt == "json":
         out = {
             "summary": {"nodeCount": len(nodes), "edgeCount": len(edges), "communityCount": len(cstats)},
@@ -287,9 +348,21 @@ def main() -> int:
     parser.add_argument("--include-derived", action="store_true",
                         help="Opt in to the derived-edge layer, fail-closed on the "
                              "NMI+modularity gate (ADR-0027 §gate)")
+    parser.add_argument("--set", action="append", default=[], dest="overrides",
+                        metavar="section.key=value",
+                        help="Tuning override, e.g. insights.sparseCohesionThreshold=0.3 (LWM_031)")
     args = parser.parse_args()
+
+    from llm_wiki.core.config import ConfigError, resolve_tuning
+    try:
+        tuning = resolve_tuning(args.wiki_root, cli_overrides=args.overrides)
+    except ConfigError as e:
+        print(f"config error: {e}", file=sys.stderr)
+        return 2
+
     result = compute_insights(args.wiki_root, args.connections, args.gaps,
-                              args.format, include_derived=args.include_derived)
+                              args.format, include_derived=args.include_derived,
+                              tuning=tuning)
     if isinstance(result, dict):
         if args.include_derived:
             g = result.get("derivedGate") or {}

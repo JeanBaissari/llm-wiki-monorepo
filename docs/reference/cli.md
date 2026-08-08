@@ -298,3 +298,37 @@ node graph-engine/dist/index.js --wiki ~/quant-wiki --action insights
 # 8. Backup
 llm-wiki backup ~/quant-wiki --auto
 ```
+
+## 14. Tuning Constants (`llm-wiki tuning`)
+
+One canonical config surface for every precision-steering constant (LWM_031 /
+ADR-0028): relevance weights + type-affinity matrix, insights thresholds +
+signal scores, community resolution/seed, RRF k / sim floor, BM25 k1/b, claim
+penalties. Precedence: `--set` > `LLM_WIKI_TUNE__*` env > `<wiki>/tuning.toml` >
+code defaults (unchanged). See [docs/reference/tuning.md](tuning.md).
+
+```bash
+# Show the resolved profile (defaults + active overrides):
+llm-wiki tuning ~/my-wiki
+
+# Emit the graph-engine JSON profile (stdout or file):
+llm-wiki tuning ~/my-wiki --json
+llm-wiki tuning ~/my-wiki --emit /tmp/tuning.json
+
+# One-off sweep (highest precedence, never persisted):
+llm-wiki tuning ~/my-wiki --set relevance.directLink=5 --set community.resolution=1.3 --json
+```
+
+`--set section.key=value` is also accepted on `search`, `insights` and
+`claims redteam` (e.g. `llm-wiki search ~/my-wiki "q" --set retrieval.simFloor=0.5`,
+`llm-wiki insights ~/my-wiki --set insights.sparseCohesionThreshold=0.3`,
+`llm-wiki claims redteam ~/my-wiki --set claims.failBelow=60`), and the
+graph-engine CLI accepts `--tuning-json <path>` on its build/insights/relevance
+actions.
+
+```bash
+# Feed the resolved profile to the TypeScript graph-engine (no TS re-derivation):
+llm-wiki tuning ~/my-wiki --emit /tmp/tuning.json
+node graph-engine/dist/index.js --wiki ~/my-wiki --action build --tuning-json /tmp/tuning.json
+node graph-engine/dist/index.js --wiki ~/my-wiki --action insights --tuning-json /tmp/tuning.json
+```

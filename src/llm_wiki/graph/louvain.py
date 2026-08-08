@@ -352,6 +352,7 @@ def detect_communities(
     nodes: list[GraphNode],
     edges: list[GraphEdge],
     seed: int | None = 42,
+    resolution: float = 1.0,
 ) -> CommunityDetectionResult:
     """Run Louvain community detection, matching TS detectCommunities output.
 
@@ -359,6 +360,8 @@ def detect_communities(
         nodes: List of node dicts with id, label, linkCount.
         edges: List of edge dicts with source, target, weight.
         seed: Random seed for reproducibility (default 42).
+        resolution: Resolution parameter (default 1.0) — threaded from
+            ``community.resolution`` (LWM_031) by tuned callers.
 
     Returns:
         Tuple of (assignments: dict[nodeId → communityId],
@@ -376,7 +379,7 @@ def detect_communities(
     )
 
     node_ids = [n.get("id", "") for n in nodes]
-    raw_assignments = louvain(edges, nodes=node_ids, seed=seed)
+    raw_assignments = louvain(edges, nodes=node_ids, resolution=resolution, seed=seed)
 
     # Renumber size-descending (largest community = 0)
     assignments = _renumber_size_descending(raw_assignments)

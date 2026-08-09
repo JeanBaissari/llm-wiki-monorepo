@@ -1,0 +1,106 @@
+{
+  "nodes": [
+    {
+      "id": "concepts/hallucination",
+      "label": "Hallucination",
+      "type": "concept",
+      "path": "concepts/hallucination.md",
+      "linkCount": 2,
+      "community": 0,
+      "sources": [
+        "paper-b"
+      ]
+    },
+    {
+      "id": "concepts/rag",
+      "label": "RAG",
+      "type": "concept",
+      "path": "concepts/rag.md",
+      "linkCount": 6,
+      "community": 0,
+      "sources": [
+        "paper-a",
+        "paper-b"
+      ]
+    },
+    {
+      "id": "concepts/retrieval",
+      "label": "Retrieval",
+      "type": "concept",
+      "path": "concepts/retrieval.md",
+      "linkCount": 4,
+      "community": 0,
+      "sources": [
+        "paper-a"
+      ]
+    },
+    {
+      "id": "entities/attention",
+      "label": "Attention",
+      "type": "entity",
+      "path": "entities/attention.md",
+      "linkCount": 4,
+      "community": 1,
+      "sources": [
+        "paper-c"
+      ]
+    },
+    {
+      "id": "notes/reading-notes",
+      "label": "Reading Notes",
+      "type": "note",
+      "path": "notes/reading-notes.md",
+      "linkCount": 4,
+      "community": 1,
+      "sources": []
+    }
+  ],
+  "edges": [
+    {
+      "source": "concepts/hallucination",
+      "target": "concepts/rag",
+      "weight": 7.8
+    },
+    {
+      "source": "concepts/rag",
+      "target": "concepts/retrieval",
+      "weight": 7.8
+    },
+    {
+      "source": "concepts/rag",
+      "target": "notes/reading-notes",
+      "weight": 3.5
+    },
+    {
+      "source": "concepts/retrieval",
+      "target": "entities/attention",
+      "weight": 4.2
+    },
+    {
+      "source": "entities/attention",
+      "target": "notes/reading-notes",
+      "weight": 3.5
+    }
+  ],
+  "communities": [
+    {
+      "id": 0,
+      "nodeCount": 3,
+      "cohesion": 0.6666666666666666,
+      "topNodes": [
+        "RAG",
+        "Retrieval",
+        "Hallucination"
+      ]
+    },
+    {
+      "id": 1,
+      "nodeCount": 2,
+      "cohesion": 1,
+      "topNodes": [
+        "Attention",
+        "Reading Notes"
+      ]
+    }
+  ]
+}

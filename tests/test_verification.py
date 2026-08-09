@@ -6,7 +6,7 @@ Usage:
     pytest tests/test_verification.py -v
 """
 
-from tests.verification.run_verification import run_verification
+from tests.verification.run_verification import SEEDS, run_verification
 
 
 def test_community_verification():
@@ -31,3 +31,20 @@ def test_community_verification():
             f"  - {r['graph']}: {'; '.join(r['failures'])}" for r in failed
         )
     )
+
+    # ADR-0012 gate data (AD-5): every graph report carries the
+    # Leiden-vs-Louvain NMI/modularity section.
+    assert results, "no graph results reported"
+    for r in results:
+        assert "leiden_vs_louvain" in r, (
+            f"{r['graph']}: missing leiden_vs_louvain report section"
+        )
+        lvl = r["leiden_vs_louvain"]
+        assert lvl["graph"] == r["graph"]
+        assert len(lvl["seeds"]) == len(SEEDS)
+        if lvl["available"]:
+            # Metrics computed (not necessarily a Leiden win — the flip is a
+            # separate gated decision, ADR-0025).
+            assert len(lvl["nmi_values"]) == len(SEEDS)
+            assert len(lvl["modularity_leiden"]) == len(SEEDS)
+            assert lvl["connectivity_pass"] is True

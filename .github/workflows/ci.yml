@@ -137,10 +137,36 @@ jobs:
           python-version: "3.12"
       - name: Install test deps + platform-sensitive semantic deps
         run: |
-          pip install -e ".[dev,test]"
+          pip install -e ".[dev,test,semantic]"
           pip install numpy "sqlite-vec>=0.1.1"
       - name: Run full suite (with vector paths active)
         run: python3 -m pytest tests/ -q -m "not slow"
+      # AD-11: the search-eval gate is re-certified with the REAL [semantic]
+      # embedder here (model2vec downloads a small model on first run). Local
+      # runs use the deterministic concept embedder; the real-wiki lane runs
+      # only when the extra is present.
+      - name: Re-certify search-eval gate with the real embedder
+        run: |
+          PYTHONPATH=src python3 -m pytest tests/test_search_eval_gate.py tests/eval/test_real_wiki_gate.py -q -m "not slow"
+
+  # LWM_027/ADR-0025: exercise the optional Leiden engine in an isolated lane —
+  # per-component hierarchical_leiden (AD-18), the B4/B6 hierarchy seam, and the
+  # ADR-0012 Leiden-vs-Louvain NMI/modularity gate data (AD-5) — so the base
+  # install and other lanes stay free of the [leiden] extra.
+  leiden-verification:
+    name: Leiden engine verification ([leiden] extra)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test deps + [leiden] extra
+        run: pip install -e ".[dev,test,leiden]"
+      - name: Run Leiden connectivity + NMI/modularity verification
+        run: |
+          python3 -m pytest tests/test_leiden.py tests/test_verification.py tests/test_communities_internally_connected.py -q -m "not slow"
+          python3 tests/verification/run_verification.py
 
   # LWM_023: prove the base install stays lexical-only — no numpy / model2vec /
   # sqlite-vec pulled in, and the new semantic/eval modules import safely and are
@@ -220,7 +246,9 @@ jobs:
         run: python3 skill/scripts/graph_insights.py /tmp/ci-test --format markdown
 
   certify:
-    needs: [ci]
+    # The release-certification gate depends on the real jobs below (was a
+    # non-existent `ci` job — the gate could never run; v0.5.0 QA finding).
+    needs: [release-manifest, provenance, typescript-workspaces, python, semantic, base-install-purity, schema-cross-language, integration]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

@@ -14,6 +14,14 @@ export interface GraphEdge {
   source: string;
   target: string;
   weight: number;
+  // v0.5.0 additive edge-schema evolution (LWM_028 / ADR-0026). All optional:
+  // a legacy {source,target,weight} edge stays type-valid, and absent fields are
+  // omitted from graph-data.json so the undirected default is byte-identical.
+  relType?: string; // e.g. is-a | part-of | cites | contradicts (open vocab)
+  directed?: boolean; // absent/false = undirected (default): A<->B collapses
+  validFrom?: string; // bitemporal: interval the relationship holds (ISO-8601 UTC)
+  validTo?: string;
+  observedAt?: string; // transaction time: when the edge was recorded
 }
 
 export interface CommunityInfo {

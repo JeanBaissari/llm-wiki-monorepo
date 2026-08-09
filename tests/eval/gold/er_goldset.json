@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "task": "entity-resolution",
+  "note": "Entity-resolution gold set (LWM_025 / ADR-0024). Each 'cluster' item lists surface forms that MUST resolve to one canonical id (pairwise ER-F1 positives); each 'negative' item is a pair of plausible-looking but DISTINCT entities that MUST stay in separate clusters. Every item carries a disjoint 'split': the 'gate' split drives the committed tests/eval/baseline/er_baseline.json fail-on-drop gate; 'tune' items are held out for future threshold/embedder tuning. The gate baseline is generated on the string-only path (no embedder): formatting/case variant families merge at the raised bar, embedding-needing families (K8s/Kubernetes etc.) are the honest recall gap. See tests/test_er_eval.py.",
+  "items": [
+    {"surfaces": ["GPT-4", "GPT 4", "gpt-4"], "split": "gate", "kind": "positive"},
+    {"surfaces": ["Deep Learning", "deep-learning", "deep_learning"], "split": "gate", "kind": "positive"},
+    {"surfaces": ["Neural Network", "neural-networks", "Neural Networks"], "split": "gate", "kind": "positive"},
+    {"surfaces": ["Kubernetes", "K8s", "k8s"], "split": "gate", "kind": "positive"},
+    {"surfaces": ["JavaScript", "Javascript"], "split": "gate", "kind": "positive"},
+    {"surfaces": ["Rust", "Rust lang"], "split": "tune", "kind": "positive"},
+    {"surfaces": ["Machine Learning", "ML"], "split": "tune", "kind": "positive"},
+    {"surfaces": ["JavaScript", "JS"], "split": "tune", "kind": "positive"},
+    {"surfaces": ["Node.js", "NodeJS"], "split": "tune", "kind": "positive"},
+    {"surfaces": ["GPT-4", "GPT-4 Turbo"], "split": "tune", "kind": "positive"},
+    {"surfaces": ["Kubernetes Engine", "GKE"], "split": "tune", "kind": "positive"},
+    {"surfaces": ["GPT-4", "GPT-4o"], "split": "gate", "kind": "negative"},
+    {"surfaces": ["Kubernetes", "Keras"], "split": "gate", "kind": "negative"},
+    {"surfaces": ["Rust", "Rust belt"], "split": "gate", "kind": "negative"},
+    {"surfaces": ["Git", "GitHub"], "split": "gate", "kind": "negative"},
+    {"surfaces": ["React", "React Native"], "split": "gate", "kind": "negative"},
+    {"surfaces": ["Python", "Pythonic"], "split": "tune", "kind": "negative"},
+    {"surfaces": ["K8s", "Keras"], "split": "tune", "kind": "negative"},
+    {"surfaces": ["TensorFlow", "TensorFlow Lite"], "split": "tune", "kind": "negative"}
+  ]
+}

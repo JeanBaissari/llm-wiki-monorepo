@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "task": "search-retrieval",
+  "note": "query -> relevant page-ids (distinct from the link-suggestion gold set). Disjoint tune/gate; gibberish negatives must return empty. See ADR-0020 / LWM_032.",
+  "items": [
+    {"query": "neural network", "relevant": ["neural_network", "deep_learning"], "split": "tune", "kind": "positive"},
+    {"query": "roasted beans beverage", "relevant": ["coffee"], "split": "tune", "kind": "positive"},
+    {"query": "deep learning model", "relevant": ["neural_network", "deep_learning"], "split": "gate", "kind": "positive"},
+    {"query": "attention over sequences", "relevant": ["transformer"], "split": "gate", "kind": "positive"},
+    {"query": "brewed beverage", "relevant": ["coffee"], "split": "gate", "kind": "positive"},
+    {"query": "zzzznonexistentqqq wut", "relevant": [], "split": "gate", "kind": "negative"}
+  ]
+}

@@ -20,6 +20,10 @@ export { applyGraphSearch } from './search.js';
 export type { SearchResult } from './search.js';
 export { buildWikiGraph, buildRetrievalGraph } from './build.js';
 export { calculateRelevance, getRelatedNodes } from './relevance.js';
+export { loadTuningJson, toRelevanceOptions, toInsightsOptions, toLouvainOptions } from './tuning.js';
+export type { TuningProfile } from './tuning.js';
+
+import { loadTuningJson, toRelevanceOptions, toInsightsOptions, toLouvainOptions } from './tuning.js';
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -32,6 +36,7 @@ interface CliArgs {
   node?: string;
   codeAnalysis?: string;
   format?: string;
+  tuningJson?: string;
 }
 
 function parseArgs(): CliArgs {
@@ -59,6 +64,7 @@ function parseArgs(): CliArgs {
     node: args['node'],
     codeAnalysis: args['code-analysis'] || args['code_analysis'],
     format: args['format'],
+    tuningJson: args['tuning-json'] || args['tuning_json'],
   };
 }
 
@@ -177,15 +183,22 @@ function exportGraphAsHtml(
 
 async function main(): Promise<void> {
   try {
-    const { wiki, action, query, node: nodeId, codeAnalysis, format } = parseArgs();
+    const { wiki, action, query, node: nodeId, codeAnalysis, format, tuningJson } = parseArgs();
 
     if (!wiki || !action) {
       console.error(
-        'Usage: node dist/index.js --wiki <path> --action <build|insights|search|relevance|merged|export-graph> [--query <q>] [--node <id>] [--code-analysis <path>] [--format <svg|html|json>]',
+        'Usage: node dist/index.js --wiki <path> --action <build|insights|search|relevance|merged|export-graph> [--query <q>] [--node <id>] [--code-analysis <path>] [--tuning-json <path>] [--format <svg|html|json>]',
       );
       process.exitCode = 1;
       return;
     }
+
+    // LWM_031: the resolved tuning emitted by `llm-wiki tuning --json`. Null
+    // (absent/invalid) → every consumer keeps its built-in defaults.
+    const tuning = loadTuningJson(tuningJson);
+    const relevanceOptions = toRelevanceOptions(tuning);
+    const insightsOptions = toInsightsOptions(tuning);
+    const louvainOptions = toLouvainOptions(tuning);
 
     let result: unknown;
 
@@ -199,7 +212,10 @@ async function main(): Promise<void> {
         // Resolve wiki path: if the passed path contains a wiki/ subdir, use it
         const wikiSubdir = join(wiki, 'wiki');
         const wikiPath = existsSync(wikiSubdir) ? wikiSubdir : wiki;
-        result = await (buildMod as any).buildWikiGraph(wikiPath);
+        result = await (buildMod as any).buildWikiGraph(wikiPath, {
+          relevance: relevanceOptions,
+          louvain: louvainOptions,
+        });
         // Persist graph-data.json in the original wiki root directory
         const outputPath = join(wiki, 'graph-data.json');
         writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf-8');
@@ -231,8 +247,8 @@ async function main(): Promise<void> {
         const data = loadGraphData(wiki);
         const { findSurprisingConnections, detectKnowledgeGaps } = await import('./insights.js');
         result = {
-          surprisingConnections: findSurprisingConnections(data.nodes, data.edges, data.communities),
-          knowledgeGaps: detectKnowledgeGaps(data.nodes, data.edges, data.communities),
+          surprisingConnections: findSurprisingConnections(data.nodes, data.edges, data.communities, 5, insightsOptions),
+          knowledgeGaps: detectKnowledgeGaps(data.nodes, data.edges, data.communities, 8, insightsOptions),
         };
         break;
       }
@@ -262,7 +278,7 @@ async function main(): Promise<void> {
           throw new Error('Relevance action not available — graph-engine relevance module missing.');
         }
         const structure = relMod.buildGraphStructure(data.edges);
-        result = relMod.getRelatedNodes(nodeId, data.nodes, structure, 10);
+        result = relMod.getRelatedNodes(nodeId, data.nodes, structure, 10, relevanceOptions);
         break;
       }
 

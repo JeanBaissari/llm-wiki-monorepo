@@ -5,10 +5,34 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { GraphNode, GraphEdge, GraphData } from './types.js';
-import { calculateRelevance, buildGraphStructure } from './relevance.js';
-import { detectCommunities, buildGraphologyGraph } from './louvain.js';
+import { calculateRelevance, buildGraphStructure, RelevanceOptions } from './relevance.js';
+import { detectCommunities, buildGraphologyGraph, LouvainOptions } from './louvain.js';
 
 export { buildGraphologyGraph };
+
+export interface BuildOptions {
+  relevance?: RelevanceOptions;
+  louvain?: LouvainOptions;
+}
+
+/**
+ * Edge dedup key (LWM_028 / ADR-0026). The undirected default (`directed`
+ * absent/false) sorts the two ids so A↔B and B↔A collapse — verbatim the
+ * pre-v0.5.0 behaviour, keeping `graph-data.json` byte-identical. When a
+ * producer opts into `directed`, the key includes orientation + `relType`, so
+ * A→B ≠ B→A and A→B#is-a ≠ A→B#cites.
+ */
+export function edgeDedupKey(
+  source: string,
+  target: string,
+  directed?: boolean,
+  relType?: string,
+): string {
+  if (directed === true) {
+    return `${source}->${target}#${relType ?? ''}`;
+  }
+  return source < target ? `${source}|${target}` : `${target}|${source}`;
+}
 
 // ============================================================
 // Types
@@ -209,9 +233,12 @@ function findMdFiles(dir: string): string[] {
  * 6. Run calculateRelevance on each edge to set weight
  *
  * @param wikiPath - Path to the wiki/ directory
+ * @param options  - Optional tuning options (LWM_031): relevance weights +
+ *                   type-affinity matrix + Louvain resolution/seed. When absent
+ *                   every consumer uses its built-in defaults (byte-identical).
  * @throws {Error} If wikiPath does not exist
  */
-export async function buildWikiGraph(wikiPath: string): Promise<GraphData> {
+export async function buildWikiGraph(wikiPath: string, options?: BuildOptions): Promise<GraphData> {
   // Validate wiki path
   if (!fs.existsSync(wikiPath)) {
     throw new Error(`Wiki directory not found: ${wikiPath}`);
@@ -279,11 +306,9 @@ export async function buildWikiGraph(wikiPath: string): Promise<GraphData> {
 
       // Only create edges to known nodes
       if (targetId && nodeMap.has(targetId)) {
-        // Deduplicate: sort IDs so A↔B and B↔A collapse to same key
-        const key =
-          page.id < targetId
-            ? `${page.id}|${targetId}`
-            : `${targetId}|${page.id}`;
+        // Undirected default: A↔B and B↔A collapse (see ADR-0026). No wikilink
+        // producer sets `directed`, so this stays byte-identical to pre-v0.5.0.
+        const key = edgeDedupKey(page.id, targetId);
 
         if (!edgeSet.has(key)) {
           edgeSet.add(key);
@@ -331,12 +356,13 @@ export async function buildWikiGraph(wikiPath: string): Promise<GraphData> {
         nodes,
         graphStructure,
         enrichedMap,
+        options?.relevance,
       );
     }
   }
 
   // ── Step 7: Louvain community detection ──────────────────
-  const communityResult = detectCommunities(nodes, edges);
+  const communityResult = detectCommunities(nodes, edges, options?.louvain);
   for (const node of nodes) {
     const cid = communityResult.assignments.get(node.id);
     if (cid !== undefined) {

@@ -13,6 +13,7 @@ Gates:
   5. TypeScript tests (all workspace packages)
   6. Fixture validation (schema freshness)
   7. MCP stdio E2E (tools/list, representative calls)
+  8. Search-eval gate (hybrid default certification, LWM_032 / ADR-0020)
 
 Usage:
     python3 scripts/release_certify.py              # all gates
@@ -111,7 +112,7 @@ def gate_pytest(env: dict | None = None) -> dict:
     """Gate 3: Python tests (excluding slow benchmarks)."""
     result = run_command(
         [sys.executable, "-m", "pytest", "tests/", "-q", "--tb=short"],
-        cwd=REPO_ROOT, env=env,
+        cwd=REPO_ROOT, env=env, timeout=900,
     )
     return {"gate": "pytest", **result}
 
@@ -241,6 +242,27 @@ def gate_mcp_stdio_e2e(env: dict | None = None) -> dict:
     return {"gate": "mcp_stdio_e2e", **result}
 
 
+def gate_search_eval(env: dict | None = None) -> dict:
+    """Gate 8: Search-eval gate (LWM_032 / ADR-0020).
+
+    Certifies the hybrid-default flip: deterministic concept-embedder gate +
+    baseline reproducibility + gold-set integrity. Green even when the
+    [semantic] extra is absent — the deterministic proxy is the point; CI's
+    semantic job additionally recertifies with the real embedder.
+    """
+    result = run_command(
+        [
+            sys.executable, "-m", "pytest",
+            "tests/test_search_eval_gate.py",
+            "tests/test_search_baseline_reproducible.py",
+            "tests/eval/test_search_goldset_integrity.py",
+            "-q", "--tb=short",
+        ],
+        cwd=REPO_ROOT, env=env, timeout=600,
+    )
+    return {"gate": "search_eval", **result}
+
+
 def _detect_zero_test(output: str) -> tuple[bool, str]:
     """Check if test output shows zero tests were run."""
     if not output:
@@ -306,7 +328,7 @@ def main():
                         help="Output JSON only (no console logs)")
     parser.add_argument("--gate", choices=[
         "release_manifest", "docs_truth", "pytest", "ts_typecheck",
-        "ts_tests", "fixtures", "mcp_e2e",
+        "ts_tests", "fixtures", "mcp_e2e", "search_eval",
     ], help="Run a single gate")
     parser.add_argument("--python", default=sys.executable,
                         help="Python executable to use")
@@ -327,7 +349,7 @@ def main():
 
     if not args.gate or args.gate == "release_manifest":
         if not args.json_only:
-            print("[1/7] Release manifest...")
+            print("[1/8] Release manifest...")
         g = gate_release_manifest(env)
         gates.append(g)
         if not args.json_only:
@@ -335,7 +357,7 @@ def main():
 
     if not args.gate or args.gate == "docs_truth":
         if not args.json_only:
-            print("[2/7] Docs truth check...")
+            print("[2/8] Docs truth check...")
         g = gate_docs_truth_check(env)
         gates.append(g)
         if not args.json_only:
@@ -343,7 +365,7 @@ def main():
 
     if not args.gate or args.gate == "pytest":
         if not args.json_only:
-            print("[3/7] Python tests...")
+            print("[3/8] Python tests...")
         g = gate_pytest(env)
         gates.append(g)
         if not args.json_only:
@@ -351,7 +373,7 @@ def main():
 
     if not args.gate or args.gate == "ts_typecheck":
         if not args.json_only:
-            print("[4/7] TypeScript typecheck...")
+            print("[4/8] TypeScript typecheck...")
         g = gate_ts_typecheck(env)
         gates.append(g)
         if not args.json_only:
@@ -360,7 +382,7 @@ def main():
 
     if not args.gate or args.gate == "ts_tests":
         if not args.json_only:
-            print("[5/7] TypeScript tests...")
+            print("[5/8] TypeScript tests...")
         g = gate_ts_tests(env)
         gates.append(g)
         if not args.json_only:
@@ -369,7 +391,7 @@ def main():
 
     if not args.gate or args.gate == "fixtures":
         if not args.json_only:
-            print("[6/7] Fixture validation...")
+            print("[6/8] Fixture validation...")
         g = gate_fixture_validation(env)
         gates.append(g)
         if not args.json_only:
@@ -377,8 +399,16 @@ def main():
 
     if not args.gate or args.gate == "mcp_e2e":
         if not args.json_only:
-            print("[7/7] MCP stdio E2E...")
+            print("[7/8] MCP stdio E2E...")
         g = gate_mcp_stdio_e2e(env)
+        gates.append(g)
+        if not args.json_only:
+            print(f"      {g['status']}")
+
+    if not args.gate or args.gate == "search_eval":
+        if not args.json_only:
+            print("[8/8] Search-eval gate (hybrid default, LWM_032)...")
+        g = gate_search_eval(env)
         gates.append(g)
         if not args.json_only:
             print(f"      {g['status']}")

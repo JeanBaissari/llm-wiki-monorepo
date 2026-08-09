@@ -1,8 +1,8 @@
 ---
 title: Populated Test Wiki
 type: index
-created: 2026-07-30
-updated: 2026-07-30
+created: 2026-08-08
+updated: 2026-08-08
 wiki_config:
   schema: codebase
   page_dirs: [concepts, entities, summaries, comparisons, graphs, synthesis]

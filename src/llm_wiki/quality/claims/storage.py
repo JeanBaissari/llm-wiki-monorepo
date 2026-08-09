@@ -207,12 +207,20 @@ class ClaimsManager:
         }
         return report
 
-    def redteam_report(self) -> dict:
+    def redteam_report(self, tuning=None) -> dict:
         """Generate a red-team analysis of claim quality.
 
         Surfaces: contradictions, stale claims, low-confidence claims,
         contested claims, and provides actionable recommendations.
+
+        LWM_031: ``tuning`` (a resolved ``TuningConfig``; resolved from the
+        wiki root when omitted) supplies the penalty schedule
+        ``claims.penaltyStale/penaltyOpen/penaltyLowConf/penaltyContested`` —
+        defaults equal the literals (2/10/5/3), so behavior is byte-identical
+        with no tuning present.
         """
+        from llm_wiki.core.config import resolve_tuning
+        cfg = (tuning or resolve_tuning(self.wiki_root)).claims
         all_claims = self.get_all_claims()
         open_ctrs = self.get_open_contradictions()
         stale = self.get_stale_claims()
@@ -247,10 +255,10 @@ class ClaimsManager:
             })
 
         penalties = 0
-        penalties += len(stale) * 2
-        penalties += len(open_ctrs) * 10
-        penalties += len(low_conf_claims) * 5
-        penalties += len(contested_claim_ids) * 3
+        penalties += len(stale) * cfg.penaltyStale
+        penalties += len(open_ctrs) * cfg.penaltyOpen
+        penalties += len(low_conf_claims) * cfg.penaltyLowConf
+        penalties += len(contested_claim_ids) * cfg.penaltyContested
 
         return {
             "total_claims": len(all_claims),

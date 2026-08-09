@@ -1,0 +1,15 @@
+{
+  "task": "search-retrieval",
+  "sha256": "250291fbf958914cff37146aa7320f1cfa008a9a4f89e54f2c2ce9b021182f2e",
+  "tune": [
+    "neural network",
+    "roasted beans beverage"
+  ],
+  "gate": [
+    "deep learning model",
+    "attention over sequences",
+    "brewed beverage",
+    "zzzznonexistentqqq wut"
+  ],
+  "note": "tune ∩ gate = ∅; freeze enforced by tests/eval/test_search_goldset_integrity.py"
+}

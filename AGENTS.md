@@ -109,6 +109,10 @@ python3 skill/scripts/graph_insights.py /tmp/test-wiki --format json
 | `llm-wiki audit` | List/group audit feedback | `llm-wiki audit ~/wikis/my-project --open` |
 | `llm-wiki health` | Subsystem health check | `llm-wiki health ~/wikis/my-project` |
 | `llm-wiki deep-research` | Multi-source research pipeline | `llm-wiki deep-research ~/wikis/my-project "transformer architectures"` |
+| `llm-wiki search` | Hybrid (default) / keyword search | `llm-wiki search ~/wikis/my-project "attention" --keyword` |
+| `llm-wiki entities` | Reversible entity resolution | `llm-wiki entities resolve ~/wikis/my-project` |
+| `llm-wiki derive-edges` | Quarantined derived-edge layer (opt-in, NMI-gated) | `llm-wiki derive-edges ~/wikis/my-project` |
+| `llm-wiki summarize-communities` | Opt-in LLM community summaries | `llm-wiki summarize-communities ~/wikis/my-project --dry-run` |
 
 Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> --help` for command-specific options.
 
@@ -240,6 +244,7 @@ The EOW cron job loads this skill automatically. Changes to `skill/SKILL.md` or 
 - **@modelcontextprotocol/sdk** — MCP server only. Pure JS.
 - **Readability.js** + **Turndown.js** — Browser extension only. Already vendored.
 - **Python (v0.2.0+):** openai, anthropic, litellm, instructor, tenacity, tiktoken, python-dotenv, pydantic, portalocker — specified in `pyproject.toml`. See [Python Dependency Policy](#python-dependency-policy-v020).
+- **Optional Python extras (opt-in; base install stays lexical-only with pure-Python fallbacks):** `[semantic]` (model2vec, numpy, sqlite-vec — v0.4.0), `[eval]` (deepeval), `[entity-resolution]` (splink — v0.5.0/LWM_025), `[ner]` (gliner, onnxruntime — v0.5.0/LWM_026, Apache-2.0), `[leiden]` (graspologic MIT, networkx — v0.5.0/LWM_027). Each degrades gracefully when absent.
 - No Rust dependencies.
 
 ## Python Dependency Policy (v0.2.0+)

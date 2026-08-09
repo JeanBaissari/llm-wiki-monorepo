@@ -96,7 +96,7 @@ export const TOOL_DEFINITIONS = [
   {
     name: "llm_wiki_search",
     description:
-      `FTS5 full-text search over wiki markdown pages. Returns ranked results with snippets. Set mode="hybrid" to fuse keyword + semantic vectors (requires the [semantic] extra + an embedded index; falls back to keyword otherwise).${SIDE_EFFECT.READ_ONLY}`,
+      `Full-text + semantic search over wiki markdown pages. Returns ranked results with snippets. Defaults to hybrid (BM25 + semantic vector KNN via RRF); requires the [semantic] extra + an embedded index and degrades to keyword otherwise. Set mode="keyword" to force lexical-only.${SIDE_EFFECT.READ_ONLY}`,
     inputSchema: {
       type: "object",
       properties: {
@@ -113,7 +113,7 @@ export const TOOL_DEFINITIONS = [
           type: "string",
           enum: ["keyword", "hybrid"],
           description:
-            "Ranking mode (default: keyword). 'hybrid' fuses BM25 + semantic vector KNN via RRF; degrades to keyword when the semantic layer is unavailable.",
+            "Ranking mode (default: hybrid, LWM_032/ADR-0020). 'hybrid' fuses BM25 + semantic vector KNN via RRF and degrades to keyword when the semantic layer is unavailable; 'keyword' forces lexical-only.",
         },
       },
       required: ["query"],

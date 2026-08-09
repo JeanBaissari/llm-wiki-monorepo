@@ -32,6 +32,9 @@ graph-data.json
 MASTER_PROMPT.md
 skill/references/opencode-tutorial.md
 
+# Session transcripts (reference only, never committed)
+2026-08-07-*.txt
+
 # IDE
 .vscode/
 .idea/

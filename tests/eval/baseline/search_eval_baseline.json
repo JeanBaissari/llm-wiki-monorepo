@@ -1,0 +1,32 @@
+{
+  "task": "search-retrieval",
+  "split": "gate",
+  "tolerance": 1e-06,
+  "keyword": {
+    "mode": "keyword",
+    "precision_at_k": {
+      "1": 1.0,
+      "3": 1.0,
+      "5": 1.0,
+      "10": 1.0
+    },
+    "recall": 0.833333,
+    "negative_pass_rate": 1.0,
+    "n": 4
+  },
+  "hybrid": {
+    "mode": "hybrid",
+    "precision_at_k": {
+      "1": 1.0,
+      "3": 1.0,
+      "5": 1.0,
+      "10": 1.0
+    },
+    "recall": 1.0,
+    "negative_pass_rate": 1.0,
+    "n": 4
+  },
+  "allow_hybrid_default": true,
+  "generated_by": "llm_wiki.eval.search_baseline.compute_search_baseline (embedder=concept, k=10)",
+  "note": "Freeze of the LWM_032 search-eval gate on the held-out GATE split. Reproduce offline with the deterministic concept embedder; CI re-certifies with the real [semantic] embedder (model2vec)."
+}

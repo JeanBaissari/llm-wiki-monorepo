@@ -1,0 +1,9 @@
+# Hybrid Search Results for "attention sequences" (2)
+
+### 1. Transformer _[vector]_
+**Path:** `wiki/concepts/transformer.md`
+The transformer uses attention over sequences.
+
+### 2. Python _[both]_
+**Path:** `wiki/concepts/python.md`
+Python is a high-level language.

@@ -206,7 +206,7 @@ node graph-engine/dist/index.js --wiki ~/quant-lab --action insights
 llm-wiki backup ~/quant-lab --auto
 
 # 9. Start MCP server for agent access
-node mcp-server/dist/index.js --wiki ~/quant-lab
+node mcp-server/dist/main.js --wiki ~/quant-lab
 
 # 10. Open web viewer for team browsing
 # (separate terminal)
@@ -283,7 +283,7 @@ node graph-engine/dist/index.js --wiki ~/projects/baissari-vbt-lab --action insi
 llm-wiki backup ~/projects/baissari-vbt-lab --auto
 
 # Step 9: Start MCP server
-node mcp-server/dist/index.js --wiki ~/projects/baissari-vbt-lab
+node mcp-server/dist/main.js --wiki ~/projects/baissari-vbt-lab
 ```
 
 ---
@@ -299,7 +299,7 @@ node mcp-server/dist/index.js --wiki ~/projects/baissari-vbt-lab
     "llm-wiki": {
       "command": "node",
       "args": [
-        "/path/to/llm-wiki-monorepo/mcp-server/dist/index.js",
+        "/path/to/llm-wiki-monorepo/mcp-server/dist/main.js",
         "--projects", "/path/to/wikis"
       ]
     }
@@ -346,7 +346,7 @@ Claude (via MCP):
 ```bash
 # In Codex CLI, configure the MCP server:
 codex mcp add llm-wiki -- \
-  node /path/to/llm-wiki-monorepo/mcp-server/dist/index.js \
+  node /path/to/llm-wiki-monorepo/mcp-server/dist/main.js \
   --wiki /path/to/your-wiki
 
 # Then in conversation:
@@ -363,7 +363,7 @@ In your OpenCode JSON config:
   "mcpServers": {
     "llm-wiki": {
       "command": "node",
-      "args": ["/path/to/mcp-server/dist/index.js", "--projects", "/path/to/wikis"],
+      "args": ["/path/to/mcp-server/dist/main.js", "--projects", "/path/to/wikis"],
       "env": {}
     }
   }

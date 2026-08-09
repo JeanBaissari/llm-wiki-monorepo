@@ -11,9 +11,11 @@
  *   3. sidecar unavailable (null / not running / call error) → graceful
  *      fallthrough to the keyword path
  *
- * The sidecar is a pure stub (no real process). No content snapshot exists in
- * the repo for this path — the LWM_032 AC#4 sanctioned diff is therefore
- * asserted inline (exact hybrid header + matched tag).
+ * The sidecar is a pure stub (no real process). The sanctioned hybrid output is
+ * additionally frozen as a committed content snapshot corpus (LWM_025):
+ * test/fixtures/hybrid-search.snapshot.txt is asserted by string equality at
+ * the bottom of this file, and the LWM_032 AC#4 sanctioned diff (exact hybrid
+ * header + matched tag) is asserted inline below.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs/promises';
@@ -29,6 +31,12 @@ import { handleSearch } from '../dist/tools/search.js';
 import { clearIndex } from '../dist/search.js';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..');
+
+// LWM_025: the sanctioned hybrid-search output snapshot — the frozen contract.
+// Any change to the formatting in tools/search.ts (header, matched tag, path,
+// snippet lines) breaks this test until the corpus is intentionally bumped.
+const HYBRID_SNAPSHOT = path.join(
+  import.meta.dirname, 'fixtures', 'hybrid-search.snapshot.txt');
 
 interface SidecarCall {
   method: string;
@@ -218,5 +226,30 @@ describe('llm_wiki_search — hybrid default (LWM_032/ADR-0020)', () => {
     const text = res.content[0].text;
     expect(text).toContain('# Search Results');
     expect(text).toContain('No results found');
+  });
+
+  it('hybrid output EQUALS the committed snapshot corpus (LWM_025 frozen format)', async () => {
+    await setupWiki(tmpDir);
+    registerProject(tmpDir);
+
+    const stub = makeStub({
+      result: {
+        results: [
+          { path: 'wiki/concepts/transformer.md', title: 'Transformer',
+            snippet: 'The transformer uses attention over sequences.', matched: 'vector' },
+          { path: 'wiki/concepts/python.md', title: 'Python',
+            snippet: 'Python is a high-level language.', matched: 'both' },
+        ],
+      },
+    });
+    setSidecar(stub as unknown as PythonSidecar);
+
+    const res = await handleSearch({ query: 'attention sequences', top_k: 5 });
+    expect(res.isError).toBeFalsy();
+    const text = res.content[0].text;
+
+    // String equality against the committed corpus — the frozen byte contract.
+    const corpus = await fs.readFile(HYBRID_SNAPSHOT, 'utf-8');
+    expect(text).toBe(corpus);
   });
 });

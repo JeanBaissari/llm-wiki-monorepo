@@ -6,6 +6,8 @@ faithfulness filter (key_entities ⊆ member entities), and graceful LLM failure
 The summarizer is injected for deterministic offline runs (no network).
 """
 
+import json
+
 from llm_wiki.graph import summarize
 from llm_wiki.graph.summarize import CommunitySummary, summarize_communities
 
@@ -277,3 +279,47 @@ def test_summary_faithfulness_metric():
     assert summarize.summary_faithfulness([(0, ["a1"])], {0: {"A1"}}) == 1.0
     assert summarize.summary_faithfulness([(0, [])], members) == 1.0
     assert summarize.summary_faithfulness([], members) == 1.0  # vacuous
+
+
+def test_offline_provider_via_response_file(tmp_path, monkeypatch):
+    """LWM_030 deferred row: deterministic offline flow via LLM_WIKI_RESPONSE_FILE.
+
+    The agent-native (opencode) provider reads LLM_WIKI_RESPONSE_FILE when no
+    response arrives; with the poll timeout zeroed and the file holding a fixed
+    CommunitySummary JSON, ``summarize_communities`` runs fully offline through
+    the REAL default-provider path — verbatim responses, no network, no API key.
+    """
+    from llm_wiki.providers import registry
+
+    root, wiki = _make_two_community_wiki(tmp_path)
+    rf = tmp_path / "response.json"
+    rf.write_text(json.dumps({
+        "title": "Offline Theme",
+        "summary": "A deterministic offline summary.",
+        "key_entities": ["A1"],
+    }), encoding="utf-8")
+
+    # Offline wiring: agent-mode default provider + response file + no polling.
+    monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE", str(rf))
+    monkeypatch.setenv("LLM_WIKI_AGENT_MODE", "1")      # default provider → opencode
+    monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(tmp_path / "opcode"))
+    monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "0")  # never poll → read file
+    for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                "DEEPSEEK_API_KEY", "TOGETHER_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
+    assert registry.detect_default_provider() == "opencode"
+
+    stats = summarize_communities(root, timeout=30)
+    assert stats["summarized"] == 2
+    assert stats["calls"] == 3  # 2 communities + 1 global root
+    assert stats["written"] == 3
+
+    # Verbatim: the offline title/summary text lands in the rendered pages.
+    pages = [p.read_text(encoding="utf-8") for p in (wiki / "communities").glob("*.md")]
+    assert sum("Offline Theme" in t for t in pages) == 3
+    assert all("A deterministic offline summary." in t for t in pages)
+    # key_entities from the file pass the faithfulness filter per community.
+    l0 = (wiki / "communities" / "L0-*.md").parent.glob("L0-*.md")
+    l0_text = "\n".join(p.read_text(encoding="utf-8") for p in l0)
+    assert '"A1"' in l0_text  # A1 is a member of community A
+    assert "TOTALLY-NOT-A-MEMBER" not in l0_text  # nothing hallucinated

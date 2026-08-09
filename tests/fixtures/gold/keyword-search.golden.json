@@ -1,0 +1,25 @@
+{
+  "query": "transformer attention",
+  "k": 3,
+  "results": [
+    {
+      "path": "wiki/concepts/transformer.md",
+      "title": "Transformer Architecture",
+      "snippet": " … architecture attention confidence high transformer attention based architecture related attention mechanism bert … ",
+      "score": 6.0001
+    },
+    {
+      "path": "wiki/concepts/attention_mechanism.md",
+      "title": "Attention Mechanism",
+      "snippet": " … attention mechanism focus relevant input related transformer attention mechanism self attention attention … ",
+      "score": 5.7294
+    },
+    {
+      "path": "wiki/entities/attention_is_all_you_need.md",
+      "title": "Attention Is All You Need",
+      "snippet": " … fixture tags paper transformer 2017 confidence high attention all you need seminal … ",
+      "score": 5.7126
+    }
+  ],
+  "untokenizable_query_results": []
+}

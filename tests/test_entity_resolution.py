@@ -131,6 +131,51 @@ def test_apply_resolution_and_reversibility(tmp_path):
     assert unmerge(tmp_path, "does-not-exist") is False
 
 
+def test_fts5_tables_untouched_by_alias_schema(tmp_path):
+    """LWM_025 AC#2: the alias store is additive — FTS5 `pages`/`index_meta`
+    tables are byte-identical before and after `apply_resolution`."""
+    import shutil
+
+    from llm_wiki.search.index import index_wiki
+    from llm_wiki.semantic.vector_schema import open_index_db as _open_index
+
+    populated = (
+        Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "wikis" / "populated"
+    )
+    shutil.copytree(populated, tmp_path / "wiki")
+    index_wiki(tmp_path, rebuild=True)
+
+    def _snapshot(conn):
+        ddl = {
+            r[0]: r[1]
+            for r in conn.execute(
+                "SELECT name, sql FROM sqlite_master WHERE name IN ('pages','index_meta')"
+            )
+        }
+        content = {
+            "pages": conn.execute("SELECT * FROM pages ORDER BY rowid").fetchall(),
+            "index_meta": conn.execute("SELECT * FROM index_meta ORDER BY rowid").fetchall(),
+        }
+        return ddl, content
+
+    conn = _open_index(tmp_path / ".index" / "wiki.db")
+    try:
+        before = _snapshot(conn)
+    finally:
+        conn.close()
+
+    stats = apply_resolution(tmp_path, ["GPT-4", "GPT 4", "gpt-4", "Rust", "Golang"])
+    assert stats["merged"] >= 1
+
+    conn = _open_index(tmp_path / ".index" / "wiki.db")
+    try:
+        after = _snapshot(conn)
+    finally:
+        conn.close()
+
+    assert after == before, "FTS5 pages/index_meta must be byte-identical after resolve"
+
+
 def test_derived_cache_rebuilds_from_jsonl(tmp_path):
     apply_resolution(tmp_path, ["GPT-4", "gpt-4"])
     # Wipe the derived tables; a reader rebuild from the JSONL restores them.

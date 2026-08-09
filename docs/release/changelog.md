@@ -101,6 +101,26 @@ remediated before the tag, per the spec-driven plan in
   `docs/operations/`, `GOLD_SET.md`; all 8 v0.5.0 PRD Evidence Matrices
   flipped to `delivered` (6 rows deferred with reasons).
 
+### Post-release hardening (2026-08-09, untagged main merge)
+
+- **serve entry-point fix** — `llm-wiki serve` now resolves the MCP server
+  entry point from `mcp-server/package.json` `main` (fallback `dist/main.js`)
+  instead of the stale `dist/index.js`, which the `main.ts` build no longer
+  emits — "MCP server not built" on clean checkouts is fixed (G-2).
+- **ADR-0013 dedup** — the superseded `0013-acceptance-criteria.md` is deleted;
+  its unique acceptance-checklist content is merged into
+  `0013-modular-package-layout.md`; ADR index + decision register collapsed to a
+  single `0013` row (G-3).
+- **Session-transcript gitignore** — pattern generalized from `2026-08-07-*.txt`
+  to `20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt` so future dated exports are
+  covered (G-5).
+- **Deferred Evidence-Matrix rows closed** — the 2 deferred LWM_025 rows
+  (frozen-format corpus + FTS5-untouched) and remaining deferred rows remain
+  documented with reasons; no new deferrals (see H-3).
+- **Splink backend backlogged** — the splink-backed blocking/comparison feeding
+  the two-signal gate is planned for v0.6.0 per `PRD/v0.5.1/backlog.md`; the
+  pure-Python fallback is the active shipped path (G-1).
+
 ## [0.4.0] — 2026-08-06
 
 ### Semantic Core

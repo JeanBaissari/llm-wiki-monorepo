@@ -33,7 +33,7 @@ MASTER_PROMPT.md
 skill/references/opencode-tutorial.md
 
 # Session transcripts (reference only, never committed)
-2026-08-07-*.txt
+20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt
 
 # IDE
 .vscode/

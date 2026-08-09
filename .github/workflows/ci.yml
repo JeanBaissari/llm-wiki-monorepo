@@ -141,6 +141,12 @@ jobs:
           pip install numpy "sqlite-vec>=0.1.1"
       - name: Run full suite (with vector paths active)
         run: python3 -m pytest tests/ -q -m "not slow"
+      # LWM_029 (hardening H-3): the [semantic]-gated similar_to generator runs
+      # for real here — real model2vec embeddings over a small wiki, tau/top-m
+      # enforcement, and the embed_meta mismatch skip guard.
+      - name: Run derived-similarity tests with the real embedder
+        run: |
+          PYTHONPATH=src python3 -m pytest tests/test_derived_similarity.py -q -m "not slow"
       # AD-11: the search-eval gate is re-certified with the REAL [semantic]
       # embedder here (model2vec downloads a small model on first run). Local
       # runs use the deterministic concept embedder; the real-wiki lane runs
@@ -167,6 +173,25 @@ jobs:
         run: |
           python3 -m pytest tests/test_leiden.py tests/test_verification.py tests/test_communities_internally_connected.py -q -m "not slow"
           python3 tests/verification/run_verification.py
+
+  # LWM_026: exercise the optional GLiNER backend in an isolated lane — the
+  # typed-span success path (tests/test_extract.py::test_gliner_typed_spans_success_path)
+  # plus the LLM_WIKI_NER=gliner selection test — so the base install and other
+  # lanes stay free of the [ner] extra, while the real model download runs
+  # here. A model-download failure fails the lane visibly (hardening H-3).
+  ner-verification:
+    name: GLiNER verification ([ner] extra)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test deps + [ner] extra
+        run: pip install -e ".[dev,test,ner]"
+      - name: Run GLiNER typed-span verification
+        run: |
+          python3 -m pytest tests/test_extract.py -q -m "not slow"
 
   # LWM_023: prove the base install stays lexical-only — no numpy / model2vec /
   # sqlite-vec pulled in, and the new semantic/eval modules import safely and are

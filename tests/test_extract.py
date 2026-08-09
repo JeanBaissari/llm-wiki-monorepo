@@ -5,6 +5,8 @@ byte-identical to the current extract_entities, and get_extractor() always
 degrading to the regex path.
 """
 
+import pytest
+
 from llm_wiki.graph.extract import (
     EntitySpan,
     GLiNERExtractor,
@@ -151,3 +153,43 @@ def test_no_download_base_path(monkeypatch):
     ex2 = get_extractor("gliner")
     assert isinstance(ex2, RegexExtractor)
     assert GLiNERExtractor.is_available() is False
+
+
+# ── LWM_026 success path (real [ner] extra — CI `ner-verification` lane) ────
+
+def test_gliner_typed_spans_success_path():
+    """Real GLiNER over the [ner] extra returns typed EntitySpan instances.
+
+    Deferred in B10 because no success-path test existed: skips locally (gliner
+    absent) and runs for real in the CI `ner-verification` lane — a model
+    download failure there fails the lane visibly. Asserts typed spans with
+    label/text/start/end/score — the LWM_026 contract.
+    """
+    pytest.importorskip("gliner")
+    text = ("Ashish Vaswani introduced the Transformer architecture in the "
+            "paper Attention Is All You Need.")
+    ex = get_extractor("gliner")
+    assert isinstance(ex, GLiNERExtractor)
+    spans = ex.extract(text, labels=["person", "model"])
+    assert spans, "GLiNER should find at least one typed span in the sample"
+    for s in spans:
+        assert isinstance(s, EntitySpan)
+        assert s.text and s.text in text
+        assert s.label in ("person", "model")
+        assert 0 <= s.start < s.end <= len(text)
+        assert text[s.start:s.end] == s.text
+        assert 0.0 <= s.score <= 1.0
+    assert any(s.label == "person" for s in spans)  # Vaswani → person
+
+
+def test_get_extractor_honors_ner_env():
+    """LLM_WIKI_NER=gliner selects the GLiNER backend when [ner] is present."""
+    pytest.importorskip("gliner")
+    import os
+
+    os.environ["LLM_WIKI_NER"] = "gliner"
+    try:
+        ex = get_extractor()
+        assert isinstance(ex, GLiNERExtractor)
+    finally:
+        del os.environ["LLM_WIKI_NER"]

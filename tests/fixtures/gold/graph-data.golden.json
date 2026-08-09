@@ -1,0 +1,1464 @@
+{
+  "nodes": [
+    {
+      "id": "concepts/attention_mechanism",
+      "label": "Attention Mechanism",
+      "type": "concept",
+      "path": "concepts/attention_mechanism.md",
+      "linkCount": 8,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/backpropagation",
+      "label": "Backpropagation",
+      "type": "concept",
+      "path": "concepts/backpropagation.md",
+      "linkCount": 8,
+      "community": 3,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/cnn",
+      "label": "Convolutional Neural Network",
+      "type": "concept",
+      "path": "concepts/cnn.md",
+      "linkCount": 8,
+      "community": 3,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/deep_learning",
+      "label": "Deep Learning",
+      "type": "concept",
+      "path": "concepts/deep_learning.md",
+      "linkCount": 31,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/fine_tuning",
+      "label": "Fine Tuning",
+      "type": "concept",
+      "path": "concepts/fine_tuning.md",
+      "linkCount": 8,
+      "community": 4,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/gradient_descent",
+      "label": "Gradient Descent",
+      "type": "concept",
+      "path": "concepts/gradient_descent.md",
+      "linkCount": 8,
+      "community": 3,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/llm",
+      "label": "Large Language Model",
+      "type": "concept",
+      "path": "concepts/llm.md",
+      "linkCount": 7,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/lora",
+      "label": "LoRA",
+      "type": "concept",
+      "path": "concepts/lora.md",
+      "linkCount": 7,
+      "community": 4,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/neural_network",
+      "label": "Neural Network",
+      "type": "concept",
+      "path": "concepts/neural_network.md",
+      "linkCount": 9,
+      "community": 3,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/nlp",
+      "label": "Natural Language Processing",
+      "type": "concept",
+      "path": "concepts/nlp.md",
+      "linkCount": 8,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/pre_training",
+      "label": "Pre-training",
+      "type": "concept",
+      "path": "concepts/pre_training.md",
+      "linkCount": 6,
+      "community": 4,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/prompt_engineering",
+      "label": "Prompt Engineering",
+      "type": "concept",
+      "path": "concepts/prompt_engineering.md",
+      "linkCount": 6,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/tokenization",
+      "label": "Tokenization",
+      "type": "concept",
+      "path": "concepts/tokenization.md",
+      "linkCount": 7,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_01",
+      "label": "Topic 01",
+      "type": "concept",
+      "path": "concepts/topic_01.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_02",
+      "label": "Topic 02",
+      "type": "concept",
+      "path": "concepts/topic_02.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_03",
+      "label": "Topic 03",
+      "type": "concept",
+      "path": "concepts/topic_03.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_04",
+      "label": "Topic 04",
+      "type": "concept",
+      "path": "concepts/topic_04.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_05",
+      "label": "Topic 05",
+      "type": "concept",
+      "path": "concepts/topic_05.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_06",
+      "label": "Topic 06",
+      "type": "concept",
+      "path": "concepts/topic_06.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_07",
+      "label": "Topic 07",
+      "type": "concept",
+      "path": "concepts/topic_07.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_08",
+      "label": "Topic 08",
+      "type": "concept",
+      "path": "concepts/topic_08.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_09",
+      "label": "Topic 09",
+      "type": "concept",
+      "path": "concepts/topic_09.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_10",
+      "label": "Topic 10",
+      "type": "concept",
+      "path": "concepts/topic_10.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_11",
+      "label": "Topic 11",
+      "type": "concept",
+      "path": "concepts/topic_11.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_12",
+      "label": "Topic 12",
+      "type": "concept",
+      "path": "concepts/topic_12.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_13",
+      "label": "Topic 13",
+      "type": "concept",
+      "path": "concepts/topic_13.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_14",
+      "label": "Topic 14",
+      "type": "concept",
+      "path": "concepts/topic_14.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_15",
+      "label": "Topic 15",
+      "type": "concept",
+      "path": "concepts/topic_15.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_16",
+      "label": "Topic 16",
+      "type": "concept",
+      "path": "concepts/topic_16.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_17",
+      "label": "Topic 17",
+      "type": "concept",
+      "path": "concepts/topic_17.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_18",
+      "label": "Topic 18",
+      "type": "concept",
+      "path": "concepts/topic_18.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_19",
+      "label": "Topic 19",
+      "type": "concept",
+      "path": "concepts/topic_19.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_20",
+      "label": "Topic 20",
+      "type": "concept",
+      "path": "concepts/topic_20.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_21",
+      "label": "Topic 21",
+      "type": "concept",
+      "path": "concepts/topic_21.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_22",
+      "label": "Topic 22",
+      "type": "concept",
+      "path": "concepts/topic_22.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_23",
+      "label": "Topic 23",
+      "type": "concept",
+      "path": "concepts/topic_23.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/topic_24",
+      "label": "Topic 24",
+      "type": "concept",
+      "path": "concepts/topic_24.md",
+      "linkCount": 3,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/transfer_learning",
+      "label": "Transfer Learning",
+      "type": "concept",
+      "path": "concepts/transfer_learning.md",
+      "linkCount": 7,
+      "community": 4,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "concepts/transformer",
+      "label": "Transformer Architecture",
+      "type": "concept",
+      "path": "concepts/transformer.md",
+      "linkCount": 13,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/attention_is_all_you_need",
+      "label": "Attention Is All You Need",
+      "type": "entity",
+      "path": "entities/attention_is_all_you_need.md",
+      "linkCount": 5,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/bert_paper",
+      "label": "BERT",
+      "type": "entity",
+      "path": "entities/bert_paper.md",
+      "linkCount": 10,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/cuda",
+      "label": "CUDA",
+      "type": "entity",
+      "path": "entities/cuda.md",
+      "linkCount": 6,
+      "community": 2,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/gpt",
+      "label": "GPT",
+      "type": "entity",
+      "path": "entities/gpt.md",
+      "linkCount": 10,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/gpu",
+      "label": "GPU",
+      "type": "entity",
+      "path": "entities/gpu.md",
+      "linkCount": 7,
+      "community": 2,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/jax",
+      "label": "JAX",
+      "type": "entity",
+      "path": "entities/jax.md",
+      "linkCount": 9,
+      "community": 2,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/keras",
+      "label": "Keras",
+      "type": "entity",
+      "path": "entities/keras.md",
+      "linkCount": 5,
+      "community": 2,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/numpy",
+      "label": "NumPy",
+      "type": "entity",
+      "path": "entities/numpy.md",
+      "linkCount": 7,
+      "community": 2,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/python",
+      "label": "Python",
+      "type": "entity",
+      "path": "entities/python.md",
+      "linkCount": 31,
+      "community": 0,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/pytorch",
+      "label": "PyTorch",
+      "type": "entity",
+      "path": "entities/pytorch.md",
+      "linkCount": 11,
+      "community": 2,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/resnet_paper",
+      "label": "Deep Residual Learning",
+      "type": "entity",
+      "path": "entities/resnet_paper.md",
+      "linkCount": 6,
+      "community": 3,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/tensorflow",
+      "label": "TensorFlow",
+      "type": "entity",
+      "path": "entities/tensorflow.md",
+      "linkCount": 13,
+      "community": 2,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/tpu",
+      "label": "TPU",
+      "type": "entity",
+      "path": "entities/tpu.md",
+      "linkCount": 6,
+      "community": 2,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "entities/vaswani",
+      "label": "Vaswani et al.",
+      "type": "entity",
+      "path": "entities/vaswani.md",
+      "linkCount": 4,
+      "community": 1,
+      "sources": [
+        "populated-fixture"
+      ]
+    },
+    {
+      "id": "index",
+      "label": "Populated Test Wiki",
+      "type": "index",
+      "path": "index.md",
+      "linkCount": 53,
+      "community": 0,
+      "sources": []
+    }
+  ],
+  "edges": [
+    {
+      "source": "concepts/attention_mechanism",
+      "target": "concepts/transformer",
+      "weight": 10.19182965563369
+    },
+    {
+      "source": "concepts/attention_mechanism",
+      "target": "concepts/attention_mechanism",
+      "weight": 0
+    },
+    {
+      "source": "concepts/backpropagation",
+      "target": "concepts/neural_network",
+      "weight": 9.109808374966967
+    },
+    {
+      "source": "concepts/backpropagation",
+      "target": "concepts/gradient_descent",
+      "weight": 10.19182965563369
+    },
+    {
+      "source": "concepts/backpropagation",
+      "target": "concepts/backpropagation",
+      "weight": 0
+    },
+    {
+      "source": "concepts/cnn",
+      "target": "concepts/neural_network",
+      "weight": 9.109808374966967
+    },
+    {
+      "source": "concepts/cnn",
+      "target": "entities/resnet_paper",
+      "weight": 10.591829655633688
+    },
+    {
+      "source": "concepts/cnn",
+      "target": "concepts/cnn",
+      "weight": 0
+    },
+    {
+      "source": "concepts/deep_learning",
+      "target": "concepts/neural_network",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/deep_learning",
+      "target": "entities/pytorch",
+      "weight": 9.260485393097676
+    },
+    {
+      "source": "concepts/deep_learning",
+      "target": "entities/tensorflow",
+      "weight": 9.29915349357203
+    },
+    {
+      "source": "concepts/deep_learning",
+      "target": "entities/gpu",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/fine_tuning",
+      "target": "concepts/transfer_learning",
+      "weight": 10.096993193621143
+    },
+    {
+      "source": "concepts/fine_tuning",
+      "target": "concepts/lora",
+      "weight": 10.096993193621143
+    },
+    {
+      "source": "concepts/fine_tuning",
+      "target": "concepts/fine_tuning",
+      "weight": 0
+    },
+    {
+      "source": "concepts/gradient_descent",
+      "target": "concepts/gradient_descent",
+      "weight": 0
+    },
+    {
+      "source": "concepts/llm",
+      "target": "entities/gpt",
+      "weight": 11.029653734763965
+    },
+    {
+      "source": "concepts/llm",
+      "target": "entities/bert_paper",
+      "weight": 10.097651332924547
+    },
+    {
+      "source": "concepts/llm",
+      "target": "concepts/transformer",
+      "weight": 9.852137852781292
+    },
+    {
+      "source": "concepts/llm",
+      "target": "concepts/prompt_engineering",
+      "weight": 9.946974314793838
+    },
+    {
+      "source": "concepts/lora",
+      "target": "concepts/lora",
+      "weight": 0
+    },
+    {
+      "source": "concepts/neural_network",
+      "target": "concepts/transformer",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/nlp",
+      "target": "entities/bert_paper",
+      "weight": 10.097651332924547
+    },
+    {
+      "source": "concepts/nlp",
+      "target": "entities/gpt",
+      "weight": 10.097651332924547
+    },
+    {
+      "source": "concepts/nlp",
+      "target": "concepts/transformer",
+      "weight": 9.852137852781292
+    },
+    {
+      "source": "concepts/nlp",
+      "target": "concepts/tokenization",
+      "weight": 9.259827253794272
+    },
+    {
+      "source": "concepts/pre_training",
+      "target": "concepts/transfer_learning",
+      "weight": 9.01497191295442
+    },
+    {
+      "source": "concepts/pre_training",
+      "target": "concepts/fine_tuning",
+      "weight": 9.946974314793838
+    },
+    {
+      "source": "concepts/pre_training",
+      "target": "entities/bert_paper",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/prompt_engineering",
+      "target": "entities/gpt",
+      "weight": 10.441810776806385
+    },
+    {
+      "source": "concepts/prompt_engineering",
+      "target": "concepts/prompt_engineering",
+      "weight": 0
+    },
+    {
+      "source": "concepts/tokenization",
+      "target": "concepts/tokenization",
+      "weight": 0
+    },
+    {
+      "source": "concepts/topic_01",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_01",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_02",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_02",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_03",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_03",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_04",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_04",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_05",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_05",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_06",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_06",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_07",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_07",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_08",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_08",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_09",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_09",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_10",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_10",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_11",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_11",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_12",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_12",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_13",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_13",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_14",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_14",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_15",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_15",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_16",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_16",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_17",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_17",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_18",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_18",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_19",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_19",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_20",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_20",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_21",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_21",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_22",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_22",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_23",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_23",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/topic_24",
+      "target": "concepts/deep_learning",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "concepts/topic_24",
+      "target": "entities/python",
+      "weight": 8.57780597312755
+    },
+    {
+      "source": "concepts/transfer_learning",
+      "target": "entities/pytorch",
+      "weight": 9.260485393097676
+    },
+    {
+      "source": "concepts/transfer_learning",
+      "target": "entities/tensorflow",
+      "weight": 9.29915349357203
+    },
+    {
+      "source": "concepts/transformer",
+      "target": "entities/bert_paper",
+      "weight": 11.278976716633256
+    },
+    {
+      "source": "concepts/transformer",
+      "target": "entities/gpt",
+      "weight": 11.278976716633256
+    },
+    {
+      "source": "entities/attention_is_all_you_need",
+      "target": "concepts/transformer",
+      "weight": 10.875167214907222
+    },
+    {
+      "source": "entities/attention_is_all_you_need",
+      "target": "concepts/attention_mechanism",
+      "weight": 10.192487794937094
+    },
+    {
+      "source": "entities/attention_is_all_you_need",
+      "target": "entities/vaswani",
+      "weight": 8.860485393097678
+    },
+    {
+      "source": "entities/bert_paper",
+      "target": "entities/gpt",
+      "weight": 10.724490196776514
+    },
+    {
+      "source": "entities/cuda",
+      "target": "entities/pytorch",
+      "weight": 8.860485393097678
+    },
+    {
+      "source": "entities/cuda",
+      "target": "entities/tensorflow",
+      "weight": 8.899153493572031
+    },
+    {
+      "source": "entities/cuda",
+      "target": "entities/gpu",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "entities/gpu",
+      "target": "entities/tpu",
+      "weight": 8.17780597312755
+    },
+    {
+      "source": "entities/jax",
+      "target": "entities/tensorflow",
+      "weight": 11.784543575349959
+    },
+    {
+      "source": "entities/jax",
+      "target": "entities/numpy",
+      "weight": 9.831155895411449
+    },
+    {
+      "source": "entities/jax",
+      "target": "entities/jax",
+      "weight": 0
+    },
+    {
+      "source": "entities/keras",
+      "target": "entities/tensorflow",
+      "weight": 9.620501014016513
+    },
+    {
+      "source": "entities/keras",
+      "target": "entities/pytorch",
+      "weight": 9.58183291354216
+    },
+    {
+      "source": "entities/keras",
+      "target": "entities/jax",
+      "weight": 10.303180433986642
+    },
+    {
+      "source": "entities/numpy",
+      "target": "entities/python",
+      "weight": 9.109808374966967
+    },
+    {
+      "source": "entities/numpy",
+      "target": "entities/numpy",
+      "weight": 0
+    },
+    {
+      "source": "entities/python",
+      "target": "entities/pytorch",
+      "weight": 8.860485393097678
+    },
+    {
+      "source": "entities/python",
+      "target": "entities/tensorflow",
+      "weight": 8.899153493572031
+    },
+    {
+      "source": "entities/pytorch",
+      "target": "entities/tensorflow",
+      "weight": 12.89081220605557
+    },
+    {
+      "source": "entities/pytorch",
+      "target": "entities/jax",
+      "weight": 10.663854194208882
+    },
+    {
+      "source": "entities/resnet_paper",
+      "target": "entities/resnet_paper",
+      "weight": 0
+    },
+    {
+      "source": "entities/tensorflow",
+      "target": "entities/tpu",
+      "weight": 8.899153493572031
+    },
+    {
+      "source": "entities/tpu",
+      "target": "entities/jax",
+      "weight": 9.58183291354216
+    },
+    {
+      "source": "entities/vaswani",
+      "target": "concepts/transformer",
+      "weight": 9.65982725379427
+    },
+    {
+      "source": "index",
+      "target": "entities/pytorch",
+      "weight": 8.895685652898148
+    },
+    {
+      "source": "index",
+      "target": "entities/tensorflow",
+      "weight": 10.016375034039225
+    },
+    {
+      "source": "index",
+      "target": "entities/jax",
+      "weight": 8.721419424031955
+    },
+    {
+      "source": "index",
+      "target": "entities/keras",
+      "weight": 5.625374460859092
+    },
+    {
+      "source": "index",
+      "target": "entities/python",
+      "weight": 38.60464150082019
+    },
+    {
+      "source": "index",
+      "target": "entities/numpy",
+      "weight": 5.603502365034519
+    },
+    {
+      "source": "index",
+      "target": "entities/cuda",
+      "weight": 5.986048221081332
+    },
+    {
+      "source": "index",
+      "target": "entities/tpu",
+      "weight": 5.986048221081332
+    },
+    {
+      "source": "index",
+      "target": "entities/gpu",
+      "weight": 6.1095038678935
+    },
+    {
+      "source": "index",
+      "target": "entities/attention_is_all_you_need",
+      "weight": 6.480040661749802
+    },
+    {
+      "source": "index",
+      "target": "entities/vaswani",
+      "weight": 5.264700700636851
+    },
+    {
+      "source": "index",
+      "target": "entities/resnet_paper",
+      "weight": 5.51402368250614
+    },
+    {
+      "source": "index",
+      "target": "entities/bert_paper",
+      "weight": 7.965871444142557
+    },
+    {
+      "source": "index",
+      "target": "entities/gpt",
+      "weight": 7.815852565315253
+    },
+    {
+      "source": "index",
+      "target": "concepts/transfer_learning",
+      "weight": 6.823214160908203
+    },
+    {
+      "source": "index",
+      "target": "concepts/fine_tuning",
+      "weight": 7.4332109029997335
+    },
+    {
+      "source": "index",
+      "target": "concepts/deep_learning",
+      "weight": 39.68666278148691
+    },
+    {
+      "source": "index",
+      "target": "concepts/neural_network",
+      "weight": 6.492145530209019
+    },
+    {
+      "source": "index",
+      "target": "concepts/cnn",
+      "weight": 6.446026084345558
+    },
+    {
+      "source": "index",
+      "target": "concepts/transformer",
+      "weight": 11.349721607618392
+    },
+    {
+      "source": "index",
+      "target": "concepts/attention_mechanism",
+      "weight": 6.196703102476269
+    },
+    {
+      "source": "index",
+      "target": "concepts/lora",
+      "weight": 5.419187220493593
+    },
+    {
+      "source": "index",
+      "target": "concepts/pre_training",
+      "weight": 6.10633428149316
+    },
+    {
+      "source": "index",
+      "target": "concepts/backpropagation",
+      "weight": 6.446026084345558
+    },
+    {
+      "source": "index",
+      "target": "concepts/gradient_descent",
+      "weight": 5.51402368250614
+    },
+    {
+      "source": "index",
+      "target": "concepts/nlp",
+      "weight": 6.939032580290592
+    },
+    {
+      "source": "index",
+      "target": "concepts/llm",
+      "weight": 6.789013701463287
+    },
+    {
+      "source": "index",
+      "target": "concepts/prompt_engineering",
+      "weight": 6.201170743505706
+    },
+    {
+      "source": "index",
+      "target": "concepts/tokenization",
+      "weight": 5.51402368250614
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_01",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_02",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_03",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_04",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_05",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_06",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_07",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_08",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_09",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_10",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_11",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_12",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_13",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_14",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_15",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_16",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_17",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_18",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_19",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_20",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_21",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_22",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_23",
+      "weight": 4.395613749310675
+    },
+    {
+      "source": "index",
+      "target": "concepts/topic_24",
+      "weight": 4.395613749310675
+    }
+  ],
+  "communities": [
+    {
+      "id": 0,
+      "nodeCount": 27,
+      "cohesion": 0.21082621082621084,
+      "topNodes": [
+        "Populated Test Wiki",
+        "Deep Learning",
+        "Python",
+        "Topic 01",
+        "Topic 02"
+      ]
+    },
+    {
+      "id": 1,
+      "nodeCount": 10,
+      "cohesion": 0.4444444444444444,
+      "topNodes": [
+        "Transformer Architecture",
+        "BERT",
+        "GPT",
+        "Attention Mechanism",
+        "Natural Language Processing"
+      ]
+    },
+    {
+      "id": 2,
+      "nodeCount": 8,
+      "cohesion": 0.5357142857142857,
+      "topNodes": [
+        "TensorFlow",
+        "PyTorch",
+        "JAX",
+        "GPU",
+        "NumPy"
+      ]
+    },
+    {
+      "id": 3,
+      "nodeCount": 5,
+      "cohesion": 0.8,
+      "topNodes": [
+        "Neural Network",
+        "Backpropagation",
+        "Convolutional Neural Network",
+        "Gradient Descent",
+        "Deep Residual Learning"
+      ]
+    },
+    {
+      "id": 4,
+      "nodeCount": 4,
+      "cohesion": 1,
+      "topNodes": [
+        "Fine Tuning",
+        "LoRA",
+        "Transfer Learning",
+        "Pre-training"
+      ]
+    }
+  ]
+}

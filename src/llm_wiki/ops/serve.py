@@ -1,6 +1,7 @@
 """Start the MCP server for a wiki directory."""
 
 import argparse
+import json
 import os
 import signal
 import subprocess
@@ -12,6 +13,21 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 _child_process = None
 _shutdown_signaled = False
+
+
+def resolve_server_entry(server_path: Path) -> Path:
+    """Resolve the MCP server entry point as package.json declares it.
+
+    Reads the ``main`` field (e.g. ``dist/main.js``); falls back to
+    ``dist/main.js`` when package.json is missing or unparseable.
+    """
+    main_field = None
+    package_json = server_path / "package.json"
+    try:
+        main_field = json.loads(package_json.read_text()).get("main")
+    except (OSError, ValueError):
+        main_field = None
+    return server_path / (main_field or "dist/main.js")
 
 
 def _signal_handler(signum, frame):
@@ -40,7 +56,7 @@ def main() -> int:
     args = parser.parse_args()
 
     server_path = REPO_ROOT / "mcp-server"
-    dist_path = server_path / "dist" / "index.js"
+    dist_path = resolve_server_entry(server_path)
 
     if not dist_path.exists():
         print(

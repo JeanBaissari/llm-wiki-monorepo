@@ -127,3 +127,31 @@ The 7 remaining failures are all pre-existing:
 - `test_mcp_benchmark.py` — benchmark timing/environment issues
 - `test_verification.py` — sklearn import error (optional dep not installed)
 - `test_fixtures_fresh.py` — schema version marker misalignment (cosmetic)
+
+## Superseded predecessor — 2026-07-04 "Acceptance Criteria" (merged 2026-08-09)
+
+The duplicate `0013-acceptance-criteria.md` (2026-07-04, superseded by this ADR)
+was merged here and deleted during post-v0.5.0 hardening (G-3). Its unique
+content — the batch verification checklists AC-00…AC-07 — is summarized below;
+decisions, tradeoffs, and migration rules live in the sections above.
+
+| Batch | Scope | Verification outcome |
+|-------|-------|---------------------|
+| 0 | Contract freeze — 15 CLI commands, version, golden parsers, boundary tests, release manifest | All AC-00.x YES |
+| 1 | `core/` extraction — frontmatter, hashing, atomic, locking, logging, layout, wikilinks; old flat modules deleted | All AC-01.x YES (203 tests pass) |
+| 2 | `quality/` packages — claims, lint, audit | All AC-02.x YES (165 contract+claims+lint+schema tests pass) |
+| 3 | `ingest/` + `providers/` extraction | All AC-03.x YES |
+| 4 | `graph/`, `search/`, `ops/`, `wiki/`, `research/` extraction; all 11 old flat modules deleted | All AC-04.x YES |
+| 5 | MCP server — `tools/` (11 handlers), `adapters/`, `registry.ts` (14 tools), `main.ts` replacing `index.ts` | All AC-05.x YES |
+| 6 | No-regression checks — pass count ≥ main, fail count ≤ main, sidecar JSON-RPC, CI entry points | All AC-06.x YES (AC-06.8 docs_truth_check was TBD at the time; it exits 0 as of this merge) |
+| 7 | Documentation — ADR 0013, per-package `__init__.py` docstrings, verifiable criteria | AC-07.x YES; AC-07.2 PARTIAL |
+
+Two rows worth carrying forward:
+
+- **AC-05.4/AC-05.5** — `main.ts` replaced `index.ts` and `package.json` main was
+  updated to `dist/main.js`. Tools that launch the server must resolve the entry
+  from `package.json` `main` (see the post-v0.5.0 serve fix, G-2), not a stale
+  `dist/index.js`.
+- **AC-07.2** — per-package `__init__.py` docstrings were PARTIAL; the remaining
+  gap was carried into Phase 6 and closed with the `contracts/` package
+  (batch 6C).

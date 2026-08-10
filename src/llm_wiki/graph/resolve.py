@@ -129,6 +129,25 @@ def resolve_entities(
             norms_v[norms_v == 0] = 1.0
             vecs = raw / norms_v
         except Exception:
+            # numpy absent (base install) → fall back to the pure-Python dot
+            # below, so an explicitly-provided embedder still feeds the
+            # two-signal path (LWM_025) instead of silently degrading to
+            # string-only. Never leave a half-built numpy vecs behind.
+            vecs = None
+            np = None
+
+    if vecs is None and embedder is not None:
+        # Pure-Python fallback: L2-normalized dense vectors, cosine via dot.
+        try:
+            rows = [list(map(float, v)) for v in embedder.embed(surfaces)]
+            if rows and all(len(r) == len(rows[0]) for r in rows):
+                dim = len(rows[0])
+                normed = []
+                for r in rows:
+                    norm = sum(x * x for x in r) ** 0.5
+                    normed.append([x / norm for x in r] if norm else [0.0] * dim)
+                vecs = normed
+        except Exception:
             vecs = None
 
     uf = _UnionFind(n)
@@ -146,7 +165,13 @@ def resolve_entities(
                 continue
             ss = string_sim(norms[a], norms[b])
             if vecs is not None:
-                cos = float(vecs[a] @ vecs[b])
+                # numpy arrays and pure-Python lists both support dot product
+                # (list @ list fails, so fall back to a manual dot for the
+                # numpy-free base-install path).
+                try:
+                    cos = float(vecs[a] @ vecs[b])
+                except TypeError:
+                    cos = sum(x * y for x, y in zip(vecs[a], vecs[b]))
                 scores[(a, b)] = (ss + cos) / 2.0
                 if ss >= str_threshold and cos >= cos_threshold:
                     uf.union(a, b)  # two independent signals agree

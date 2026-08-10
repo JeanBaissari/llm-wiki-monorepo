@@ -13,8 +13,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          # scripts/release_manifest.py reads TOML via stdlib tomllib (3.11+).
+          # scripts/release_manifest.py reads TOML via stdlib tomllib (3.11+)
+          # and its console-script import check needs the project deps present.
           python-version: "3.12"
+
+      - name: Install package (console-script import check)
+        run: pip install -e .
 
       - name: Run release manifest validation
         id: manifest
@@ -73,6 +77,13 @@ jobs:
 
       - name: Install npm dependencies
         run: npm install
+
+      # npm's --workspaces build order is node-version dependent (topological on
+      # node 18, array order on node 20/22) — build the shared-types dist
+      # explicitly first so mcp-server/graph-engine tsc never see a missing
+      # @baissari/llm-wiki-shared-types (TS2307).
+      - name: Build shared-types first
+        run: cd packages/shared-types && npm run build
 
       - name: Build all packages
         run: npm run build --workspaces --if-present

@@ -27,8 +27,12 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          # scripts/release_manifest.py reads TOML via stdlib tomllib (3.11+).
+          # scripts/release_manifest.py reads TOML via stdlib tomllib (3.11+)
+          # and its console-script import check needs the project deps present.
           python-version: "3.12"
+
+      - name: Install package (console-script import check)
+        run: pip install -e .
 
       - name: Run release manifest validation
         id: manifest

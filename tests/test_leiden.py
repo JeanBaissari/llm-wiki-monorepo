@@ -116,8 +116,11 @@ def test_hierarchical_levels_none_without_extra(monkeypatch):
 
 
 def test_hierarchical_levels_none_on_empty_graph(monkeypatch):
-    # Empty node list or edgeless graph → None, never a raise.
+    # Empty node list or edgeless graph → None, never a raise. _build_graph is
+    # stubbed so the edgeless case runs in environments without networkx too.
     monkeypatch.setattr(leiden, "is_leiden_available", lambda: True)
+    monkeypatch.setattr(leiden, "_build_graph",
+                        lambda ids, edges: _StubGraph(edges))
     assert leiden.hierarchical_levels([], EDGES) is None
     assert leiden.hierarchical_levels(NODES, []) is None
 

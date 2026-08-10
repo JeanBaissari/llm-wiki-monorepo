@@ -39,6 +39,12 @@ jobs:
         run: |
           cd graph-engine && npm ci
 
+      # graph-engine imports @baissari/llm-wiki-shared-types (dist/ gitignored) —
+      # build it before compiling the engine.
+      - name: Build shared-types
+        run: |
+          cd packages/shared-types && npm ci && npm run build
+
       - name: Build TypeScript graph-engine
         run: |
           cd graph-engine && npm run build

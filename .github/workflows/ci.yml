@@ -157,15 +157,19 @@ jobs:
       # for real here — real model2vec embeddings over a small wiki, tau/top-m
       # enforcement, and the embed_meta mismatch skip guard.
       - name: Run derived-similarity tests with the real embedder
+        env:
+          PYTHONPATH: src
         run: |
-          PYTHONPATH=src python3 -m pytest tests/test_derived_similarity.py -q -m "not slow"
+          python3 -m pytest tests/test_derived_similarity.py -q -m "not slow"
       # AD-11: the search-eval gate is re-certified with the REAL [semantic]
       # embedder here (model2vec downloads a small model on first run). Local
       # runs use the deterministic concept embedder; the real-wiki lane runs
       # only when the extra is present.
       - name: Re-certify search-eval gate with the real embedder
+        env:
+          PYTHONPATH: src
         run: |
-          PYTHONPATH=src python3 -m pytest tests/test_search_eval_gate.py tests/eval/test_real_wiki_gate.py -q -m "not slow"
+          python3 -m pytest tests/test_search_eval_gate.py tests/eval/test_real_wiki_gate.py -q -m "not slow"
 
   # LWM_027/ADR-0025: exercise the optional Leiden engine in an isolated lane —
   # per-component hierarchical_leiden (AD-18), the B4/B6 hierarchy seam, and the

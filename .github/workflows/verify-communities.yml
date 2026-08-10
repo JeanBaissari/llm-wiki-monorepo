@@ -37,13 +37,16 @@ jobs:
 
       - name: Install Node dependencies
         run: |
-          cd graph-engine && npm ci
+          # Root workspace install: @types/node + TypeScript live at the root
+          # (hoisted); an isolated `npm ci` inside graph-engine cannot resolve
+          # them (TS2688). Root `npm ci` installs every workspace.
+          npm ci
 
       # graph-engine imports @baissari/llm-wiki-shared-types (dist/ gitignored) —
       # build it before compiling the engine.
       - name: Build shared-types
         run: |
-          cd packages/shared-types && npm ci && npm run build
+          cd packages/shared-types && npm run build
 
       - name: Build TypeScript graph-engine
         run: |

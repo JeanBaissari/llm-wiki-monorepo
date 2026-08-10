@@ -13,7 +13,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          # scripts/release_manifest.py reads TOML via stdlib tomllib (3.11+).
+          python-version: "3.12"
 
       - name: Run release manifest validation
         id: manifest
@@ -167,8 +168,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - name: Install test deps + [leiden] extra
         run: pip install -e ".[dev,test,leiden]"
+      # test_verification.py cross-implementation runner executes the TS Louvain
+      # via tsx — the workspace deps (tsx, graphology, shared-types dist) must
+      # exist first (root npm ci hoists them; shared-types dist is gitignored).
+      - name: Install Node deps + build shared-types
+        run: |
+          npm ci
+          cd packages/shared-types && npm run build
       - name: Run Leiden connectivity + NMI/modularity verification
         run: |
           python3 -m pytest tests/test_leiden.py tests/test_verification.py tests/test_communities_internally_connected.py -q -m "not slow"

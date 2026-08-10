@@ -62,6 +62,17 @@ ALIASES = {
 
 
 def main() -> int:
+    # Windows consoles default to the ANSI codepage (cp1252 etc.), which cannot
+    # encode the ✓/⚠ markers used across the CLI — scaffold crashed with
+    # UnicodeEncodeError on Windows CI. Force UTF-8 output (with replacement) so
+    # every command is encoding-safe on every platform. Guarded: some embedding
+    # environments (tests) do not allow stdout reconfigure.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            break
+
     if len(sys.argv) < 2:
         print("Usage: llm-wiki <command> [args...]\n", file=sys.stderr)
         print("Available commands:", file=sys.stderr)

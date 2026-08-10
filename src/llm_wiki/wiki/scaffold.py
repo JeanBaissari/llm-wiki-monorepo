@@ -329,6 +329,18 @@ def _write(root: str, path: str, content: str) -> None:
 def main() -> int:
     import argparse
 
+    # Windows ANSI codepages cannot encode the ✓ markers printed below
+    # (UnicodeEncodeError — hit on Windows CI). Force UTF-8 stdout/stderr.
+    # This also covers the skill/scripts/scaffold.py wrapper, which invokes
+    # this main() directly (bypassing llm_wiki.cli's own reconfigure).
+    import sys as _sys
+
+    for _stream in (_sys.stdout, _sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            break
+
     parser = argparse.ArgumentParser(
         description="Bootstrap a new LLM Wiki directory structure.",
         formatter_class=argparse.RawDescriptionHelpFormatter,

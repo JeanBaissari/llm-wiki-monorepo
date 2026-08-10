@@ -98,9 +98,11 @@ def load_pages(wiki_dir: Path) -> dict[str, Path]:
     for p in pages_dir.rglob("*.md"):
         # Store by stem (filename without .md)
         pages[p.stem] = p
-        # Store by relative path without extension
+        # Store by relative path without extension — forward slashes on every
+        # platform: wikilinks are authored with "/" and str(Path) yields
+        # backslashes on Windows, which would make every path-style link dead.
         rel = p.relative_to(pages_dir)
-        pages[str(rel.with_suffix(""))] = p
+        pages[str(rel.with_suffix("")).replace(os.sep, "/")] = p
     return pages
 
 

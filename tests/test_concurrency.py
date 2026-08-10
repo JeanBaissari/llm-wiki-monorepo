@@ -553,8 +553,12 @@ class TestWriteWikiConcurrency:
         pages_dir.mkdir(parents=True)
         index_path = pages_dir / "index.md"
 
-        # Create initial index
-        index_path.write_text("# Wiki Index\n\n- [[existing|Existing]] — existing\n")
+        # Create initial index (utf-8 explicit: write_text default encoding is
+        # locale-dependent — cp1252 on Windows — which corrupts the em-dash
+        # for readers that decode utf-8).
+        index_path.write_text(
+            "# Wiki Index\n\n- [[existing|Existing]] — existing\n", encoding="utf-8"
+        )
 
         pages = ["entities/NewPage.md", "concepts/AnotherConcept.md"]
         added = update_index(str(wiki), pages)

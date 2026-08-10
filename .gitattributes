@@ -1,4 +1,6 @@
-# Golden/eval fixtures are hashed (split_manifest.json sha256 freeze) — keep
-# their bytes byte-identical across platforms (no CRLF conversion).
+# Golden/eval fixtures are hashed (split_manifest.json sha256 freeze,
+# .schema_version freshness markers) — keep their bytes byte-identical
+# across platforms (no CRLF conversion).
 tests/eval/gold/*.json -text
 tests/fixtures/gold/*.json -text
+tests/fixtures/wikis/**/.schema_version -text

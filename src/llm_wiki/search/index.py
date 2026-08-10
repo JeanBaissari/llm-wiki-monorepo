@@ -210,7 +210,11 @@ def prepare_content(filepath: Path, wiki_root: Path) -> tuple[str, str, str]:
     wiki_root = Path(wiki_root).resolve()
     content = filepath.read_text(encoding="utf-8", errors="replace")
     title = extract_title(content, filepath)
-    rel_path = str(filepath.relative_to(wiki_root))
+    # Forward slashes everywhere: index paths are portable identifiers
+    # consumed by search results/goldens — on Windows Path.relative_to yields
+    # backslashes, which would break the frozen-format goldens and any
+    # consumer doing URL-style joins.
+    rel_path = str(filepath.relative_to(wiki_root)).replace(os.sep, "/")
     tokens = tokenize(content)
     tokenized = " ".join(tokens)
     return rel_path, title, tokenized

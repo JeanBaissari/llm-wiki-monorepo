@@ -130,13 +130,10 @@ def test_no_vectors_no_similar_to_edges(tmp_path):
 
 
 @needs_semantic
-def test_similar_to_edges_typed_undirected_above_tau(tmp_path):
+def test_similar_to_edges_typed_undirected_above_tau(tmp_path, model2vec_embedder):
     """Real embedder: edges are relType=similar_to, directed=false, cosine>=tau."""
-    from llm_wiki.semantic.embedder import get_embedder
-
     root, _wiki = _make_wiki(tmp_path, _similar_pages())
-    embedder = get_embedder()
-    assert embedder is not None
+    embedder = model2vec_embedder
     _embed(root, embedder)
 
     tau = 0.40
@@ -162,13 +159,10 @@ def test_similar_to_edges_typed_undirected_above_tau(tmp_path):
 
 
 @needs_semantic
-def test_similar_to_threshold_and_cap(tmp_path):
+def test_similar_to_threshold_and_cap(tmp_path, model2vec_embedder):
     """LWM_029 row: edges only above tau, capped at top-m per node."""
-    from llm_wiki.semantic.embedder import get_embedder
-
     root, _wiki = _make_wiki(tmp_path, _similar_pages())
-    embedder = get_embedder()
-    assert embedder is not None
+    embedder = model2vec_embedder
     _embed(root, embedder)
 
     low = de.generate_derived_edges(root, tau=0.35, top_m=5)
@@ -191,14 +185,12 @@ def test_similar_to_threshold_and_cap(tmp_path):
 
 
 @needs_semantic
-def test_similarity_skipped_on_embed_meta_mismatch(tmp_path):
+def test_similarity_skipped_on_embed_meta_mismatch(tmp_path, model2vec_embedder):
     """LWM_029 NEGATIVE row: embed_meta mismatch → skip, never corrupt edges."""
     from llm_wiki.semantic import vector_schema as vs
-    from llm_wiki.semantic.embedder import get_embedder
 
     root, _wiki = _make_wiki(tmp_path, _similar_pages())
-    embedder = get_embedder()
-    assert embedder is not None
+    embedder = model2vec_embedder
     _embed(root, embedder)
 
     # Prove the happy path first: with matching meta the generator finds edges.

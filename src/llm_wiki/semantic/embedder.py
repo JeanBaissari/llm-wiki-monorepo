@@ -108,25 +108,37 @@ class Model2VecEmbedder(Embedder):
 
     def _load(self):
         if self._model is None:
-            import numpy as np
-            from model2vec import StaticModel
+            try:
+                import numpy as np
+                from model2vec import StaticModel
 
-            self._model = StaticModel.from_pretrained(self.model_id)
-            probe = np.asarray(self._model.encode(["_"]))
-            self._dim = int(probe.shape[-1])
+                # StaticModel.from_pretrained downloads from HuggingFace on
+                # first use. A download failure (offline CI runner, HF outage)
+                # must NOT crash the caller — the semantic layer degrades to
+                # unavailable, exactly like the extra being absent (LWM_013
+                # invariant #3: optional extras degrade gracefully).
+                self._model = StaticModel.from_pretrained(self.model_id)
+                probe = np.asarray(self._model.encode(["_"]))
+                self._dim = int(probe.shape[-1])
+            except Exception:
+                self._model = None
+                self._dim = None
         return self._model
 
     @property
     def dimension(self) -> int:
         if self._dim is None:
             self._load()
-        assert self._dim is not None
-        return self._dim
+        return self._dim or 0
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
         import numpy as np
 
         model = self._load()
+        if model is None:
+            # Model unavailable (download failed) — degrade to no vectors;
+            # callers fall back to the keyword path byte-identically.
+            return []
         vecs = np.asarray(model.encode(list(texts)), dtype=np.float32)
         if vecs.ndim == 1:
             vecs = vecs.reshape(1, -1)

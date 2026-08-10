@@ -67,7 +67,7 @@ def test_real_wiki_labels_target_existing_pages(tmp_path):
             assert pid in pages, f"label references missing page: {pid}"
 
 
-def test_real_wiki_gate_with_real_embedder(tmp_path):
+def test_real_wiki_gate_with_real_embedder(tmp_path, model2vec_embedder):
     """The full search-eval gate on a real wiki with the real embedder."""
     root = tmp_path / "wiki"
     shutil.copytree(FIXTURE, root)
@@ -84,7 +84,7 @@ def test_real_wiki_gate_with_real_embedder(tmp_path):
     assert hy["negative_pass_rate"] == 1.0  # gibberish stayed empty
 
 
-def test_real_wiki_hybrid_recall_ge_keyword(tmp_path):
+def test_real_wiki_hybrid_recall_ge_keyword(tmp_path, model2vec_embedder):
     """Hybrid must never regress keyword recall on the real wiki."""
     root = tmp_path / "wiki"
     shutil.copytree(FIXTURE, root)

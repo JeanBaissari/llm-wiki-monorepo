@@ -387,3 +387,28 @@ This document contains [[Target Page]] and [[Another Concept]] as inline wikilin
 ## Details
 See also [[Deep Link|with alias]] and [[path/to/page]].
 """
+
+
+@pytest.fixture
+def model2vec_embedder():
+    """The real [semantic] embedder for extra-gated tests.
+
+    Skips (rather than fails) when the model cannot load — e.g. an offline CI
+    runner or an unreachable HuggingFace Hub on first download. Model
+    availability is not the property under test; the embedder's graceful
+    degradation (get_embedder -> None, embed -> []) is covered by
+    test_semantic_optional. Only the tests that genuinely need vectors use
+    this fixture.
+    """
+    from llm_wiki.semantic.embedder import get_embedder
+
+    emb = get_embedder()
+    if emb is None:
+        pytest.skip("semantic embedder unavailable (extra absent or load failed)")
+    try:
+        probe = emb.embed(["probe"])
+    except Exception as e:  # pragma: no cover - environment-dependent
+        pytest.skip(f"embedder model unavailable: {e}")
+    if not probe:
+        pytest.skip("embedder model unavailable (HuggingFace download failed)")
+    return emb

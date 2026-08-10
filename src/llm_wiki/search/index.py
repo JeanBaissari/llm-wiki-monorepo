@@ -368,10 +368,14 @@ def index_wiki(wiki_root: Path, rebuild: bool = False) -> dict:
             all_indexed = conn.execute("SELECT file_path FROM index_meta").fetchall()
             for (indexed_path,) in all_indexed:
                 if indexed_path not in current_files:
-                    # Find relative path for FTS5 deletion
+                    # Find relative path for FTS5 deletion (same forward-slash
+                    # normalization as prepare_content — the FTS rows store the
+                    # portable spelling on every platform).
                     try:
                         indexed_file = Path(indexed_path)
-                        rel_path = str(indexed_file.relative_to(wiki_root))
+                        rel_path = str(indexed_file.relative_to(wiki_root)).replace(
+                            os.sep, "/"
+                        )
                     except ValueError:
                         # File path isn't under wiki_root — skip
                         continue

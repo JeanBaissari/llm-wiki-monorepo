@@ -36,7 +36,7 @@ def integration_source(integration_wiki):
 
 ## Overview
 This document tests the full ingest → lint → graph pipeline.
-
+""", encoding="utf-8")  # utf-8 explicit: write_text default is locale-dependent (cp1252 on Windows)
 ## Key Topics
 - **Memory Management**: Techniques for managing memory in applications.
 - **Caching Strategies**: Various approaches to data caching.

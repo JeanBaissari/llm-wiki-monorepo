@@ -1,6 +1,8 @@
 # Golden/eval fixtures are hashed (split_manifest.json sha256 freeze,
-# .schema_version freshness markers) — keep their bytes byte-identical
-# across platforms (no CRLF conversion).
+# .schema_version freshness markers, base-schema.md is the schema-version
+# hash input) — keep their bytes byte-identical across platforms (no CRLF
+# conversion, or the freshness/sha256 checks fail on Windows checkouts).
 tests/eval/gold/*.json -text
 tests/fixtures/gold/*.json -text
 tests/fixtures/wikis/**/.schema_version -text
+templates/_shared/base-schema.md -text

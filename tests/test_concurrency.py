@@ -575,7 +575,9 @@ class TestWriteWikiConcurrency:
         pages_dir = wiki / "wiki"
         pages_dir.mkdir(parents=True)
         index_path = pages_dir / "index.md"
-        index_path.write_text("# Wiki Index\n\n- [[existing|Existing]] — existing\n")
+        index_path.write_text(
+            "# Wiki Index\n\n- [[existing|Existing]] — existing\n", encoding="utf-8"
+        )
 
         pages = ["entities/NewPage.md"]
         added1 = update_index(str(wiki), pages)

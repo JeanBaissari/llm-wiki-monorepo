@@ -594,7 +594,9 @@ class TestEdgeCases:
         # Reload the module constant by re-evaluating
         from pathlib import Path
         custom = Path(os.environ.get("LLM_WIKI_OPCODE_DIR", "/tmp/llm-wiki-opencode"))
-        assert str(custom) == "/custom/opencode/path"
+        # Path equality is separator-agnostic on every platform (Windows Path
+        # spells the same value with backslashes).
+        assert custom == Path("/custom/opencode/path")
 
     def test_timeout_env_override(self, monkeypatch):
         """LLM_WIKI_OPCODE_TIMEOUT env var changes poll timeout."""

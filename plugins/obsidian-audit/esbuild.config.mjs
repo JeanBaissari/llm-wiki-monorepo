@@ -29,7 +29,10 @@ const ctx = await esbuild.context({
   sourcemap: prod ? false : "inline",
   treeShaking: true,
   outfile: "main.js",
-  platform: "browser",
+  // Obsidian plugins run inside Electron (Node builtins available) — platform
+  // "browser" made esbuild try to resolve node:crypto (imported by
+  // audit-shared's dist) and fail. "node" treats node:* as builtin/external.
+  platform: "node",
   conditions: ["import", "default"],
 });
 

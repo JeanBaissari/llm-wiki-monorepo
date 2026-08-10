@@ -28,6 +28,15 @@ from llm_wiki.ops.serve import resolve_server_entry
 
 MCP_SERVER_DIR = REPO_ROOT / "mcp-server"
 
+# The E2E startup/shutdown tests spawn `llm-wiki serve`, which runs the
+# COMPILED MCP server (mcp-server/dist/main.js — gitignored). Fresh CI
+# checkouts have no dist, so these tests skip unless the build exists; the
+# compiled-server path is covered by the integration + certify jobs instead.
+_NEEDS_MCP_BUILD = pytest.mark.skipif(
+    not (MCP_SERVER_DIR / "dist" / "main.js").exists(),
+    reason="mcp-server/dist/main.js not built (run `cd mcp-server && npx tsc`)",
+)
+
 
 def _env_with_src():
     env = os.environ.copy()
@@ -89,6 +98,7 @@ class TestServeHelp:
         assert "Start the MCP server" in result.stdout
 
 
+@_NEEDS_MCP_BUILD
 class TestServeStartup:
     def _start_serve(self, wiki, stale_index_removed):
         backup = None
@@ -158,6 +168,7 @@ class TestServeStartup:
                 stale.write_bytes(backup)
 
 
+@_NEEDS_MCP_BUILD
 class TestServeShutdown:
     def test_graceful_shutdown(self, tmp_path):
         wiki = tmp_path / "serve-shutdown-wiki"

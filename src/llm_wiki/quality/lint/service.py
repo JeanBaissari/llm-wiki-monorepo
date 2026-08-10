@@ -26,6 +26,14 @@ VALID_STATUSES = {"open", "resolved"}
 VALID_SOURCES = {"obsidian-plugin", "web-viewer", "manual"}
 
 
+
+def _rel(root: Path, p: Path) -> str:
+    """Portable relative path: forward slashes on every platform. Lint output
+    is consumed by test seeds/validators that author paths with '/' — on
+    Windows str(Path.relative_to()) yields backslashes and every
+    location-based seed match would fail."""
+    return str(p.relative_to(root)).replace(os.sep, "/")
+
 def lint(root: str) -> int:
     root_path = Path(root).resolve()
     layout = discover_layout(root_path)
@@ -61,7 +69,7 @@ def lint(root: str) -> int:
         for link in extract_wikilinks(text):
             link = link.strip()
             if link not in pages and Path(link).stem not in pages:
-                dead_links.append((str(md_file.relative_to(root_path)), link))
+                dead_links.append((_rel(root_path, md_file), link))
             else:
                 target = pages.get(link) or pages.get(Path(link).stem)
                 if target:
@@ -84,7 +92,7 @@ def lint(root: str) -> int:
     if orphans:
         print(f"\n🟡 Orphan pages ({len(orphans)}) — no inbound wikilinks:")
         for p in orphans:
-            print(f"   {p.relative_to(root_path)}")
+            print(f"   {_rel(root_path, p)}")
         issues += len(orphans)
     else:
         print("✅ No orphan pages")
@@ -96,12 +104,12 @@ def lint(root: str) -> int:
             p for p in all_wiki_files
             if p != index_path
             and f"[[{p.stem}]]" not in index_text
-            and str(p.relative_to(pages_dir).with_suffix("")) not in index_text
+            and _rel(pages_dir, p.with_suffix("")) not in index_text
         ]
         if not_in_index:
             print(f"\n🟡 Pages missing from index.md ({len(not_in_index)}):")
             for p in not_in_index:
-                print(f"   {p.relative_to(root_path)}")
+                print(f"   {_rel(root_path, p)}")
             issues += len(not_in_index)
         else:
             print("✅ All pages in index.md")
@@ -135,13 +143,13 @@ def lint(root: str) -> int:
                 continue
             m = LOG_FILENAME_RE.match(p.name)
             if not m:
-                log_issues.append(f"   {p.relative_to(root_path)} — filename doesn't match YYYYMMDD.md")
+                log_issues.append(f"   {_rel(root_path, p)} — filename doesn't match YYYYMMDD.md")
                 continue
             y, mo, d = m.groups()
             iso = f"{y}-{mo}-{d}"
             first_line = p.read_text(encoding="utf-8").splitlines()[:1]
             if not first_line or first_line[0].strip() != f"# {iso}":
-                log_issues.append(f"   {p.relative_to(root_path)} — expected H1 '# {iso}'")
+                log_issues.append(f"   {_rel(root_path, p)} — expected H1 '# {iso}'")
         if log_issues:
             print(f"\n🟡 log shape issues ({len(log_issues)}):")
             for s in log_issues:
@@ -159,7 +167,7 @@ def lint(root: str) -> int:
         for p in audit_files:
             text = p.read_text(encoding="utf-8")
             fm = parse_frontmatter(text)
-            rel = p.relative_to(root_path)
+            rel = _rel(root_path, p)
             if fm is None:
                 audit_issues.append(f"   {rel} — missing YAML frontmatter")
                 continue
@@ -204,7 +212,7 @@ def lint(root: str) -> int:
 
     fm_issues: list[str] = []
     for md_file in all_wiki_files:
-        rel = md_file.relative_to(root_path)
+        rel = _rel(root_path, md_file)
         if md_file.name in skip_files:
             continue
         fm = fm_cache.get(md_file)
@@ -234,7 +242,7 @@ def lint(root: str) -> int:
             try:
                 updated = datetime.fromisoformat(fm["updated"])
                 if updated < cutoff:
-                    stale_pages.append(f"{md_file.relative_to(root_path)} (updated {fm['updated']})")
+                    stale_pages.append(f"{_rel(root_path, md_file)} (updated {fm['updated']})")
             except (ValueError, TypeError):
                 pass
     if stale_pages:
@@ -251,7 +259,7 @@ def lint(root: str) -> int:
             continue
         fm = fm_cache.get(md_file)
         if fm and fm.get("confidence") in ("low", "medium"):
-            low_conf.append(f"{md_file.relative_to(root_path)} (confidence: {fm['confidence']})")
+            low_conf.append(f"{_rel(root_path, md_file)} (confidence: {fm['confidence']})")
     if low_conf:
         print(f"\n🟡 Low/medium confidence pages ({len(low_conf)}):")
         for s in low_conf:
@@ -266,7 +274,7 @@ def lint(root: str) -> int:
             continue
         fm = fm_cache.get(md_file)
         if fm and (fm.get("contested") == "true" or fm.get("contradictions")):
-            contradiction_pages.append(str(md_file.relative_to(root_path)))
+            contradiction_pages.append(_rel(root_path, md_file))
     if contradiction_pages:
         print(f"\n🔴 Pages with contradictions ({len(contradiction_pages)}):")
         for s in contradiction_pages:
@@ -282,7 +290,7 @@ def lint(root: str) -> int:
         text = file_cache.get(md_file, "")
         lines = text.count("\n")
         if lines > 200:
-            large_pages.append(f"{md_file.relative_to(root_path)} ({lines} lines)")
+            large_pages.append(f"{_rel(root_path, md_file)} ({lines} lines)")
     if large_pages:
         print(f"\n🟡 Large pages (>{200} lines, {len(large_pages)}):")
         for s in large_pages:
@@ -316,7 +324,7 @@ def lint(root: str) -> int:
                         text_to_hash = content
                     actual = hashlib.sha256(text_to_hash.encode("utf-8")).hexdigest()
                     if stored_hash != actual:
-                        source_drift.append(str(rfile.relative_to(root_path)))
+                        source_drift.append(_rel(root_path, rfile))
     if source_drift:
         print(f"\n🔴 Source drift detected ({len(source_drift)} files):")
         for s in source_drift:
@@ -334,7 +342,7 @@ def lint(root: str) -> int:
             for f in source_drift:
                 fname = Path(f).stem
                 if fname in fm.get("sources", []):
-                    stale_from_drift.append(str(md_file.relative_to(root_path)))
+                    stale_from_drift.append(_rel(root_path, md_file))
                     break
     if stale_from_drift:
         print(f"\n🟡 Pages whose raw sources drifted ({len(stale_from_drift)}):")
@@ -345,7 +353,7 @@ def lint(root: str) -> int:
     for md_file in all_wiki_files:
         text = file_cache.get(md_file, "")
         if "<<<<<<< " in text or "=======" in text or ">>>>>>> " in text:
-            conflict_files.append(str(md_file.relative_to(root_path)))
+            conflict_files.append(_rel(root_path, md_file))
     if conflict_files:
         print(f"\n🔴 Merge conflict markers found ({len(conflict_files)}):")
         for s in conflict_files:

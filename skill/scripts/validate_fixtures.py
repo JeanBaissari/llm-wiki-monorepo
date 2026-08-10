@@ -369,11 +369,13 @@ def validate_fixtures(quiet: bool = False) -> int:
     check_stale_lint(report)
 
     # ── Print results ──
+    if report.errors:
+        # Errors always print (even --quiet): CI consumers (test_fixtures_fresh)
+        # surface stderr as the failure detail — silent failures are undebuggable.
+        print("❌ ERRORS:", file=sys.stderr)
+        for e in report.errors:
+            print(f"   {e}", file=sys.stderr)
     if not quiet:
-        if report.errors:
-            print("\n❌ ERRORS:")
-            for e in report.errors:
-                print(f"   {e}")
         if report.warnings:
             print("\n⚠️  WARNINGS:")
             for w in report.warnings:

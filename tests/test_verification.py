@@ -4,9 +4,22 @@ verification suite.
 
 Usage:
     pytest tests/test_verification.py -v
+
+Skips (rather than fails) when the TS toolchain is absent — the
+cross-implementation suite needs the workspace node deps (tsx, graphology),
+which only the verify-communities workflow and the leiden-verification CI job
+install. See run_verification.ts_louvain_available().
 """
 
-from tests.verification.run_verification import SEEDS, run_verification
+import pytest
+
+from tests.verification.run_verification import SEEDS, run_verification, ts_louvain_available
+
+pytestmark = pytest.mark.skipif(
+    not ts_louvain_available(),
+    reason="TS Louvain toolchain not installed (tsx/graphology) — covered by "
+    "verify-communities workflow + leiden-verification CI job",
+)
 
 
 def test_community_verification():

@@ -40,6 +40,24 @@ TS_RUNNER = os.path.join(
     _REPO_ROOT, "graph-engine", "scripts", "ts_louvain_runner.ts"
 )
 
+
+def ts_louvain_available() -> bool:
+    """True iff the TS side of the cross-implementation suite can run: the
+    runner file exists AND the workspace deps are installed (tsx + graphology
+    hoisted into the root node_modules). Fresh CI checkouts of the python-only
+    jobs lack node_modules — the cross-impl suite is covered by the dedicated
+    verify-communities workflow and the leiden-verification CI job, so the
+    pytest entry skips there instead of failing on a missing TS toolchain."""
+    if not os.path.exists(TS_RUNNER):
+        return False
+    node_modules = os.path.join(_REPO_ROOT, "node_modules")
+    if not os.path.isdir(node_modules):
+        return False
+    for probe in ("graphology", ".bin/tsx"):
+        if not os.path.exists(os.path.join(node_modules, probe)):
+            return False
+    return True
+
 # Thresholds (from LWM_08B spec)
 NMI_THRESHOLD = 0.95  # Cross-implementation NMI
 ARI_THRESHOLD = 0.95  # Cross-implementation ARI

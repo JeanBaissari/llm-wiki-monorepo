@@ -36,6 +36,21 @@ EDGES = [
 ]
 
 
+class _StubGraph:
+    """networkx-free stand-in for the offline hierarchy-logic tests: the only
+    attribute ``hierarchical_levels`` touches on the graph is ``number_of_edges()``
+    (the fake ``_leiden_component_levels`` ignores it entirely). This keeps the
+    level-merging tests runnable in environments WITHOUT the [leiden] extra —
+    a real networkx graph would hard-require the extra and crash the base lanes.
+    """
+
+    def __init__(self, edges: list[dict]):
+        self._n = len(edges)
+
+    def number_of_edges(self) -> int:
+        return self._n
+
+
 def test_import_safe_without_extra():
     # Importing + probing must never raise regardless of whether graspologic exists.
     assert isinstance(leiden.is_leiden_available(), bool)
@@ -150,6 +165,8 @@ def test_hierarchical_levels_multilevel_bottom_up(monkeypatch):
     monkeypatch.setattr(leiden, "is_leiden_available", lambda: True)
     monkeypatch.setattr(leiden, "_leiden_component_levels",
                         lambda g, seed: fake_levels)
+    monkeypatch.setattr(leiden, "_build_graph",
+                        lambda ids, edges: _StubGraph(edges))
     nodes = [{"id": n} for n in ["a", "b", "c", "d", "e", "iso"]]
     edges = [{"source": "a", "target": "b", "weight": 1},
              {"source": "d", "target": "e", "weight": 1}]
@@ -177,6 +194,8 @@ def test_hierarchical_levels_deterministic(monkeypatch):
         ])
     monkeypatch.setattr(leiden, "is_leiden_available", lambda: True)
     monkeypatch.setattr(leiden, "_leiden_component_levels", fake_levels)
+    monkeypatch.setattr(leiden, "_build_graph",
+                        lambda ids, edges: _StubGraph(edges))
     nodes = [{"id": n} for n in ["a", "b", "c"]]
     edges = [{"source": "a", "target": "b", "weight": 1}]
     assert leiden.hierarchical_levels(nodes, edges, seed=42) == \

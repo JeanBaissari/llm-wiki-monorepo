@@ -243,6 +243,11 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
+      # graph-engine + mcp-server import @baissari/llm-wiki-shared-types, whose
+      # dist/ is gitignored — build it before compiling any consumer package.
+      - name: Build shared-types
+        run: cd packages/shared-types && npm run build
+
       - name: TypeScript build graph-engine
         run: cd graph-engine && npx tsc
 

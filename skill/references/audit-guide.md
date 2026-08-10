@@ -22,7 +22,7 @@ AI-written content is wrong sometimes. Raw sources contradict each other. Feedba
 
 ## File format
 
-Filename: `YYYYMMDD-HHMMSS-<short-slug>.md`. The prefix is the creation timestamp (local time); the slug is a human-readable hint derived from the selected text or the comment.
+Filename: `YYYYMMDD-HHMMSS-<short-slug>.md`. The prefix is the creation timestamp (local time); the slug is a human-readable hint based on the selected text or the comment.
 
 ```markdown
 ---

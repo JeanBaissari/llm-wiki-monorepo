@@ -22,12 +22,14 @@
 |--------|-----|---------|-------|------------|-------------|
 | nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `P` — Ported | `graph-engine/src/relevance.ts` | `clean_room_replace` — 4-signal relevance model ported from `src/lib/graph-relevance.ts`. Must be replaced with clean-room implementation from algorithmic description before public release. |
 | nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `P` — Ported | `graph-engine/src/insights.ts` | `clean_room_replace` — surprising connections + knowledge gap detection ported from `graph-insights.ts`. Must be replaced with clean-room implementation before public release. |
+| nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `X` — Doc reference | `CONTRIBUTING.md`, `docs/contributing.md`, `README.md` | `docs_only_credit` — Historical provenance disclosure ("code previously derived from nashsu/llm_wiki has been substantially rewritten in v0.3.3"). Documentation mentions only; no code copied. |
+| mixmark-io/turndown | https://github.com/mixmark-io/turndown | MIT | `C` — Vendored with attribution | `extension/Turndown.js` | `vendored_with_attribution` — Vendored turndown bundle; `collapseWhitespace` adapted from `collapse-whitespace` (MIT) and one helper adapted from https://gist.github.com/1129031 (public domain). Attribution retained in-file. |
 
 ### Algorithm — Inspired Implementation
 
 | Source | URL | License | Class | Local File | Disposition |
 |--------|-----|---------|-------|------------|-------------|
-| Blondel et al. (2008) | https://doi.org/10.1088/1742-5468/2008/10/P10008 | Academic (CC-BY) | `I` — Inspired | `graph-engine/src/louvain.ts` | `docs_only_credit` — Louvain community detection algorithm implemented via the MIT-licensed `graphology-communities-louvain` library. No code copied from the original paper. |
+| Blondel et al. (2008) | https://doi.org/10.1088/1742-5468/2008/10/P10008 | Academic (CC-BY) | `I` — Inspired | `graph-engine/src/louvain.ts`, `docs/adr/0012-community-verification-suite-nmi-ari.md` | `docs_only_credit` — Louvain community detection algorithm implemented via the MIT-licensed `graphology-communities-louvain` library. No code copied from the original paper. |
 | Andrej Karpathy | https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f | MIT | `I` — Inspired | `src/llm_wiki/`, `skill/scripts/` | `docs_only_credit` — Basic methodology (raw sources → structured wiki pages via LLM) inspired by Karpathy's llm-wiki pattern. All implementation is original. |
 
 ### Upstream Reference — No Code Overlap

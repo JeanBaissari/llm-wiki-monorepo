@@ -19,7 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 PROVENANCE_PATTERNS = {
     "ported": re.compile(
-        r"(?:port(?:ed|ing)?\s+(?:of|from)|derived\s+from|adapted\s+from|copied\s+from)",
+        r"\b(?:port(?:ed|ing)?\s+(?:of|from)|derived\s+from|adapted\s+from|copied\s+from)",
         re.IGNORECASE,
     ),
     "gpl_license": re.compile(
@@ -30,7 +30,13 @@ PROVENANCE_PATTERNS = {
 
 SOURCE_EXTENSIONS = {".ts", ".py", ".js", ".json", ".md", ".toml"}
 SKIP_DIRS = {".git", "node_modules", "dist", ".venv", "__pycache__", ".pytest_cache", "_internal"}
-SKIP_FILES = {"package-lock.json", "uv.lock", "provenance.md", "CHANGELOG.md"}
+SKIP_FILES = {
+    "package-lock.json", "uv.lock", "provenance.md", "CHANGELOG.md",
+    # The scanner's own docstring enumerates the patterns it searches for, and
+    # notices.md carries the project's own MIT text ("derived from this
+    # software") — both are self-referential, not third-party provenance.
+    "provenance_scan.py", "notices.md",
+}
 
 
 def find_provenance_markers(root: Path) -> list[dict]:
@@ -68,6 +74,23 @@ def find_provenance_markers(root: Path) -> list[dict]:
     return findings
 
 
+TOP_LEVEL_DIRS = {
+    "src", "skill", "mcp-server", "graph-engine", "packages", "extension",
+    "plugins", "web-viewer", "audit-shared", "tests", "docs", "scripts",
+    "templates", "graph-bridge", "reports", "schema", "graphs", "internal",
+}
+
+ROOT_DOCS = {"README.md", "CONTRIBUTING.md", "AGENTS.md", "CLAUDE.md", "LICENSE"}
+
+
+def _looks_like_repo_path(tok: str) -> bool:
+    """A repo-relative path cell: either contains a ``/`` (``src/llm_wiki/graph/resolve.py``,
+    ``mcp-server/src/``), starts with a known top-level directory, or is a known
+    root-level doc filename (``README.md``). The top-level-dir/root-doc filter keeps
+    vendored/dependency names out."""
+    return "/" in tok or tok.split("/", 1)[0] in TOP_LEVEL_DIRS or tok in ROOT_DOCS
+
+
 def parse_third_party_entries(third_party_path: Path) -> set[str]:
     entries: set[str] = set()
     if not third_party_path.exists():
@@ -79,13 +102,19 @@ def parse_third_party_entries(third_party_path: Path) -> set[str]:
         line = line.strip()
         if not line or not line.startswith("|"):
             continue
-        parts = [p.strip() for p in line.split("|") if p.strip()]
-        if len(parts) >= 5:
-            local_file = parts[3]
-            if "." in local_file and "/" in local_file:
-                entries.add(local_file)
-            elif "." in local_file:
-                entries.add(local_file)
+        # The local-files column is not positional: the ledger's columns
+        # (project | url | license | class | local files | disposition) have
+        # drifted over time, so collect path-looking tokens from ANY cell.
+        for cell in line.split("|"):
+            cell = cell.strip().strip("`").strip("*")
+            if not cell:
+                continue
+            for tok in re.split(r"[,;]", cell):
+                tok = tok.strip().strip("`").strip("*")
+                if not tok:
+                    continue
+                if _looks_like_repo_path(tok):
+                    entries.add(tok)
 
     return entries
 

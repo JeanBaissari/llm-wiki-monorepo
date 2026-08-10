@@ -28,6 +28,7 @@ class WikiLock:
         self.lock_path = page_path + ".lock"
         self.timeout = timeout
         self._fd = None
+        self.metadata: dict[str, str] = {}
 
     def __enter__(self):
         self._check_stale_and_break()
@@ -79,10 +80,15 @@ class WikiLock:
                 self._fd = open(self.lock_path, "w")
                 portalocker.lock(self._fd, portalocker.LOCK_EX | portalocker.LOCK_NB)
                 # Write lock metadata
+                self.metadata = {
+                    "pid": str(os.getpid()),
+                    "timestamp": str(time.time()),
+                    "hostname": _hostname(),
+                }
                 self._fd.write(
-                    f"pid={os.getpid()}\n"
-                    f"timestamp={time.time()}\n"
-                    f"hostname={_hostname()}\n"
+                    f"pid={self.metadata['pid']}\n"
+                    f"timestamp={self.metadata['timestamp']}\n"
+                    f"hostname={self.metadata['hostname']}\n"
                 )
                 self._fd.flush()
                 return

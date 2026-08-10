@@ -268,7 +268,7 @@ def _load_file(path: Path) -> "dict[str, Any]":
     try:
         import tomllib
     except ImportError:  # pragma: no cover - py<3.11
-        return {}
+        import tomli as tomllib  # tomli>=2.0 is a conditional dep on py<3.11
     with open(path, "rb") as f:
         data = tomllib.load(f)
     flat: dict[str, Any] = {}

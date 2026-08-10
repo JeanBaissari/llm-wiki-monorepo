@@ -1,8 +1,11 @@
 """
 Atomic write utilities for wiki files.
 
-Writes to a temp file, fsyncs, then renames atomically.
-POSIX guarantees os.rename() is atomic on the same filesystem.
+Writes to a temp file, fsyncs, then replaces atomically.
+POSIX guarantees rename() is atomic on the same filesystem; os.replace()
+extends the same atomic-replace semantics to Windows (MoveFileEx with
+REPLACE_EXISTING), where os.rename() to an existing target can raise
+PermissionError under file-indexer/AV contention.
 """
 import os
 import sys
@@ -15,10 +18,10 @@ def atomic_write(path: str, content: str, encoding: str = "utf-8") -> bool:
 
     1. Write to <dir>/.<basename>.tmp.<PID> in the same directory
     2. fsync the temp file
-    3. os.rename() to target path (atomic on same filesystem)
+    3. os.replace() to target path (atomic on same filesystem)
 
     Returns True on success, False on failure.
-    If the process crashes before rename, the .tmp file is left for cleanup.
+    If the process crashes before replace, the .tmp file is left for cleanup.
     """
     dirname = os.path.dirname(path) or "."
     os.makedirs(dirname, exist_ok=True)
@@ -36,7 +39,7 @@ def atomic_write(path: str, content: str, encoding: str = "utf-8") -> bool:
             f.write(content)
             f.flush()
             os.fsync(f.fileno())
-        os.rename(tmp_path, path)
+        os.replace(tmp_path, path)
         return True
     except (IOError, OSError) as e:
         # Clean up temp file on failure

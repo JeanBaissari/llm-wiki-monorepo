@@ -205,6 +205,9 @@ def prepare_content(filepath: Path, wiki_root: Path) -> tuple[str, str, str]:
     what gets stored in FTS5. The current regex-based tokenizer handles
     BM25 scoring using these stored term frequencies.
     """
+    # Resolve so the relative_to() below is consistent with the resolved
+    # paths discover_layout produces (macOS: /var → /private/var symlink).
+    wiki_root = Path(wiki_root).resolve()
     content = filepath.read_text(encoding="utf-8", errors="replace")
     title = extract_title(content, filepath)
     rel_path = str(filepath.relative_to(wiki_root))
@@ -220,6 +223,11 @@ def index_wiki(wiki_root: Path, rebuild: bool = False) -> dict:
 
     Returns a dict with indexing statistics.
     """
+    # Resolve the root up front: discover_layout() resolves symlinks
+    # (/var → /private/var on macOS), and every relative_to() below must
+    # compare against the same spelling or files get skipped as "not in
+    # the subpath" (0 files indexed under symlinked prefixes).
+    wiki_root = Path(wiki_root).resolve()
     start_time = time.time()
     stats: dict = {
         "files_indexed": 0,

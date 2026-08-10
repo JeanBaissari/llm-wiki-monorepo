@@ -227,6 +227,8 @@ class TestOperationContext:
 
     def test_touched_paths(self, tmp_path):
         """OperationContext tracks touched paths."""
+        import os as _os
+
         from llm_wiki.operation import OperationContext
 
         wiki_root = str(tmp_path / "wiki")
@@ -235,8 +237,10 @@ class TestOperationContext:
             ctx.add_touched("read", "/tmp/read.md")
             ctx.succeed()
 
-        assert "/tmp/created.md" in ctx.touched_paths["created"]
-        assert "/tmp/read.md" in ctx.touched_paths["read"]
+        # The context stores resolved paths (macOS: /tmp → /private/tmp), so
+        # compare against the resolved spelling to be platform-agnostic.
+        assert _os.path.realpath("/tmp/created.md") in ctx.touched_paths["created"]
+        assert _os.path.realpath("/tmp/read.md") in ctx.touched_paths["read"]
 
     def test_event_file_created(self, tmp_path):
         """Operation events are written to log/operations/YYYYMMDD.jsonl."""

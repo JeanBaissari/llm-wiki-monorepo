@@ -61,11 +61,18 @@ class TestWikiLockBasic:
         page = tmp_path / "test_page.md"
         page.write_text("content")
 
-        with WikiLock(str(page), timeout=5):
-            lock_content = Path(str(page) + ".lock").read_text()
-            assert f"pid={os.getpid()}" in lock_content
-            assert "timestamp=" in lock_content
-            assert "hostname=" in lock_content
+        with WikiLock(str(page), timeout=5) as lock:
+            # Instance metadata: works on every platform (Windows LockFileEx
+            # blocks second-handle reads of the locked file, so re-reading the
+            # file while locked is POSIX-only).
+            assert lock.metadata["pid"] == str(os.getpid())
+            assert "timestamp" in lock.metadata
+            assert "hostname" in lock.metadata
+            if os.name == "posix":
+                lock_content = Path(str(page) + ".lock").read_text()
+                assert f"pid={os.getpid()}" in lock_content
+                assert "timestamp=" in lock_content
+                assert "hostname=" in lock_content
 
     def test_context_manager_returns_self(self, tmp_path):
         """Context manager should return the lock instance."""

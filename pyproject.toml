@@ -44,6 +44,9 @@ dependencies = [
     "python-dotenv>=1.0",
     "pydantic>=2.0",
     "portalocker>=2.8",
+    # tuning.toml parsing: stdlib tomllib on 3.11+, official backport on 3.10
+    # (LWM_031 tuning-config surface must work on every supported Python).
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.urls]

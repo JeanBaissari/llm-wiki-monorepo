@@ -113,10 +113,14 @@ check("AC-00.1: claims --help", cmd_exists("claims"))
 try:
     env = {**os.environ, "PYTHONPATH": str(REPO / "src")}
     r = subprocess.run([sys.executable, "-m", "llm_wiki", "--version"], capture_output=True, text=True, timeout=5, env=env)
-    from llm_wiki import __version__
-    check("AC-00.3: --version matches __version__", r.stdout.strip() == f"llm-wiki {__version__}")
-except:
-    check("AC-00.3: --version is 0.2.1", False)
+    # Read __version__ from the src checkout (never the installed package).
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_lw_version", SRC / "__init__.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    check("AC-00.3: --version matches __version__", r.stdout.strip() == f"llm-wiki {mod.__version__}")
+except Exception:
+    check("AC-00.3: --version matches __version__", False)
 
 check("AC-00.6: release-manifest has 15 commands", grep_file_count("serve", "release-manifest.json") >= 1)
 

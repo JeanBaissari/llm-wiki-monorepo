@@ -81,6 +81,7 @@ class FakeSession:
 def test_onnx_runner_decode_is_torch_free_typed_spans():
     """The numpy encode/decode path produces typed EntitySpan without importing
     gliner or torch (proven by sys.modules inspection after the run)."""
+    pytest.importorskip("numpy")  # runner needs numpy; absent on base install → skip, never fail
     text = CI_FIXTURE_TEXT
     # Char offsets of "Ashish Vaswani" and "Transformer" (computed, not hardcoded).
     vaswani_start = text.find("Ashish Vaswani")

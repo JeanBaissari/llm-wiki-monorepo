@@ -6,27 +6,27 @@
     "mode": "keyword",
     "precision_at_k": {
       "1": 1.0,
-      "3": 1.0,
-      "5": 1.0,
-      "10": 1.0
+      "3": 0.564103,
+      "5": 0.353846,
+      "10": 0.176923
     },
-    "recall": 0.833333,
+    "recall": 0.884615,
     "negative_pass_rate": 1.0,
-    "n": 4
+    "n": 17
   },
   "hybrid": {
     "mode": "hybrid",
     "precision_at_k": {
       "1": 1.0,
-      "3": 1.0,
-      "5": 1.0,
-      "10": 1.0
+      "3": 0.589744,
+      "5": 0.369231,
+      "10": 0.184615
     },
-    "recall": 1.0,
+    "recall": 0.923077,
     "negative_pass_rate": 1.0,
-    "n": 4
+    "n": 17
   },
   "allow_hybrid_default": true,
   "generated_by": "llm_wiki.eval.search_baseline.compute_search_baseline (embedder=concept, k=10)",
-  "note": "Freeze of the LWM_032 search-eval gate on the held-out GATE split. Reproduce offline with the deterministic concept embedder; CI re-certifies with the real [semantic] embedder (model2vec)."
+  "note": "Freeze of the LWM_032 search-eval gate on the held-out GATE split (BKD-002 growth, 2026-08-11: 4 -> 30 queries; gate split 13 positive + 4 negative). Precision is padded hits/k (retrieval-standard; see metrics.precision_at_k_padded — the min-normalized link metric is apples-to-oranges across modes). Concept embedder is two-signal (topic one-hot + token BOW, L2-normalized) to mirror real-embedder ranking. Reproduce offline with the deterministic concept embedder; CI re-certifies with the real [semantic] embedder (model2vec)."
 }

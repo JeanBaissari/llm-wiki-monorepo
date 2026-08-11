@@ -1,15 +1,40 @@
 {
   "task": "search-retrieval",
-  "sha256": "250291fbf958914cff37146aa7320f1cfa008a9a4f89e54f2c2ce9b021182f2e",
+  "sha256": "aac55b1de1822cd530d616d10ac5e0fe68457bc26fe54978b4a04456633da397",
   "tune": [
+    "backpropagation",
+    "caffeine",
+    "deep learning layers",
+    "espresso",
+    "gradient descent",
+    "latte coffee",
+    "memory management",
     "neural network",
-    "roasted beans beverage"
+    "positional encoding",
+    "roasted beans beverage",
+    "self attention",
+    "software caching",
+    "transformer",
+    "transformer encoder"
   ],
   "gate": [
-    "deep learning model",
+    "attention mechanism",
+    "attention models",
     "attention over sequences",
+    "backpropagation math",
     "brewed beverage",
+    "brewed espresso",
+    "caffeine stimulant",
+    "deep learning model",
+    "deep learning technique",
+    "flibberflab quark soup",
+    "gradient descent optimizer",
+    "milk coffee drink",
+    "neural network training",
+    "quantum computing",
+    "transformer architecture",
+    "xyzzy plugh frobnicate",
     "zzzznonexistentqqq wut"
   ],
-  "note": "tune ∩ gate = ∅; freeze enforced by tests/eval/test_search_goldset_integrity.py"
+  "note": "tune \u2229 gate = \u2205; freeze enforced by tests/eval/test_search_goldset_integrity.py. Re-frozen 2026-08-11 (BKD-002 growth: 4 -> 30 queries)."
 }

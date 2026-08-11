@@ -12,10 +12,12 @@ See ADR-0020.
 
 from __future__ import annotations
 
+import math
+import re
 import sys
 from pathlib import Path
 
-from llm_wiki.eval.metrics import mean, negative_pass, precision_at_k, recall_at_k
+from llm_wiki.eval.metrics import mean, negative_pass, precision_at_k_padded, recall_at_k
 from llm_wiki.semantic.embedder import Embedder
 
 PRECISION_KS = (1, 3, 5, 10)
@@ -54,7 +56,13 @@ def run_search_baseline(wiki_root, items, mode: str, k: int = 10, embedder=None)
             neg.append(negative_pass(predicted))
         else:
             for kk in PRECISION_KS:
-                prec[kk].append(precision_at_k(predicted, relevant, kk))
+                # Padded precision (hits/k): the retrieval-standard form. The
+                # min-normalized precision_at_k is for variable-length LINK
+                # suggestion lists; comparing two retrieval modes with
+                # different result counts on it is apples-to-oranges (hybrid's
+                # extra semantic candidates would dilute its precision even
+                # when they are on-topic). See metrics.precision_at_k_padded.
+                prec[kk].append(precision_at_k_padded(predicted, relevant, kk))
             rec.append(recall_at_k(predicted, relevant, RECALL_K))
 
     return {
@@ -108,12 +116,17 @@ def split_items(data: dict, split: str) -> "list[dict]":
 
 # ── Deterministic concept embedder (offline proxy for the [semantic] layer) ──
 
+# Topic lanes (BKD-002 growth, 2026-08-11): every page in SEARCH_GOLD_PAGES
+# carries at least one topic keyword so NO page embeds to "none" — none-topic
+# queries (no-answer/gibberish negatives) then match nothing semantically and
+# must return empty under hybrid, keeping the negative lane deterministic.
 _TOPICS = {
-    "ml": ["neural network", "deep learning", "backpropagation", "layers"],
-    "attn": ["attention", "transformer", "sequences"],
-    "bev": ["coffee", "brewed", "beverage", "roasted", "beans"],
+    "ml": ["neural network", "deep learning", "backpropagation", "layers", "gradient"],
+    "attn": ["attention", "transformer", "sequences", "encoding"],
+    "bev": ["coffee", "brewed", "beverage", "roasted", "beans", "espresso", "latte", "milk", "caffeine"],
+    "sys": ["memory", "caching", "management"],
 }
-_DIM = {"ml": 0, "attn": 1, "bev": 2, "none": 3}
+_DIM = {"ml": 0, "attn": 1, "bev": 2, "sys": 3, "none": 4}
 
 
 def _topic_of(text: str) -> str:
@@ -126,13 +139,48 @@ def _topic_of(text: str) -> str:
     return best
 
 
-class ConceptEmbedder(Embedder):
-    """Topic one-hot embedder (ml|attn|bev|none) — deterministic offline proxy.
+# The synthetic gold wiki the search gold set is labelled against. Each page is
+# a single topical sentence so keyword and concept-hybrid behavior is fully
+# deterministic (LWM_032 fixture lane). Grown by BKD-002 from 4 → 15 pages
+# across four topic lanes (ml / attn / bev / sys) so the gold set can carry
+# exact-token, paraphrase, multi-relevant and no-answer query lanes.
+SEARCH_GOLD_PAGES = {
+    # ml lane
+    "neural_network.md": "A neural network learns weights via backpropagation.",
+    "deep_learning.md": "Deep learning stacks many neural network layers.",
+    "backpropagation.md": "A neural network learns weights via backpropagation.",
+    "layers.md": "Neural network layers learn hierarchical features.",
+    "gradient_descent.md": "Gradient descent minimizes loss via backpropagation.",
+    # attn lane
+    "transformer.md": "The transformer uses attention over sequences.",
+    "self_attention.md": "Self-attention lets sequences relate tokens directly.",
+    "encoder.md": "The transformer encoder processes sequences.",
+    "positional_encoding.md": "Positional encoding marks token order in transformer sequences.",
+    # bev lane
+    "coffee.md": "Coffee is a brewed beverage from roasted beans.",
+    "espresso.md": "Espresso is a strong brewed beverage made under pressure.",
+    "latte.md": "A latte is espresso with steamed milk.",
+    "caffeine.md": "Caffeine is a stimulant found in coffee.",
+    # sys lane
+    "memory_management.md": "Memory management allocates and reclaims application memory.",
+    "caching.md": "Caching strategies store frequently accessed data.",
+}
 
-    Concept-aware so a paraphrase query ("deep learning model") matches the
-    pages that keyword misses, mirroring what the real [semantic] embedder does.
-    Used by the local gate and by the committed search baseline so both are
-    reproducible without the optional extra (ADR-0020 / LWM_032).
+class ConceptEmbedder(Embedder):
+    """Deterministic offline proxy for the [semantic] layer.
+
+    Two-signal embedding, mirroring how real dense models behave:
+
+    * **topic one-hot** (ml|attn|bev|sys|none) — semantic breadth: a paraphrase
+      query ("deep learning technique") matches the ml pages keyword misses.
+    * **token bag-of-words** over the gold wiki's vocabulary — lexical
+      fidelity: an exact-token page ("transformer") ranks above same-topic
+      pages ("self_attention") because their vectors share tokens.
+
+    The two terms make the proxy ranking-faithful: hybrid surfaces paraphrase
+    matches (topic) without diluting top-k precision on exact-token queries
+    (tokens) — the behavior a real embedder exhibits and that the committed
+    gate must certify offline (ADR-0020 / LWM_032).
     """
 
     model_id = "concept"
@@ -140,32 +188,49 @@ class ConceptEmbedder(Embedder):
     normalization = "l2"
     quantization = "float32"
 
+    # Fixed vocabulary: sorted tokens across the gold wiki pages + query lane
+    # (deterministic; unknown tokens fall into the unk bucket).
+    _VOCAB: "list[str]" = sorted(
+        {
+            tok
+            for body in SEARCH_GOLD_PAGES.values()
+            for tok in re.findall(r"[a-z0-9]+", body.lower())
+        }
+    ) + ["unk"]
+
+    TOPIC_SCALE = 2.0  # topic dominates for paraphrase recall...
+    TOKEN_SCALE = 1.0  # ...tokens discriminate within a topic
+
     @classmethod
     def is_available(cls) -> bool:
         return True
 
     @property
     def dimension(self) -> int:
-        return 4
+        return 5 + len(self._VOCAB)
 
     def embed(self, texts):
+        # L2-normalize the output, honoring the Embedder contract (the real
+        # Model2VecEmbedder normalizes in embed() too): the vector store stores
+        # vectors as-is and cosine similarity is a plain dot product over
+        # normalized vectors. Raw vectors would let longer pages dominate the
+        # ranking regardless of topical fit.
         out = []
         for t in texts:
-            v = [0.0, 0.0, 0.0, 0.0]
-            v[_DIM[_topic_of(t)]] = 1.0
-            out.append(v)
+            topic = _topic_of(t)
+            v = [0.0] * (5 + len(self._VOCAB))
+            v[_DIM[topic]] = self.TOPIC_SCALE
+            for tok in re.findall(r"[a-z0-9]+", t.lower()):
+                try:
+                    idx = self._VOCAB.index(tok)
+                except ValueError:
+                    idx = self._VOCAB.index("unk")
+                v[5 + idx] += self.TOKEN_SCALE
+            norm = math.sqrt(sum(x * x for x in v)) or 1.0
+            out.append([x / norm for x in v])
         return out
 
 
-# The synthetic gold wiki the search gold set is labelled against. Each page is
-# a single topical sentence so keyword and concept-hybrid behavior is fully
-# deterministic (LWM_032 fixture lane).
-SEARCH_GOLD_PAGES = {
-    "neural_network.md": "A neural network learns weights via backpropagation.",
-    "deep_learning.md": "Deep learning stacks many neural network layers.",
-    "transformer.md": "The transformer uses attention over sequences.",
-    "coffee.md": "Coffee is a brewed beverage from roasted beans.",
-}
 
 
 def build_search_gold_wiki(wiki_root, embedder: "Embedder | None" = None):

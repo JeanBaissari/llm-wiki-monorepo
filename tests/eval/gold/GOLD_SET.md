@@ -56,6 +56,21 @@ The real-wiki gate lane (`tests/eval/test_real_wiki_gate.py`) uses the
 populated fixture wiki with **gate-only** labels defined inside that file —
 never tuned, and only ever scored.
 
+## Growth history
+
+- **v1 (v0.5.0):** 6 queries (2 tune / 4 gate) — the initial hand-labeled
+  batch the hybrid-default flip shipped on.
+- **v2 (BKD-002, 2026-08-11):** 30 queries (14 tune / 16 gate = 13 positive +
+  4 negative on the gate split). Gold wiki grown 4 → 15 pages across four
+  topic lanes (ml / attn / bev / sys); the deterministic concept embedder is
+  now two-signal (topic one-hot + token bag-of-words, L2-normalized) so the
+  offline gate mirrors real-embedder ranking behavior. The growth exposed a
+  metric-correctness issue — the search gate now uses **padded precision@k**
+  (`hits/k`, `metrics.precision_at_k_padded`) instead of the min-normalized
+  link-suggestion metric, which made hybrid's extra recall look like
+  precision loss. This is a measurement fix, not a gate loosening: hybrid
+  must still be ≥ keyword at every k, and it is (see the committed baseline).
+
 ## How to add entries
 
 1. Edit `search_goldset.json`: add `{query, relevant, split, kind}` items.

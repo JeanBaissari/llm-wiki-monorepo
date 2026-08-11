@@ -35,6 +35,27 @@ def precision_at_k(predicted: Sequence[str], relevant: Iterable[str], k: int) ->
     return hits / len(topk)
 
 
+def precision_at_k_padded(predicted: Sequence[str], relevant: Iterable[str], k: int) -> float:
+    """Retrieval-standard precision@k: ``hits / k`` — missing results count as misses.
+
+    Used by the search-eval gate (LWM_032/ADR-0020): comparing two modes with
+    different result counts on the min-normalized ``precision_at_k`` above is
+    apples-to-oranges — hybrid's extra recall (semantic matches beyond the
+    exact-token hits) always dilutes a denominator of "results returned",
+    making the "hybrid must not regress keyword" comparison meaningless for
+    retrieval. Padded precision normalizes BOTH modes by k, so returning more
+    candidates only helps recall and never punishes precision by itself.
+    """
+    if k <= 0:
+        return 0.0
+    rel = set(relevant)
+    topk = list(predicted)[:k]
+    if not topk:
+        return 0.0
+    hits = sum(1 for p in topk if p in rel)
+    return hits / k
+
+
 def recall_at_k(predicted: Sequence[str], relevant: Iterable[str], k: int) -> float:
     """Fraction of relevant items retrieved within the top-k."""
     rel = set(relevant)

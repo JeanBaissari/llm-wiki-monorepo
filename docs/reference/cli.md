@@ -148,6 +148,10 @@ Reversible canonical↔alias entity resolution (LWM_025/ADR-0024). Every merge i
 llm-wiki entities resolve ~/my-wiki
 llm-wiki entities resolve ~/my-wiki --threshold 0.9 --json
 
+# Opt into the Splink backend ([entity-resolution] extra; BKD-001)
+llm-wiki entities resolve ~/my-wiki --backend splink
+LLM_WIKI_ER_BACKEND=splink llm-wiki entities resolve ~/my-wiki   # same, via env
+
 # List canonical entities and their aliases
 llm-wiki entities list ~/my-wiki --json
 
@@ -155,7 +159,16 @@ llm-wiki entities list ~/my-wiki --json
 llm-wiki entities unmerge ~/my-wiki "GPT-4"
 ```
 
-**Flags (resolve):** `--threshold` (merge threshold, default 0.85), `--json`. **Flags (list):** `--json`. The Splink `[entity-resolution]` extra is an optional precision upgrade; without it the stdlib path runs, never raising.
+**Flags (resolve):** `--threshold` (merge threshold, default 0.85),
+`--backend {auto,python,splink}` (default `auto` = `LLM_WIKI_ER_BACKEND` env or
+pure-Python), `--json`. **Flags (list):** `--json`.
+
+**Backends (BKD-001):** the `[entity-resolution]` extra (splink) is a real
+opt-in backend — its jaro-winkler blocking + calibrated match probabilities
+provide the *string* signal inside the same two-signal merge rule
+(ADR-0024); the union-find + reversible event store stay canonical. Without
+the extra (or on any splink failure) the pure-Python path runs byte-identically,
+never raising.
 
 ---
 

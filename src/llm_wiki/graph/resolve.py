@@ -93,12 +93,75 @@ def _near_miss(surface_a: str, surface_b: str, ss: float, cos: "float | None") -
     }
 
 
+def _splink_pair_scores(
+    surfaces: "list[str]", norms: "list[str]", min_prob: float = 0.5
+) -> "dict[tuple[int, int], float] | None":
+    """BKD-001: the Splink backend — blocking + match probabilities.
+
+    Runs ``splink`` (optional ``[entity-resolution]`` extra) over the candidate
+    surfaces with a jaro-winkler comparison on the normalized forms. Returns
+    ``{(i, j): match_probability}`` for pairs above ``min_prob``, or ``None``
+    when splink is not importable (callers fall back to the pure-Python path
+    byte-identically — the extra is never required).
+
+    The two-signal merge rule (ADR-0024) is preserved: splink's calibrated
+    match probability is the *string* signal; the embedding cosine stays the
+    *second* signal and can never merge on its own. Splink's cluster output is
+    deliberately NOT used — the union-find + reversible event store remain
+    canonical (reversibility + review rows, LWM_025 AC#3/AC#6).
+    """
+    try:
+        import pandas as pd
+        from splink.backends.duckdb import DuckDBAPI
+        from splink.internals.linker import Linker
+    except ImportError:
+        return None
+
+    df = pd.DataFrame({"id": list(range(len(surfaces))), "normalized": norms})
+    settings = {
+        "link_type": "dedupe_only",
+        "unique_id_column_name": "id",
+        "probability_two_random_records_match": 0.15,
+        "blocking_rules_to_generate_predictions": [
+            'jaro_winkler_similarity(l."normalized", r."normalized") >= 0.5'
+        ],
+        "comparisons": [{
+            "output_column_name": "normalized",
+            "comparison_levels": [
+                {"sql_condition": '"normalized_l" IS NULL OR "normalized_r" IS NULL',
+                 "label_for_charts": "null", "is_null_level": True},
+                {"sql_condition": 'jaro_winkler_similarity("normalized_l", "normalized_r") >= 0.95',
+                 "label_for_charts": "near_exact", "m_probability": 0.85, "u_probability": 0.01},
+                {"sql_condition": 'jaro_winkler_similarity("normalized_l", "normalized_r") >= 0.85',
+                 "label_for_charts": "close", "m_probability": 0.10, "u_probability": 0.04},
+                {"sql_condition": 'jaro_winkler_similarity("normalized_l", "normalized_r") >= 0.70',
+                 "label_for_charts": "fuzzy", "m_probability": 0.04, "u_probability": 0.15},
+                {"sql_condition": "ELSE", "label_for_charts": "else",
+                 "m_probability": 0.01, "u_probability": 0.40},
+            ],
+        }],
+        "retain_matching_columns": False,
+    }
+    try:
+        linker = Linker(df, settings, db_api=DuckDBAPI(), set_up_basic_logging=False)
+        pairs = linker.inference.predict(threshold_match_probability=min_prob)
+        out: "dict[tuple[int, int], float]" = {}
+        for _, row in pairs.as_pandas_dataframe().iterrows():
+            i, j = int(row["id_l"]), int(row["id_r"])
+            out[(min(i, j), max(i, j))] = float(row["match_probability"])
+        return out
+    except Exception:
+        # Any splink failure degrades to the pure-Python path (never raises).
+        return None
+
+
 def resolve_entities(
     candidates: "list[str]",
     embedder=None,
     str_threshold: float = 0.85,
     cos_threshold: float = 0.80,
     near_miss_sink: "list[dict] | None" = None,
+    splink: bool = False,
 ) -> "list[dict]":
     """Cluster variant surface forms → proposed merge dicts.
 
@@ -110,12 +173,22 @@ def resolve_entities(
     merge thresholds but at/above ``NEAR_MISS_FLOOR``, or string-only pairs in
     that band) are appended as review-row dicts instead of silently dropping
     them (LWM_025 AC#6). ``None`` keeps the legacy behavior exactly.
+
+    ``splink=True`` opts into the Splink backend (BKD-001 / ``[entity-resolution]``
+    extra): splink's jaro-winkler blocking + calibrated match probabilities
+    replace ``_blocks`` + ``string_sim`` as the string signal; the two-signal
+    merge rule and the union-find / event store are unchanged. Without the
+    extra (or on any splink failure) the pure-Python path runs byte-identically.
     """
     surfaces = list(dict.fromkeys(c.strip() for c in candidates if c and c.strip()))
     n = len(surfaces)
     if n < 2:
         return []
     norms = [normalize(s) for s in surfaces]
+
+    splink_scores: "dict[tuple[int, int], float] | None" = None
+    if splink:
+        splink_scores = _splink_pair_scores(surfaces, norms)
 
     vecs = None
     np = None
@@ -152,41 +225,53 @@ def resolve_entities(
 
     uf = _UnionFind(n)
     scores: "dict[tuple[int, int], float]" = {}
-    for _key, idxs in _blocks(norms).items():
-        for a, b in combinations(sorted(idxs), 2):
-            if (a, b) in scores:
-                continue
-            if not norms[a] or not norms[b]:
-                scores[(a, b)] = 0.0
-                continue
-            if norms[a] == norms[b]:
-                uf.union(a, b)
-                scores[(a, b)] = 1.0
-                continue
+
+    if splink_scores is not None:
+        candidate_pairs = sorted(splink_scores)
+    else:
+        candidate_pairs = [
+            (a, b)
+            for _key, idxs in _blocks(norms).items()
+            for a, b in combinations(sorted(idxs), 2)
+        ]
+
+    for a, b in candidate_pairs:
+        if (a, b) in scores:
+            continue
+        if not norms[a] or not norms[b]:
+            scores[(a, b)] = 0.0
+            continue
+        if norms[a] == norms[b]:
+            uf.union(a, b)
+            scores[(a, b)] = 1.0
+            continue
+        if splink_scores is not None:
+            ss = splink_scores[(a, b)]  # calibrated match probability
+        else:
             ss = string_sim(norms[a], norms[b])
-            if vecs is not None:
-                # numpy arrays and pure-Python lists both support dot product
-                # (list @ list fails, so fall back to a manual dot for the
-                # numpy-free base-install path).
-                try:
-                    cos = float(vecs[a] @ vecs[b])
-                except TypeError:
-                    cos = sum(x * y for x, y in zip(vecs[a], vecs[b]))
-                scores[(a, b)] = (ss + cos) / 2.0
-                if ss >= str_threshold and cos >= cos_threshold:
-                    uf.union(a, b)  # two independent signals agree
-                elif (
-                    near_miss_sink is not None
-                    and ss >= NEAR_MISS_FLOOR
-                    and cos >= NEAR_MISS_FLOOR
-                ):
-                    near_miss_sink.append(_near_miss(surfaces[a], surfaces[b], ss, cos))
-            else:
-                scores[(a, b)] = ss
-                if ss >= max(str_threshold, 0.92):  # string-only: raised bar
-                    uf.union(a, b)
-                elif near_miss_sink is not None and ss >= NEAR_MISS_FLOOR:
-                    near_miss_sink.append(_near_miss(surfaces[a], surfaces[b], ss, None))
+        if vecs is not None:
+            # numpy arrays and pure-Python lists both support dot product
+            # (list @ list fails, so fall back to a manual dot for the
+            # numpy-free base-install path).
+            try:
+                cos = float(vecs[a] @ vecs[b])
+            except TypeError:
+                cos = sum(x * y for x, y in zip(vecs[a], vecs[b]))
+            scores[(a, b)] = (ss + cos) / 2.0
+            if ss >= str_threshold and cos >= cos_threshold:
+                uf.union(a, b)  # two independent signals agree
+            elif (
+                near_miss_sink is not None
+                and ss >= NEAR_MISS_FLOOR
+                and cos >= NEAR_MISS_FLOOR
+            ):
+                near_miss_sink.append(_near_miss(surfaces[a], surfaces[b], ss, cos))
+        else:
+            scores[(a, b)] = ss
+            if ss >= max(str_threshold, 0.92):  # string-only: raised bar
+                uf.union(a, b)
+            elif near_miss_sink is not None and ss >= NEAR_MISS_FLOOR:
+                near_miss_sink.append(_near_miss(surfaces[a], surfaces[b], ss, None))
 
     clusters: "dict[int, list[int]]" = defaultdict(list)
     for i in range(n):
@@ -265,6 +350,7 @@ def apply_resolution(
     embedder=None,
     threshold: float = 0.85,
     actor: str = "resolve",
+    splink: bool = False,
 ) -> dict:
     """Run resolution, append merge events to the JSONL, rebuild the derived cache.
 
@@ -281,6 +367,7 @@ def apply_resolution(
         embedder=embedder,
         str_threshold=threshold,
         near_miss_sink=near_misses,
+        splink=splink,
     )
     for m in merges:
         alias_store.append_event(wiki_root, {"event": "merge", "actor": actor, **m})

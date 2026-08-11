@@ -206,6 +206,26 @@ jobs:
         run: |
           PYTHONPATH=src python3 scripts/community_engine_parity.py
 
+  # BKD-001/LWM_025 AC#5: the [entity-resolution] extra (splink) is a real
+  # opt-in backend — its jaro-winkler probabilities feed the same two-signal
+  # merge rule. This lane exercises it for real; base installs fall back to
+  # the pure-Python path byte-identically (asserted by
+  # test_splink_backend.py::test_splink_fallback_without_extra in the python
+  # job).
+  entity-resolution-verification:
+    name: Entity resolution verification ([entity-resolution] extra)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test deps + [entity-resolution] extra
+        run: pip install -e ".[dev,test,entity-resolution]"
+      - name: Run Splink backend verification
+        run: |
+          python3 -m pytest tests/test_splink_backend.py tests/test_entity_resolution.py -q -m "not slow"
+
   # LWM_026: exercise the optional GLiNER backend in an isolated lane — the
   # typed-span success path (tests/test_extract.py::test_gliner_typed_spans_success_path)
   # plus the LLM_WIKI_NER=gliner selection test — so the base install and other

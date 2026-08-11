@@ -57,6 +57,17 @@ def _gather_candidates(wiki_root: str) -> list[str]:
     return list(seen)
 
 
+def _resolve_backend(args) -> bool:
+    """Resolve the --backend flag: auto honors LLM_WIKI_ER_BACKEND (BKD-001)."""
+    if args.backend == "splink":
+        return True
+    if args.backend == "python":
+        return False
+    import os
+
+    return os.environ.get("LLM_WIKI_ER_BACKEND", "").lower() == "splink"
+
+
 def _cmd_resolve(args) -> int:
     from llm_wiki.operation import OperationContext
     from llm_wiki.semantic.embedder import get_embedder
@@ -73,7 +84,8 @@ def _cmd_resolve(args) -> int:
         inputs={"threshold": args.threshold, "candidates": len(candidates)},
     ) as ctx:
         stats = apply_resolution(
-            args.wiki_root, candidates, embedder=embedder, threshold=args.threshold
+            args.wiki_root, candidates, embedder=embedder, threshold=args.threshold,
+            splink=_resolve_backend(args),
         )
         for audit_path in stats.get("audit_paths", []):
             ctx.add_artifact_ref("audit_ids", audit_path)
@@ -138,6 +150,12 @@ def main() -> int:
     p_resolve.add_argument("wiki_root", help="Path to the wiki root directory")
     p_resolve.add_argument("--threshold", type=float, default=0.85,
                            help="Merge threshold (default: 0.85)")
+    p_resolve.add_argument("--backend", default="auto",
+                           choices=["auto", "python", "splink"],
+                           help="Resolution backend (default: auto = LLM_WIKI_ER_BACKEND "
+                                "env or pure-Python). splink requires the "
+                                "[entity-resolution] extra and degrades to the "
+                                "pure-Python path without it (BKD-001).")
     p_resolve.add_argument("--json", action="store_true", help="JSON output")
     p_resolve.set_defaults(func=_cmd_resolve)
 

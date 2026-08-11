@@ -106,3 +106,73 @@ The manifest's `sha256` is the freeze. Any change to the gold set content —
 intended or not — requires a deliberate manifest update. This is the reviewed
 rebaseline path: a PR that changes the gold set and the baseline together is
 expected; a PR that changes one without the other fails a test.
+
+## Standing per-minor curation loop (LWM_039 §A)
+
+The one-shot "How to add entries" flow above is the underlying primitive. The
+**standing path** is a per-minor curation loop that every minor shipping a
+retrieval change MUST run. It is codified in `scripts/curate_gold_set.py`; this
+section is its procedure contract.
+
+### Cadence
+
+- **Every minor that ships a retrieval change** runs the loop once. The frozen
+  `split_manifest.json` currently anchors **17 gate queries** (13 positive + 4
+  negative — the committed manifest is the count of record, not the prose).
+  `MIN_GATE_QUERIES = 16` (in `tests/eval/gold/growth_meta.json`) is the
+  committed floor: the gate split may never drop below it.
+- **Grow-or-justify rule:** each minor either adds **≥ 2 new gate queries**
+  (`MIN_GROWTH_PER_MINOR`) **or** records a written justification in
+  `tests/eval/gold/growth_meta.json` via `curate_gold_set.py --growth-record`.
+  A minor that skips both fails the freshness gate's intent (skipped loop).
+- The freshness marker is `growth_meta.json.last_grown_minor`; certify warns
+  when it is older than the previous minor.
+
+### Labeling guidance
+
+- **Real-wiki queries stay `split:"gate"` only, never tuned** — mirrors the
+  `tests/eval/test_real_wiki_gate.py` lane; the curator rejects any tune item
+  that duplicates a real-wiki gate label.
+- **Gibberish negatives grow proportionally** — each growth event that adds
+  positives also adds ≥ 1 gibberish `negative`, keeping the gate negative
+  fraction inside the ~20–30% band (the current gate is 4/17 ≈ 24%).
+- **`tune ∩ gate = ∅` is asserted** — both at load (`load_search_goldset`
+  raises on overlap) and by `tests/eval/test_search_goldset_integrity.py`.
+- **Positives must have ≥ 1 relevant page id** that resolves to a page in
+  `SEARCH_GOLD_PAGES` (the deterministic gold wiki in
+  `src/llm_wiki/eval/search_baseline.py`); an ungroundable query is a negative
+  or is rejected.
+
+### Mechanics
+
+`python3 scripts/curate_gold_set.py` is the tool (stdlib, `argparse`, exit
+0 clean / 1 issues / 2 usage). Actions:
+
+- **check** (default): validates `tune ∩ gate = ∅`, ≥ 1 gibberish `negative`
+  on the gate split, `search_goldset.json` SHA256 == `split_manifest.json`
+  `sha256`, and gate query count ≥ `min_gate_queries`. Exit 1 on any violation.
+- **`--freeze`**: recompute the SHA256 + rewrite the manifest's tune/gate query
+  lists. Idempotent: a no-op on an in-sync manifest. Run after an intentional
+  gold-set edit.
+- **`--rebaseline`**: regenerate `tests/eval/baseline/search_eval_baseline.json`
+  via the sanctioned command only (`PYTHONPATH=src python3 -m
+  llm_wiki.eval.search_baseline --output …`) and assert the regenerate is
+  byte-stable against the committed baseline when nothing changed.
+- **`--growth-record <minor> <note>`**: update `growth_meta.json`
+  (`last_grown_at`, `last_grown_minor`, `notes`) — the grow-or-justify record.
+
+The committed `tests/eval/gold/growth_meta.json` is the per-minor bookkeeping
+record (`version`, `min_gate_queries`, `last_grown_at`, `last_grown_minor`,
+`notes`). Its latest `last_grown_minor` is the freshness marker consumed by the
+release-certify gate.
+
+### Freshness gate
+
+`scripts/release_certify.py` registers **`gate_search_goldset_fresh`**
+(runnable alone via `--gate search_goldset_fresh`, or as part of the default
+certify). It **fails closed** when the gold-set integrity SHA drifts from the
+manifest or the gate split falls below `min_gate_queries`; it emits a **warn**
+(not a failure) when `growth_meta.json.last_grown_minor` is older than the
+previous minor (grow-or-justify skip), and fails when the freshness marker is
+absent entirely. Real regression (search-eval red, `gate_search_eval`) already
+fails the default certify on its own gate.

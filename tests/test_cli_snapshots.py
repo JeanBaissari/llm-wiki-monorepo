@@ -29,6 +29,10 @@ COMMANDS = [
     "health",
     "serve",
     "claims",
+    "setup",
+    "demo",
+    "ask",
+    "contradictions",
 ]
 
 ALIASES = {

@@ -45,6 +45,22 @@ pip install baissarienterprises-llm-wiki
 
 **7 pre-existing test failures eliminated.** OpenCode imports fixed. MCP integration tests now match the sidecar response schema. Link suggest optimization added. 472 tests pass (up from 445).
 
+## What's New in v0.6.0 — "Epistemic & Surface"
+
+**One-command setup.** `llm-wiki setup <root> [--title]` scaffolds/validates a wiki and registers the MCP server with every detected client — claude, codex, opencode, hermes — idempotently, with `--dry-run`/`--uninstall` and a health + `tools/list` smoke test (LWM_035).
+
+**Ask this wiki.** `llm-wiki ask <root> "<question>"` answers questions grounded in the wiki — hybrid retrieval over pages + community summaries with a summary-aware rerank, exactly one structured LLM call on the agent-native `$0.00` default, a `--no-llm` deterministic offline mode, and a faithfulness contract (answer entities ⊆ cited pages). MCP `llm_wiki_ask` included (LWM_033).
+
+**Contradictions + evidence confidence.** `llm-wiki contradictions <root> detect|list|apply|unapply` extracts typed claims, detects contradictions (unit-normalized numerics, polarity, exclusive categories) suggest-only, and computes evidence-grounded confidence (high/medium/low + `evidence_score`) into the `confidence`/`contested`/`contradictions` frontmatter fields — author-overridable via `confidence_source: evidence|author` (LWM_034).
+
+**Demo wiki.** `llm-wiki demo <dest>` materializes a committed, lint-clean "Redis Internals" playground (8 pages) from the installed package or repo, in one command (LWM_036).
+
+**Recommended extras + GLiNER local path.** `pip install -e ".[recommended]"` = `semantic` + `leiden` + `entity-resolution`; `[ner]` gains a documented torch-free ONNX model-cache path with a measured disk budget (LWM_037).
+
+**Web-viewer derived overlay + Sigma.js + exports.** The quarantined derived layer renders as an off-by-default dashed overlay (byte-identical when off), with a Sigma.js WebGL view and JSON Canvas / JSON-LD exports — web-viewer-only diff, no backend change (LWM_038).
+
+**Standing gold-set curation.** `scripts/curate_gold_set.py` + a release-certify `gate_search_goldset_fresh` gate make per-minor gold-set growth a procedure, not a decision (LWM_039 §A).
+
 ## What's New in v0.5.0 — "Graph Precision"
 
 **Entity resolution.** `llm-wiki entities resolve|list|unmerge` collapses variant surface forms ("GPT-4" / "GPT 4" / "gpt-4") into one canonical id through a reversible canonical↔alias table (JSONL source of truth + additive SQLite alias tables). Every merge is reversible; no page prose is ever rewritten. ER-F1 on a committed gold set gates it (ADR-0024).
@@ -200,7 +216,7 @@ llm-wiki health ~/my-wiki
 # Claim tracking (optional sidecar)
 llm-wiki claims health ~/my-wiki
 
-# Start MCP server (14 tools via stdio)
+# Start MCP server (15 tools via stdio)
 llm-wiki serve ~/my-wiki
 ```
 
@@ -219,7 +235,7 @@ llm-wiki serve ~/my-wiki
       │   ├── graph/ + search/            search/ (FTS5), ops/ (health, serve),
       │   ├── ops/ + wiki/ + research/    wiki/ (scaffold, backup),
       │   └── contracts/                  research/ (deep-research)
-      ├── MCP Server (stdio)              → 14 tools, modular: tools/,
+      ├── MCP Server (stdio)              → 15 tools, modular: tools/,
       │                                     adapters/, projects/, security/
       ├── Graph Engine (Node.js)          → relevance model, Louvain, insights
       ├── shared-types (TS)               → canonical GraphNode/GraphEdge types
@@ -234,7 +250,7 @@ llm-wiki serve ~/my-wiki
 |---------|----------|------|---------|
 | `skill/` | Python + Markdown | adapter | Agent skill (8 operations) + 20+ scripts + 13 reference docs |
 | `src/llm_wiki/` | Python | core | PyPI package — CLI, LLM providers, concurrency, search, graph insights |
-| `mcp-server/` | TypeScript | programmatic-access | MCP server — 14 tools, direct sidecar integration |
+| `mcp-server/` | TypeScript | programmatic-access | MCP server — 15 tools, direct sidecar integration |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph — relevance, Louvain communities, insights, verification |
 | `templates/` | Markdown + JSON | core | 20 domain-specific project templates |
 | `tests/` | Python + TypeScript | core | pytest (ingest, lint, concurrency, search, opencode) + vitest (graph, mcp) |
@@ -258,7 +274,7 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 | `README.md` | You are here |
 | `docs/getting-started/quickstart.md` | Every command with real examples |
 | `docs/reference/cli.md` | Full CLI reference — all 23 commands with flags and examples |
-| `docs/reference/mcp-tools.md` | All 14 MCP tools with schemas and usage examples |
+| `docs/reference/mcp-tools.md` | All 15 MCP tools with schemas and usage examples |
 | `AGENTS.md` | Architecture, conventions, build/test commands, Python Dependency Policy |
 | `docs/release/changelog.md` | Full version history — all features, changes, and breaking changes |
 | `docs/reference/file-map.md` | Complete file tree with descriptions |

@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "release": {
-    "version": "0.5.0",
+    "version": "0.6.0",
     "canonical_version_source": "pyproject.toml:project.version"
   },
   "python": {
@@ -21,30 +21,40 @@
       "llm-wiki-discover = llm_wiki.core.layout:main",
       "llm-wiki-index = llm_wiki.search.index:main",
       "llm-wiki-health = llm_wiki.ops.health:main",
-      "llm-wiki-serve = llm_wiki.ops.serve:main"
+      "llm-wiki-serve = llm_wiki.ops.serve:main",
+      "llm-wiki-setup = llm_wiki.setup:main",
+      "llm-wiki-demo = llm_wiki.wiki.demo:main",
+      "llm-wiki-ask = llm_wiki.graph.ask:main",
+      "llm-wiki-contradictions = llm_wiki.quality.contradictions:main"
     ],
     "unified_cli_commands": [
-      "scaffold",
-      "lint",
+      "ask",
+      "audit",
+      "backup",
+      "benchmark",
+      "claims",
+      "contradictions",
+      "deep-research",
+      "demo",
+      "derive-edges",
+      "discover",
+      "embed",
+      "entities",
+      "eval",
+      "health",
+      "index",
       "ingest",
       "insights",
       "link-suggest",
-      "backup",
-      "deep-research",
-      "audit",
-      "benchmark",
+      "lint",
       "migrate-log",
-      "discover",
-      "index",
-      "health",
-      "serve",
-      "claims",
+      "ops",
+      "scaffold",
       "search",
-      "embed",
-      "eval",
-      "entities",
-      "derive-edges",
-      "summarize-communities"
+      "serve",
+      "setup",
+      "summarize-communities",
+      "tuning"
     ]
   },
   "npm": {
@@ -52,7 +62,7 @@
       {
         "path": ".",
         "name": "llm-wiki-monorepo",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "role": "root-workspace"
       },
       {
@@ -103,7 +113,7 @@
   },
   "mcp": {
     "tool_registry": "mcp-server/src/index.ts",
-    "expected_tool_count": 14,
+    "expected_tool_count": 15,
     "expected_tool_names": [
       "llm_wiki_status",
       "llm_wiki_files",
@@ -118,7 +128,8 @@
       "llm_wiki_ingest",
       "llm_wiki_suggest_links",
       "llm_wiki_backup",
-      "llm_wiki_discover_entities"
+      "llm_wiki_discover_entities",
+      "llm_wiki_ask"
     ]
   },
   "templates": {
@@ -148,7 +159,7 @@
     ]
   },
   "changelog": {
-    "required_entry": "0.5.0",
+    "required_entry": "0.6.0",
     "file": "docs/release/changelog.md"
   },
   "docs": {

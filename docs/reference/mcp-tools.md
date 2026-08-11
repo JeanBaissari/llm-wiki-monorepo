@@ -19,7 +19,7 @@ LLM_WIKI_PATH=~/my-wiki node mcp-server/dist/main.js
 
 No `llm-wiki` CLI equivalent — the MCP server is a TypeScript package accessed via stdio.
 
-**14 MCP Tools** (source of truth: `mcp-server/src/registry.ts`):
+**15 MCP Tools** (source of truth: `mcp-server/src/registry.ts`):
 
 | Tool | Side effect | Purpose |
 |------|-------------|---------|
@@ -28,6 +28,7 @@ No `llm-wiki` CLI equivalent — the MCP server is a TypeScript package accessed
 | `llm_wiki_read_file` | read-only | Read any project-relative file (120KB limit, allow-listed dirs) |
 | `llm_wiki_reviews` | read-only | List review items (open/resolved/all) |
 | `llm_wiki_search` | read-only | Search wiki pages — hybrid by default (BM25 + semantic KNN via RRF, LWM_032/ADR-0020); `mode="keyword"` forces lexical-only |
+| `llm_wiki_ask` | read-only | Grounded "ask this wiki" QA — hybrid retrieval over pages + community summaries, deterministic `no_llm` passages mode (LWM_033) |
 | `llm_wiki_graph` | write | Graph operations (build/insights/search) — backward-compatible wrapper |
 | `llm_wiki_graph_build` | write | Build the knowledge graph from wiki markdown (direct graph-engine import) |
 | `llm_wiki_graph_insights` | read-only | Graph insights — surprising connections and knowledge gaps |

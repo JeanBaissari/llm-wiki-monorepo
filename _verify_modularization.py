@@ -113,7 +113,8 @@ check("AC-00.1: claims --help", cmd_exists("claims"))
 try:
     env = {**os.environ, "PYTHONPATH": str(REPO / "src")}
     r = subprocess.run([sys.executable, "-m", "llm_wiki", "--version"], capture_output=True, text=True, timeout=5, env=env)
-    check("AC-00.3: --version is 0.2.1", r.stdout.strip() == "llm-wiki 0.2.1")
+    from llm_wiki import __version__
+    check("AC-00.3: --version matches __version__", r.stdout.strip() == f"llm-wiki {__version__}")
 except:
     check("AC-00.3: --version is 0.2.1", False)
 

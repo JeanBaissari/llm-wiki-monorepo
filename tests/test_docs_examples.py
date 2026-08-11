@@ -45,7 +45,8 @@ class TestDocsExamples:
                     capture_output=True, text=True, timeout=10, env=env
                 )
                 assert r.returncode == 0, f"{cmd} failed"
-                assert "0.3" in r.stdout, f"Expected 0.3.x version in: {r.stdout}"
+                from llm_wiki import __version__
+                assert __version__ in r.stdout, f"Version {__version__} not in: {r.stdout}"
 
             elif "llm-wiki scaffold" in cmd and "--template" in cmd:
                 pass

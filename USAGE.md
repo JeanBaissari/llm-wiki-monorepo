@@ -10,8 +10,8 @@ Three surfaces consume the same files:
 
 | Surface | What it is | For |
 |---|---|---|
-| **`llm-wiki` CLI** (Python) | 21 commands | Humans + scripts + CI |
-| **MCP server** (`llm-wiki-mcp`, TypeScript) | 14 tools over stdio | Claude Code, Codex, Cursor, opencode, any MCP client |
+| **`llm-wiki` CLI** (Python) | 27 commands | Humans + scripts + CI |
+| **MCP server** (`llm-wiki-mcp`, TypeScript) | 15 tools over stdio | Claude Code, Codex, Cursor, opencode, any MCP client |
 | **Hermes skill** (`skill/SKILL.md` + 23 scripts) | In-conversation workflow | Claude/Hermes agent sessions |
 
 ## 2. How it works, exactly
@@ -77,14 +77,23 @@ The skill's SKILL.md is loaded automatically by the EOW cron job; changes propag
 
 ### What "wiring everything with a simple command" means today — and what's missing
 - `install.sh` wires the **repo itself** (Python + TS + builds + validation).
-- The **MCP registration** is one command per client (`claude mcp add …` / `.mcp.json` / opencode config).
-- **Gap:** there is no single `llm-wiki setup` that (1) scaffolds a wiki, (2) registers the MCP server with the detected client (Claude/Codex/opencode), (3) symlinks the Hermes skill, and (4) prints a "hello" smoke test. That's my top UX improvement recommendation (see §8) — everything exists, it just isn't one command yet.
+- The **MCP registration** is now one command: `llm-wiki setup <root> [--title]`
+  (v0.6.0 / LWM_035) scaffolds/validates the wiki, registers the MCP server with
+  the detected client(s) — claude (`claude mcp add` or `.mcp.json`), codex
+  (`~/.codex/config.toml`), opencode (`opencode.json`), hermes (skill symlink) —
+  idempotently, with `--dry-run`/`--uninstall` and a health + `tools/list` smoke
+  test. `install.sh` still wires the repo; `llm-wiki setup` wires your wiki to
+  your clients.
+- **Remaining gap:** there is no cross-machine provisioning story (a
+  `llm-wiki setup` on a fresh machine after `git clone` still needs Node/npm for
+  the TS surfaces and the per-client binaries). The Python-only core works
+  everywhere; the MCP/web surfaces need a one-time `install.sh`.
 
 ## 4. The full command inventory
 
-**CLI (21 commands):** `scaffold` · `ingest` (2-step CoT, SHA256 cache) · `lint` (15 checks) · `discover` (auto-layout, `--json`) · `insights` (surprising connections + knowledge gaps) · `link-suggest` (lexical + semantic `--apply`, entity-aware) · `entities resolve|list|unmerge` (reversible ER, `--backend splink`) · `derive-edges` (quarantined similarity/co-occurrence, NMI-gated `--include-derived`) · `summarize-communities` (Leiden hierarchy, `--dry-run`, `--levels`) · `backup` (snapshot/restore/verify) · `deep-research` (multi-source pipeline) · `audit` (list/group human feedback) · `benchmark` · `migrate-log` · `ops` · `discover` · `tuning` (config surface, `--set`, `--emit`) · `index` (FTS5) · `search` (hybrid default, `--keyword`, `--set`) · `embed` · `eval` · `health` · `serve` (local preview: mermaid, KaTeX, feedback) · `claims redteam` (claim-health scoring)
+**CLI (27 commands):** `scaffold` · `ingest` (2-step CoT, SHA256 cache) · `lint` (15 checks) · `discover` (auto-layout, `--json`) · `insights` (surprising connections + knowledge gaps) · `link-suggest` (lexical + semantic `--apply`, entity-aware) · `entities resolve|list|unmerge` (reversible ER, `--backend splink`) · `derive-edges` (quarantined similarity/co-occurrence, NMI-gated `--include-derived`) · `summarize-communities` (Leiden hierarchy, `--dry-run`, `--levels`) · `backup` (snapshot/restore/verify) · `deep-research` (multi-source pipeline) · `audit` (list/group human feedback) · `benchmark` · `migrate-log` · `ops` · `tuning` (config surface, `--set`, `--emit`) · `index` (FTS5) · `search` (hybrid default, `--keyword`, `--set`) · `embed` · `eval` · `health` · `serve` (local preview: mermaid, KaTeX, feedback) · `claims redteam` (claim-health scoring) · **`setup`** (one-command client wiring, v0.6.0) · **`demo`** (materialize the demo wiki) · **`ask`** (grounded QA over summaries + pages) · **`contradictions`** (detect/apply confidence + conflicts)
 
-**MCP tools (14):** `llm_wiki_status` · `llm_wiki_files` · `llm_wiki_read_file` · `llm_wiki_reviews` · `llm_wiki_search` (hybrid default) · `llm_wiki_graph` · `llm_wiki_graph_build` · `llm_wiki_graph_insights` · `llm_wiki_graph_search` · `llm_wiki_lint` · `llm_wiki_ingest` · `llm_wiki_suggest_links` · `llm_wiki_backup` · `llm_wiki_discover_entities`
+**MCP tools (15):** `llm_wiki_status` · `llm_wiki_files` · `llm_wiki_read_file` · `llm_wiki_reviews` · `llm_wiki_search` (hybrid default) · **`llm_wiki_ask`** (grounded QA) · `llm_wiki_graph` · `llm_wiki_graph_build` · `llm_wiki_graph_insights` · `llm_wiki_graph_search` · `llm_wiki_lint` · `llm_wiki_ingest` · `llm_wiki_suggest_links` · `llm_wiki_backup` · `llm_wiki_discover_entities`
 
 ## 5. How it replaces/upgrades an existing llm-wiki workflow
 
@@ -174,36 +183,44 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
 
 ## 7. UX feasibility, ease of use — what's strong, what's weak
 
+> **Status: §7 weaknesses 1–9 shipped in v0.6.0 (2026-08-11).** Items 1–3
+> (`setup`, demo wiki, first-run) are closed by LWM_035/036; 4–5 (ask +
+> contradictions/confidence) by LWM_033/034; 6 (GLiNER local path) by LWM_037;
+> 7 (web-viewer overlay + Sigma.js + exports) by LWM_038; 8 (cross-platform
+> hardening) by the `test_cross_platform_edge.py` suite + CI lane; 9 (serve
+> friction) by the serve `--build` flag + actionable error. Item 10 remains a
+> stated boundary (now documented in `docs/operations/security-and-boundaries.md`).
+
 **Strong**
 - **Zero-DB, zero-lock-in**: a wiki is a folder; git is the history; every artifact is inspectable.
 - **Deterministic gates everywhere**: baselines, gold sets, reproducibility tests, byte-identical invariants — users get "it either passed or it didn't."
 - **Degradation is graceful**: no `[semantic]`? hybrid search falls back to keyword byte-identically. No `[leiden]`? Louvain. No Splink? pure-Python ER. No model download? embed returns nothing, everything still works.
-- **Safety rails**: reversible merges, suggest-only derived edges, `--dry-run` everywhere, atomic writes, advisory locks, audit trails.
+- **Safety rails**: reversible merges, suggest-only derived edges + contradictions, `--dry-run` everywhere, atomic writes, advisory locks, audit trails.
 - **One-shot CI**: `install.sh` + the certify gate make the "does it work on my machine" question machine-answerable.
 
-**Weak / open gaps**
-1. **No one-command client wiring** — the biggest UX gap. `claude mcp add …`, `.mcp.json`, opencode config, and the Hermes symlink are four separate manual steps. A `llm-wiki setup [--client claude|codex|opencode|hermes]` that detects and writes the config (and prints the smoke test) would collapse installation to one command.
-2. **Optional extras are manual** — `[semantic]`/`[leiden]`/`[ner]`/`[entity-resolution]` are powerful but users must know to install them; there's no "recommended profile" (`pip install -e ".[recommended]"` or a setup prompt).
-3. **First-run discoverability** — `llm-wiki --help` lists commands but there's no `llm-wiki demo`/`--example` that scaffolds a tiny wiki with pre-ingested content to play with in 60 seconds.
-4. **RAG is drafted, not shipped** (LWM_033) — the wiki answers questions only through search today; the ask surface is the natural next increment.
-5. **Confidence fields are inert** (LWM_034) — `confidence`/`contested`/`contradictions` exist in the schema but nothing computes them.
-6. **GLiNER local path** (BKD-007) — the typed-span success path is CI-enforced only; the torch+CUDA weight of `[ner]` makes local installs painful on small disks.
-7. **web-viewer is functional but unpolished** — no derived-edge overlay (BKD-006), no sigma.js graph view; the preview is "good enough" not "delightful."
-8. **Windows/macOS hardening is recent** — all CI lanes are green now, but macOS/Linux symlink path handling and Windows cp1252/CRLF issues were only fixed in the last two days; edge cases in the wild may still surface.
-9. **`serve` requires a built mcp-server dist** — first-run friction if a user only installed the Python side.
-10. **No per-wiki auth/visibility story** — multi-user wikis assume shared filesystem trust; there's no permissions layer (by design, files-first — but worth stating as a boundary).
+**Remaining / edge**
+1. **Cross-machine provisioning is still manual** — `llm-wiki setup` wires a wiki to the local clients, but a fresh `git clone` machine still needs `install.sh` (Node/npm for the TS surfaces) + per-client binaries. A container/devcontainer or a `setup --bootstrap` that also installs the repo is the natural next step.
+2. **Optional extras are discoverable but not automatic** — `pip install -e ".[recommended]"` now exists (semantic + leiden + entity-resolution), but users must still opt in; no auto-detection of hardware to suggest the right profile.
+3. **GLiNER local path is documented, not end-to-end ONNX** — LWM_037 delivered the torch-free runner + model-cache convention + measured budget, but the one-time ONNX export of the pinned model still requires a torch run (CI `ner-verification` covers the typed-span success path).
+4. **web-viewer Sigma view is not unit-rendered** — the WebGL path falls back to SVG on any failure; the layout/graph construction is tested, the GPU render itself is only exercised manually.
+5. **Contradiction extraction is lexical-first** — great on numeric/polarity/exclusive-category conflicts; subtle paraphrased contradictions need the opt-in `--assist llm` screening.
+6. **No per-wiki auth/visibility story** — multi-user wikis assume shared filesystem trust; there's no permissions layer (by design, files-first — documented as a boundary).
 
 ## 8. What I'd improve on the built structure (ranked)
 
-1. **`llm-wiki setup`** — scaffold + client registration + skill symlink + optional extras profile + smoke test, one command. Highest leverage.
-2. **`--example` / demo wiki** — a committed 5-minute playground (ingest → resolve → summarize → ask) for first-run.
-3. **Ship LWM_033 (ask) then LWM_034 (contradictions)** — the two drafted v0.6.0 PRDs are the natural next minor; they complete the "epistemic" loop.
-4. **Recommended-extras profile** + model caching guidance for `[ner]` (smaller ONNX/INT8 paths).
-5. **BKD-006 web-viewer derived overlay + Sigma.js** — makes the quarantined layer visible.
-6. **PRD review protocol pass** for LWM_033/034 (REVIEW_PROTOCOL checklists, Evidence Matrices already drafted).
-7. **Search gold-set standing procedure** — per-minor curation loop (the BKD-002 open question), so the gate keeps growing.
-8. **A landing README section "5 ways to run this"** (CLI / MCP / skill / cron / web) — currently the README is thorough but not onboarding-shaped. **Now delivered (LWM_039 §D):** see README.md → *[Five ways to run this](README.md#five-ways-to-run-this)* for the five surfaces.
+> **Status: all 8 shipped in v0.6.0 (2026-08-11).** 1→`llm-wiki setup` (LWM_035);
+> 2→`llm-wiki demo` (LWM_036); 3→`ask` + `contradictions` (LWM_033/034);
+> 4→`.[recommended]` + `[ner]` cache/ONNX guidance (LWM_037); 5→web-viewer
+> overlay + Sigma.js + JSON Canvas/JSON-LD exports (LWM_038); 6→REVIEW_PROTOCOL
+> pass (both PRDs reviewed to approved, evidence committed); 7→standing gold-set
+> curation loop (`curate_gold_set.py` + `gate_search_goldset_fresh`); 8→README
+> "Five ways to run this".
+
+The next increment is the follow-on list in §7: cross-machine provisioning
+(`setup --bootstrap`/devcontainer), auto extras-profiles by hardware, GLiNER
+one-time ONNX export wiring, and the multi-hop agentic RAG wave (LWM_033
+deferral). **Now delivered (LWM_039 §D):** see README.md → *[Five ways to run this](README.md#five-ways-to-run-this)* for the five surfaces.
 
 ---
 
-**Bottom line:** the tool is genuinely ready to be *used* today — `bash install.sh`, scaffold a wiki, point Claude/Codex/opencode at `npx llm-wiki-mcp --wiki <root>`, and the 14 MCP tools + 21 CLI commands give you a reversible, eval-gated, agent-native knowledge base. The weak points are all *onboarding and surface* (one-command wiring, demo wiki, RAG/ask, viz) — the core loop (ingest → link → resolve → summarize → lint → gate) is complete, tested (725 tests, 8/8 certification, green CI on 17 jobs), and honest.
+**Bottom line:** the tool is genuinely ready to be *used* today — `bash install.sh`, `llm-wiki setup ~/wikis/my-project --title "…"`, then point Claude/Codex/opencode at `npx llm-wiki-mcp --wiki <root>`, and the 15 MCP tools + 27 CLI commands give you a reversible, eval-gated, agent-native knowledge base — including grounded `ask` answers and contradiction-aware confidence. Verified: 860 tests, 9/9 certification, green CI on 18 jobs.

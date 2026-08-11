@@ -1,5 +1,65 @@
 # Changelog
 
+## [0.6.0] — 2026-08-11
+
+### Epistemic & Surface
+
+The v0.6.0 minor closes the USAGE.md §7/§8 UX + epistemic backlog. Everything is
+additive and opt-in — defaults stay byte-identical, the base install stays
+lexical-only, `graph-data.json` shape is unchanged, and every new capability is
+eval-gated. 25 CLI commands / 15 MCP tools.
+
+- **One-command setup** (LWM_035): `llm-wiki setup <root> [--title]` scaffolds or
+  validates a wiki and registers the MCP server with the detected client(s) —
+  claude (`claude mcp add` or `.mcp.json`), codex (`~/.codex/config.toml`),
+  opencode (`opencode.json`), hermes (skill symlink). Idempotent, reversible
+  (`--uninstall`), `--dry-run` writes nothing, never clobbers unrelated config
+  keys, never writes secrets, and finishes with a health + `tools/list` smoke
+  test. The Hermes skill symlink from `install.sh` is unified here.
+- **Demo wiki** (LWM_036): `llm-wiki demo <dest>` materializes a committed,
+  deterministic, lint-clean "Redis Internals" playground (8 pages) from the
+  installed package or repo, regenerates the FTS index, and prints next steps.
+  Ships in the wheel (package-data); base install never requires node.
+- **Ask this wiki** (LWM_033): `llm-wiki ask <root> "<question>"` — grounded QA
+  over pages + community-summary nodes (located by `type:` frontmatter, never
+  directory). Hybrid retrieval (LWM_032) + summary-aware rerank, exactly one
+  structured LLM call via the agent-native `$0.00` provider default, `--no-llm`
+  deterministic offline passages mode, and a faithfulness contract (answer
+  entities ⊆ cited pages). Committed ask gold set + citation precision@k gate
+  (fail-on-drop) following the standing curation procedure. MCP: `llm_wiki_ask`.
+- **Contradictions + evidence confidence** (LWM_034): `llm-wiki contradictions
+  <root> detect|list|apply|unapply` — typed claim extraction (entity-grounded),
+  a suggest-only contradiction detector (unit-normalized numeric values, polarity,
+  exclusive categories), and a deterministic evidence-grounded confidence scorer
+  (source count/recency/cross-page agreement/citation support → high/medium/low +
+  `evidence_score`), author-overridable via a `confidence_source: evidence|author`
+  marker. `detect` writes nothing; `apply`/`unapply` are reversible. Reuses the
+  `.llm-wiki/claims/` sidecar (ClaimsManager) — no parallel storage. Contradiction
+  + confidence gold sets with fail-on-drop gates.
+- **Recommended-extras profile** (LWM_037): `pip install -e ".[recommended]"` =
+  `semantic` + `leiden` + `entity-resolution` (deliberately not `ner`/`eval`).
+  GLiNER `[ner]` gains a torch-free local path — a documented ONNX model-cache
+  convention (`~/.cache/llm-wiki/models/`, `LLM_WIKI_GLINER_MODEL` env) with a
+  measured disk budget; base install never imports the stack.
+- **Web-viewer derived-edge overlay + Sigma.js + exports** (LWM_038): the derived
+  layer (`.index/derived-edges.json`) renders as an off-by-default toggleable
+  dashed overlay (byte-identical when off), a Sigma.js WebGL view for large
+  graphs, and JSON Canvas 1.0 + JSON-LD exports (layer-labeled, schema-valid).
+  Web-viewer-only diff — no backend graph output change.
+- **Search gold-set standing procedure** (LWM_039 §A): `scripts/curate_gold_set.py`
+  (split hygiene + manifest freeze + byte-stable baseline regen) + a
+  `gate_search_goldset_fresh` release-certify gate + a committed `growth_meta.json`
+  grow-or-justify record. The ask gold set follows the same loop.
+- **Cross-platform hardening** (LWM_039 §X): a 22-test `test_cross_platform_edge.py`
+  suite + CI lane covering the recent macOS/Windows fixes, which also exposed and
+  fixed real bugs: CRLF frontmatter parsing (`core/frontmatter.py`,
+  `search/index.py`), Windows backslash wikilink keys (`core/wikilinks.py`), and
+  strict-decode lint reads (`quality/lint/service.py`).
+- **Serve friction + boundary docs** (LWM_039 §B–D): `llm-wiki serve` prints the
+  exact build command + `--build` flag when `mcp-server/dist` is missing;
+  `docs/operations/security-and-boundaries.md` states the files-first trust
+  boundary; README gains a "Five ways to run this" landing section.
+
 ## [0.5.0] — 2026-08-07
 
 ### Graph Precision

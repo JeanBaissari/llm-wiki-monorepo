@@ -106,4 +106,15 @@ markers = ["slow: slow benchmark tests"]
 addopts = "-m 'not slow'"
 
 [tool.setuptools.package-data]
-llm_wiki = ["py.typed"]
+# v0.6.0/LWM_036: the demo wiki fixture is package-internal so `llm-wiki demo`
+# works from both the repo checkout and the installed wheel. `**` is supported
+# by setuptools>=62.3; the build requires >=64 (see [build-system]). Dotfiles
+# are not matched by the recursive glob, so the hidden fixture markers are
+# listed explicitly (audit/.gitkeep keeps the audit/ dir present in the wheel).
+llm_wiki = [
+    "py.typed",
+    "wiki/demo_wiki/**",
+    "wiki/demo_wiki/.schema_version",
+    "wiki/demo_wiki/audit/.gitkeep",
+    "wiki/demo_wiki/audit/resolved/.gitkeep",
+]

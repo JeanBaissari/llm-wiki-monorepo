@@ -10,8 +10,14 @@ lexical-only and base-install-purity CI stays green (invariants 3 + 8).
 
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
+
+# stdlib tomllib on 3.11+, official backport on 3.10 (repo-wide pattern — the
+# base install carries `tomli` for python < 3.11; see pyproject.toml comment).
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # pragma: no cover
+    import tomli as tomllib
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = REPO_ROOT / "pyproject.toml"

@@ -275,6 +275,33 @@ def handle_backup(params: dict) -> dict:
     }
 
 
+@register("ask")
+def handle_ask(params: dict) -> dict:
+    """Ground a question in the wiki: summaries + pages (LWM_033).
+
+    Deterministic offline RPC: runs the retrieval core (hybrid via the LWM_032
+    path + summary-aware rerank) and returns the grounded passages, citation
+    stems, confidence, and faithfulness — exactly what ``llm-wiki ask
+    --no-llm`` returns. Never makes an LLM call (the MCP consumer — an agent —
+    synthesizes the answer from the grounded context). No sidecar → the TS
+    tool reports a graceful error.
+    """
+    try:
+        from llm_wiki.core.layout import discover_layout
+        from llm_wiki.graph.ask import ask
+    except ImportError as e:
+        return {"error": f"ask module not available: {e}"}
+
+    root = params.get("wiki_root", WIKI_ROOT)
+    question = params.get("question", "")
+    if not question:
+        return {"error": "question is required"}
+    top_k = max(1, min(int(params.get("top_k", 10)), 100))
+    layout = discover_layout(root)
+    result = ask(layout.root, question, no_llm=True, top_k=top_k)
+    return {"result": result}
+
+
 @register("discover_entities")
 def handle_discover_entities(params: dict) -> dict:
     """Discover all entities registered in the wiki. Uses link_suggest.py registry builder."""

@@ -293,6 +293,7 @@ class TestSubprocessSpawnBaseline:
 class TestLintLatency:
     """Benchmark the full lint tool path through the sidecar."""
 
+    @pytest.mark.slow  # absolute-latency benchmark: env-dependent, opt-in (LWM_023)
     def test_lint_cold_start(self, populated_wiki: Path):
         """First lint call (cold, includes module import)."""
         wiki_root = str(populated_wiki)
@@ -305,6 +306,7 @@ class TestLintLatency:
         # Cold start should be fast even with imports (target: < 500ms for small wiki)
         assert elapsed < 2000, f"Lint cold start {elapsed:.1f}ms too slow"
 
+    @pytest.mark.slow  # absolute-latency benchmark: env-dependent, opt-in (LWM_023)
     def test_lint_warm_reuse(self, populated_wiki: Path):
         """Lint on second call is faster (imports cached)."""
         wiki_root = str(populated_wiki)

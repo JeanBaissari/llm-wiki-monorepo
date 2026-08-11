@@ -1,0 +1,39 @@
+{
+  "task": "confidence-scoring",
+  "split": "gate",
+  "tolerance": 1e-06,
+  "accuracy": 1.0,
+  "n": 4,
+  "per_page": {
+    "no-evidence": {
+      "gold": "low",
+      "predicted": "low",
+      "ok": true,
+      "evidence_score": 0.125,
+      "confidence_source": "evidence"
+    },
+    "well-evidenced-2": {
+      "gold": "high",
+      "predicted": "high",
+      "ok": true,
+      "evidence_score": 0.755,
+      "confidence_source": "evidence"
+    },
+    "moderately-evidenced-2": {
+      "gold": "medium",
+      "predicted": "medium",
+      "ok": true,
+      "evidence_score": 0.5196,
+      "confidence_source": "evidence"
+    },
+    "thinly-evidenced-2": {
+      "gold": "low",
+      "predicted": "low",
+      "ok": true,
+      "evidence_score": 0.185,
+      "confidence_source": "evidence"
+    }
+  },
+  "generated_by": "llm_wiki.eval.contradiction_baseline.compute_confidence_baseline",
+  "note": "Freeze of the LWM_034 confidence gate on the held-out GATE split: deterministic scorer accuracy against gold labels. Pages without sources/updated must score low (never high); author-marked pages preserve their explicit confidence (confidence_source: author)."
+}

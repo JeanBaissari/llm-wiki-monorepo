@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.1] — 2026-08-11
+
+### Documentation cleanup
+
+Post-v0.6.0 repo-state alignment — no code change to the shipped surface; the wheel's
+`long_description` (README) and all agent-facing docs now reflect the released 27 CLI /
+15 MCP tool state.
+
+- **USAGE.md**: §3 one-command `setup` gap replaced with the shipped flow; §7/§8 status
+  banners mark all items delivered; surface table/inventory/bottom-line updated to
+  27 commands / 15 tools / 26 skill scripts.
+- **AGENTS.md**: package map script count (26), CLI reference table gains `setup` /
+  `demo` / `ask` / `contradictions`.
+- **skill/SKILL.md**: ten operations (added `ask` + `contradictions`), 15-tool MCP list,
+  onboarding note for `setup`/`demo`.
+- **docs/reference/file-map.md**: new v0.6.0 modules (setup/, wiki/demo.py + demo_wiki/,
+  graph/ask.py, quality/contradictions.py, semantic/ner_onnx.py, ask/contradiction
+  baselines, web-viewer derived.ts/exports.ts/sigma-view.ts, security-and-boundaries.md),
+  goldsets, and tests.
+- **docs/getting-started/quickstart.md**: "Fastest Path — `setup` + `demo`" section.
+- **install.sh**: success summary uses `llm-wiki setup` / `npx llm-wiki-mcp` / `USAGE.md`.
+- **README.md**: "What's New in v0.6.0" section; stale "14 tools"/"23 commands" claims → 15/27.
+- ADRs 0029–0033 authored and registered (ask faithfulness, confidence formula +
+  contradiction surface, setup wiring, recommended extras + `[ner]` path, web-viewer
+  overlay + exports).
+
 ## [0.6.0] — 2026-08-11
 
 ### Epistemic & Surface

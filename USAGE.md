@@ -12,7 +12,7 @@ Three surfaces consume the same files:
 |---|---|---|
 | **`llm-wiki` CLI** (Python) | 27 commands | Humans + scripts + CI |
 | **MCP server** (`llm-wiki-mcp`, TypeScript) | 15 tools over stdio | Claude Code, Codex, Cursor, opencode, any MCP client |
-| **Hermes skill** (`skill/SKILL.md` + 23 scripts) | In-conversation workflow | Claude/Hermes agent sessions |
+| **Hermes skill** (`skill/SKILL.md` + 26 scripts) | In-conversation workflow | Claude/Hermes agent sessions |
 
 ## 2. How it works, exactly
 
@@ -61,7 +61,7 @@ claude mcp add llm-wiki -- npx llm-wiki-mcp --wiki ~/wikis/my-project
 The `npx llm-wiki-mcp` bin comes from `mcp-server/package.json` (`"llm-wiki-mcp": "./dist/main.js"` — so `cd mcp-server && npx tsc` first, or rely on `install.sh`).
 
 ### Codex / Cursor / VS Code (any MCP client)
-Same pattern — `.mcp.json` / MCP settings pointing at `npx llm-wiki-mcp --wiki <root>`. The server is plain stdio MCP with 14 tools; `claude mcp list`-style commands work in every client.
+Same pattern — `.mcp.json` / MCP settings pointing at `npx llm-wiki-mcp --wiki <root>`. The server is plain stdio MCP with 15 tools; `claude mcp list`-style commands work in every client.
 
 ### opencode
 Add to `opencode.json`:
@@ -99,7 +99,7 @@ The skill's SKILL.md is loaded automatically by the EOW cron job; changes propag
 
 If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via scripts):
 - **Same mental model, richer machine** — the wiki directory layout is compatible (entities/concepts/summaries + raw/ + audit/); `discover` auto-detects their existing layout, so migration is usually *zero-rewrite*: point tools at the old wiki root.
-- **What they gain over the common tools**: reversible entity resolution (the "GPT-4 vs GPT 4" collapse), semantic link suggestion with safe `--apply`, hybrid search as the default (BM25+vectors via RRF, eval-certified), Leiden community detection with hierarchy, LLM community summaries as first-class pages, quarantined derived edges (graph discovers connections without polluting analytics), a full tuning surface instead of hardcoded constants, a 15-check lint, backup/restore with integrity verification, a local web preview, and an MCP layer so Claude/Codex/opencode talk to the wiki natively instead of shelling out.
+- **What they gain over the common tools**: reversible entity resolution (the "GPT-4 vs GPT 4" collapse), semantic link suggestion with safe `--apply`, hybrid search as the default (BM25+vectors via RRF, eval-certified), Leiden community detection with hierarchy, LLM community summaries as first-class pages, quarantined derived edges (graph discovers connections without polluting analytics), a full tuning surface instead of hardcoded constants, a 15-check lint, backup/restore with integrity verification, a local web preview, grounded **`ask`** answers with citations, contradiction-aware evidence confidence (v0.6.0), one-command client wiring (`llm-wiki setup`), and an MCP layer so Claude/Codex/opencode talk to the wiki natively instead of shelling out.
 - **Their scripts keep working** — every `skill/scripts/<cmd>.py` is still runnable directly; the CLI is a thin wrapper.
 
 ## 6. Twenty quick, realistic, code-based usage examples
@@ -176,8 +176,8 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
 
 ### High-level / creative
 16. **Multi-agent research team on one wiki**: three agents ingest different sources into the same `raw/`; the wiki lock (`portalocker` advisory locks) prevents write races; each agent's work lands as git-diffable pages; a fourth agent runs `llm-wiki audit` to adjudicate contradictions humans filed from Obsidian.
-17. **"Ask this wiki" (v0.6.0 draft LWM_033)**: after summaries exist, `llm-wiki ask ~/wikis/redis "what changed in cluster failover between 6.x and 7.x?"` returns a cited answer — the RAG wave turns the wiki into a question-answering system, not a document store.
-18. **Epistemic trust layer (LWM_034 draft)**: `llm-wiki contradictions detect .` flags "maxmemory 4GB" vs "maxmemory 4 GiB" pages before they rot; confidence becomes evidence-derived (`sources` count × recency × cross-page agreement) instead of author intention.
+17. **"Ask this wiki" (shipped, LWM_033)**: `llm-wiki ask ~/wikis/redis "what changed in cluster failover between 6.x and 7.x?"` returns a cited answer — the RAG wave turns the wiki into a question-answering system, not a document store.
+18. **Epistemic trust layer (shipped, LWM_034)**: `llm-wiki contradictions detect .` flags "maxmemory 4GB" vs "maxmemory 4 GiB" pages before they rot; confidence becomes evidence-derived (`sources` count × recency × cross-page agreement) instead of author intention.
 19. **Community-aware onboarding**: `summarize-communities --levels 2` produces a "Redis internals in one page" overview that a new contributor reads first — knowledge compounding made navigable.
 20. **Derived-edge discovery as a review tool**: `llm-wiki derive-edges . --include-derived` reveals similarity links between concepts nobody wikilinked; a human reviews the report and promotes the good ones to real links — the graph proposes, the human disposes.
 

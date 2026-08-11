@@ -105,7 +105,7 @@ npx llm-wiki-mcp --wiki ~/my-wiki
 claude mcp add llm-wiki -- npx llm-wiki-mcp --wiki ~/my-wiki
 ```
 
-Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) via 14 stdio tools. Register it with `claude mcp add`, the opencode `.mcp.json` form, or your client's equivalent. Requires a built mcp-server: `cd mcp-server && npm run build` (or `bash install.sh`). See the [MCP tools reference](docs/reference/mcp-tools.md).
+Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) via 15 stdio tools. Register it with `claude mcp add`, the opencode `.mcp.json` form, or `llm-wiki setup` (one-command wiring, v0.6.0). Requires a built mcp-server: `cd mcp-server && npm run build` (or `bash install.sh`). See the [MCP tools reference](docs/reference/mcp-tools.md).
 
 ### 3. Hermes skill (in-conversation agent workflow)
 
@@ -152,7 +152,7 @@ Opt-in local preview server for human browsing (mermaid, KaTeX, audit feedback).
 
 - **Inverted Entity Index** — dual-map entity→pages + page→entities for O(1) link suggestions. 4-signal scoring with automatic wikilink insertion. Reversible entity resolution (canonical↔alias) collapses duplicate surface forms.
 
-- **MCP Server** — 14 stdio tools for programmatic wiki access. Direct Python sidecar with zero subprocess overhead. Integrates with Claude Desktop, Codex, Cursor, and any MCP-compatible client.
+- **MCP Server** — 15 stdio tools for programmatic wiki access. Direct Python sidecar with zero subprocess overhead. Integrates with Claude Desktop, Codex, Cursor, and any MCP-compatible client.
 
 - **Hybrid Search (default)** — BM25 + semantic vector KNN fused via RRF with a `--keyword` escape hatch; degrades to keyword byte-identically without the `[semantic]` extra. Gold-set gate certifies no keyword regression.
 
@@ -273,7 +273,7 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 |------|---------------|
 | `README.md` | You are here |
 | `docs/getting-started/quickstart.md` | Every command with real examples |
-| `docs/reference/cli.md` | Full CLI reference — all 23 commands with flags and examples |
+| `docs/reference/cli.md` | Full CLI reference — all 27 commands with flags and examples |
 | `docs/reference/mcp-tools.md` | All 15 MCP tools with schemas and usage examples |
 | `AGENTS.md` | Architecture, conventions, build/test commands, Python Dependency Policy |
 | `docs/release/changelog.md` | Full version history — all features, changes, and breaking changes |

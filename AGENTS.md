@@ -28,7 +28,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 
 | Dir | Language | Tier | What it does | When to touch it |
 |-----|----------|------|-------------|-----------------|
-| `skill/` | Python + MD | adapter | Agent skill: SKILL.md + 22 scripts + 13 references | Agent operations, scripts, docs |
+| `skill/` | Python + MD | adapter | Agent skill: SKILL.md + 26 scripts + 14 references | Agent operations, scripts, docs |
 | `mcp-server/` | TypeScript | programmatic-access | MCP server: 15 tools via stdio | Programmatic wiki access |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
 | `templates/` | MD + JSON | core | 20 domain templates for scaffold.py | Adding/modifying project templates |
@@ -113,6 +113,10 @@ python3 skill/scripts/graph_insights.py /tmp/test-wiki --format json
 | `llm-wiki entities` | Reversible entity resolution | `llm-wiki entities resolve ~/wikis/my-project` |
 | `llm-wiki derive-edges` | Quarantined derived-edge layer (opt-in, NMI-gated) | `llm-wiki derive-edges ~/wikis/my-project` |
 | `llm-wiki summarize-communities` | Opt-in LLM community summaries | `llm-wiki summarize-communities ~/wikis/my-project --dry-run` |
+| `llm-wiki setup` | One-command client wiring (claude/codex/opencode/hermes) | `llm-wiki setup ~/wikis/my-project --title "My Project"` |
+| `llm-wiki demo` | Materialize the committed demo wiki playground | `llm-wiki demo ~/wikis/playground` |
+| `llm-wiki ask` | Grounded QA over summaries + pages | `llm-wiki ask ~/wikis/my-project "how does the event loop work?"` |
+| `llm-wiki contradictions` | Contradiction detection + evidence confidence | `llm-wiki contradictions ~/wikis/my-project detect` |
 
 Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> --help` for command-specific options.
 

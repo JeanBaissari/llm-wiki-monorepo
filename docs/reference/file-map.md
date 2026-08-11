@@ -14,6 +14,7 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 | `docs/reference/file-map.md` | This file — complete file tree |
 | `docs/operations/index.md` | Operations notes index (runbooks for shipped behavior changes) |
 | `docs/operations/hybrid-default-search.md` | Hybrid-search default migration note — what changed, how to opt back to keyword (LWM_032/ADR-0020) |
+| `docs/operations/security-and-boundaries.md` | Per-wiki auth/visibility boundary statement — files-first trust model, stdio-local MCP, recommended patterns (LWM_039 §C) |
 | `AGENTS.md` | Architecture and conventions for AI agents |
 | `docs/architecture/overview.md` | Why this system exists, core principles, success criteria |
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
@@ -48,7 +49,7 @@ Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit
 | `eow-cron-pipeline.md` | Weekly automated maintenance — discover repos, assess health, conditional graph rebuild, lint, report |
 | `migration-guide.md` | Migrating v1 wikis (flat structure, log.md) to v2 format (log/ directory, wiki/ subdirectory) |
 
-### `skill/scripts/` — 23 Python scripts
+### `skill/scripts/` — 26 Python scripts
 
 All scripts are thin wrappers that delegate to `src/llm_wiki/` modules.
 
@@ -68,7 +69,11 @@ All scripts are thin wrappers that delegate to `src/llm_wiki/` modules.
 | `health_check.py` | — | Thin wrapper — delegates to `llm_wiki.ops.health` |
 | `index_wiki.py` | — | Thin wrapper — delegates to `llm_wiki.search` (FTS5 index build/rebuild) |
 | `serve.py` | — | Thin wrapper — delegates to `llm_wiki.ops.serve` (MCP server entry) |
-| `sidecar.py` | — | Python sidecar used by the MCP server (long-lived process) |
+| `sidecar.py` | — | Python sidecar used by the MCP server (long-lived process; `ask` RPC, v0.6.0) |
+| `setup.py` | — | Thin wrapper — `llm-wiki setup` one-command client wiring (LWM_035) |
+| `demo.py` | — | Thin wrapper — `llm-wiki demo` materialize the committed playground (LWM_036) |
+| `ask.py` | — | Thin wrapper — grounded QA over summaries + pages (LWM_033) |
+| `contradictions.py` | — | Thin wrapper — contradiction detection + evidence confidence (LWM_034) |
 | `atomic_write.py`, `content_hash.py`, `lock_wiki.py`, `wiki_logging.py` | — | Shared primitives delegated to `core/` |
 | `louvain.py` | — | Thin wrapper — delegates to `llm_wiki.graph.louvain` |
 | `regenerate_fixtures.py` / `validate_fixtures.py` | — | Fixture regeneration / validation used by CI |
@@ -78,11 +83,14 @@ All scripts are thin wrappers that delegate to `src/llm_wiki/` modules.
 
 ## `src/llm_wiki/` — Python Package (core)
 
-PyPI package — CLI dispatch (`cli.py`), 23 commands via `COMMANDS`, domain-organized packages. All skill scripts delegate here.
+PyPI package — CLI dispatch (`cli.py`), 27 commands via `COMMANDS`, domain-organized packages. All skill scripts delegate here.
 
 | Module | Purpose |
 |------|---------|
-| `cli.py` | Unified CLI entry — `COMMANDS` dict (23 commands) + aliases, dispatches to module `main()` |
+| `cli.py` | Unified CLI entry — `COMMANDS` dict (27 commands) + aliases, dispatches to module `main()` |
+| `setup/` | `llm-wiki setup` — scaffold/validate + idempotent MCP client wiring (claude/codex/opencode/hermes), `--dry-run`/`--uninstall` (LWM_035/ADR-0031) |
+| `wiki/demo.py` + `wiki/demo_wiki/` | `llm-wiki demo` — materialize the committed Redis-Internals playground fixture (8 pages, lint-clean, deterministic) from the package or repo (LWM_036) |
+| `graph/ask.py` | `llm-wiki ask` — grounded QA: hybrid retrieval + summary-aware rerank, faithfulness contract, `--no-llm` offline mode (LWM_033/ADR-0029) |
 | `graph/extract.py` | Pluggable entity extractor — regex default, optional GLiNER `[ner]` backend with fail-soft degradation (LWM_026) |
 | `graph/resolve.py` | Entity-resolution pipeline — normalize → block → two-signal score → merge (LWM_025/ADR-0024) |
 | `graph/alias_store.py` | Reversible canonical↔alias store — append-only JSONL source of truth + additive `.index/wiki.db` alias tables with `alias_meta` guard |
@@ -91,11 +99,16 @@ PyPI package — CLI dispatch (`cli.py`), 23 commands via `COMMANDS`, domain-org
 | `graph/derived_edges.py` | Quarantined derived-edge layer — similar_to + co_occurs_with, NMI+modularity fail-closed gate (LWM_029/ADR-0027) |
 | `graph/summarize.py` | `llm-wiki summarize-communities` — hierarchical community summaries as first-class pages, faithfulness filtering (LWM_030) |
 | `graph/suggest.py` / `louvain.py` / `insights.py` / `alias_store.py` | Link suggestions, Louvain communities, insights, alias persistence |
+| `quality/contradictions.py` | `llm-wiki contradictions` — typed claim extractor + suggest-only detector + evidence-grounded confidence (author-overridable `confidence_source`), unit normalization (LWM_034/ADR-0030) |
+| `quality/claims/` | Claims subsystem reused by contradictions — `Claim`/`Contradiction` models + `.llm-wiki/claims/` JSONL sidecar (`ClaimsManager`, idempotent batch writers) |
+| `semantic/ner_onnx.py` | Torch-free GLiNER ONNX runner — onnxruntime-direct decode, `LLM_WIKI_GLINER_MODEL` cache, never imports gliner/torch (LWM_037/ADR-0032) |
 | `core/config.py` | Canonical `TuningConfig` — all 22 constants + type-affinity matrix + signal scores (LWM_031/ADR-0028) |
 | `core/tuning.py` | `llm-wiki tuning` CLI — resolve/precedence/`--set`/`--emit` to graph-engine JSON |
 | `eval/er_metrics.py` | Pairwise merge precision/recall/F1 (ER-F1 gate, LWM_025) |
 | `eval/cluster_metrics.py` | Community NMI/modularity metrics (Leiden verification, LWM_027) |
 | `eval/search_baseline.py` | Search-eval harness — goldset splits, hybrid/keyword baseline, `search_eval_gate` (LWM_032) |
+| `eval/ask_baseline.py` | Ask-eval harness — ask goldset splits, citation precision@k baseline + fail-on-drop (LWM_033) |
+| `eval/contradiction_baseline.py` | Contradiction + confidence gold-wiki builder and gates (LWM_034) |
 | `eval/goldset.py` / `baseline.py` / `metrics.py` / `harness.py` / `cli.py` | Eval harness core — gold-set load/splits, committed baselines, `llm-wiki eval` CLI |
 
 ---
@@ -106,11 +119,19 @@ pytest. Run from the repo root with `PYTHONPATH=src`.
 
 | File / Dir | Purpose |
 |------|---------|
-| `tests/eval/gold/` | Committed gold sets: `er_goldset.json` (ER, disjoint tune/gate), `search_goldset.json`, `split_manifest.json` (SHA256 freeze), `GOLD_SET.md` |
-| `tests/eval/baseline/` | Committed gate baselines: `er_baseline.json`, `search_eval_baseline.json`, `eval_baseline.json`, `tuning_defaults.json` |
+| `tests/eval/gold/` | Committed gold sets: `er_goldset.json` (ER, disjoint tune/gate), `search_goldset.json`, `split_manifest.json` (SHA256 freeze), `GOLD_SET.md`, `growth_meta.json` (grow-or-justify record, LWM_039), `ask_goldset.json` (LWM_033), `contradiction_goldset.json` + `confidence_goldset.json` (LWM_034) |
+| `tests/eval/baseline/` | Committed gate baselines: `er_baseline.json`, `search_eval_baseline.json`, `eval_baseline.json`, `tuning_defaults.json`, `ask_baseline.json` (LWM_033), `contradiction_baseline.json` + `confidence_baseline.json` (LWM_034) |
 | `tests/eval/test_derived_edge_nmi_gate.py` | Derived-edge NMI+modularity gate — inclusion/refusal, fail-closed (LWM_029) |
 | `tests/eval/test_search_goldset_integrity.py` | Goldset disjointness, manifest SHA256 freeze, query→pages labels (LWM_032) |
 | `tests/eval/test_real_wiki_gate.py` | Real-wiki gate lane with the real `[semantic]` embedder (CI `semantic` job only) |
+| `tests/test_setup.py` | `llm-wiki setup` — dry-run-writes-nothing, per-client idempotency + no-clobber, uninstall round-trip, no-secrets (LWM_035) |
+| `tests/test_demo.py` | `llm-wiki demo` — fixture lint-clean, byte-identical copy minus caches, no symlinks, `--force` (LWM_036) |
+| `tests/test_ask.py` + `tests/test_ask_eval.py` | Grounded ask — citations real pages, `--no-llm` zero calls, hallucination rejected, keyword fallback byte-identical, agent-native $0.00, goldset baseline fail-on-drop (LWM_033) |
+| `tests/test_contradictions.py` + `tests/test_contradiction_eval.py` + `tests/test_confidence_eval.py` | Claim extraction deterministic, suggest-only/apply/unapply round-trip, lint pattern, unit normalization, contradiction + confidence goldset gates (LWM_034) |
+| `tests/test_recommended_extra.py` | `[recommended]` extra resolves to semantic+leiden+entity-resolution and never imports gliner/torch (LWM_037) |
+| `tests/test_gliner_local_path.py` | Torch-free ONNX runner — skip-gated local success path + fake-session decode (LWM_037) |
+| `tests/test_curate_gold_set.py` | Standing gold-set curation loop — hygiene check, freeze, rebaseline, growth record (LWM_039 §A) |
+| `tests/test_cross_platform_edge.py` | Cross-platform edge suite — symlink paths, CRLF, cp1252, atomic writes, UTF-8 stdio (LWM_039 §X) |
 | `tests/test_entity_resolution.py` | Normalization, blocking (sub-quadratic), two-signal rule, reversibility, alias-meta guard (LWM_025) |
 | `tests/test_er_eval.py` | ER-F1 fail-on-drop gate + must-not-merge negatives + GLiNER-holds-ER-F1 (LWM_025/026) |
 | `tests/test_extract.py` | Extractor import-safety, regex baseline, GLiNER fail-soft, no-download base path (LWM_026) |
@@ -136,8 +157,8 @@ TypeScript. 15 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wi
 |------|---------|
 | `package.json` | Dependencies: `@modelcontextprotocol/sdk` |
 | `tsconfig.json` | TypeScript config — ES2022, strict mode |
-| `src/main.ts` | Main server — 14 tool handlers, JSON-RPC via stdio |
-| `src/registry.ts` | Tool registry — 14 TOOL_DEFINITIONS with schemas and handler mappings |
+| `src/main.ts` | Main server — 15 tool handlers, JSON-RPC via stdio |
+| `src/registry.ts` | Tool registry — 15 TOOL_DEFINITIONS with schemas and handler mappings |
 | `src/types.ts` | Shared types: WikiProject, FileNode, SearchResult, ReviewItem, GraphNode, LintIssue |
 | `src/wiki-fs.ts` | Filesystem adapter — list, read, write, find, fileExists, ensureDir |
 | `src/search.ts` | BM25 search engine — pure TypeScript, no dependencies, ranked results with snippets |
@@ -147,7 +168,7 @@ TypeScript. 15 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wi
 | `src/storage.ts` | TTL-based cache layer — raw/.cache/<key>.json with expiry |
 | `src/cleanup.ts` | Soft cascade cleanup — strip source refs on deletion, report orphans |
 | `src/discover.ts` | Sidecar bridge to core.layout — delegates via PythonSidecar, typed fallback |
-| `src/tools/` | 14 tool handler modules — one file per MCP tool |
+| `src/tools/` | 15 tool handler modules — one file per MCP tool (incl. `ask.ts` for `llm_wiki_ask`, LWM_033) |
 | `src/adapters/` | Adapter layer — sidecar.ts (PythonSidecar), fts5.ts, graph-engine.ts |
 | `src/projects/` | Multi-project support — workspace scanning and project management |
 | `src/security/` | Security middleware — path traversal prevention, input validation |
@@ -219,19 +240,22 @@ Express + markdown-it + KaTeX + mermaid. Search bar + graph insights panel.
 
 | File | Purpose |
 |------|---------|
-| `package.json` | Dependencies and build scripts |
+| `package.json` | Dependencies and build scripts (incl. sigma + graphology, LWM_038) |
 | `server/index.ts` | Express server entry point |
 | `server/config.ts` | Server configuration |
 | `server/render/markdown.ts` | Markdown rendering with KaTeX |
 | `server/render/wikilinks.ts` | Wikilink resolution |
 | `server/routes/pages.ts` | Page serving |
 | `server/routes/graph.ts` | Graph data + graph-insights API |
+| `server/routes/derived.ts` | Derived-edge overlay API — reads `.index/derived-edges.json`, resolves stems→ids, `layer:"derived"` (LWM_038/ADR-0033) |
+| `server/routes/exports.ts` | JSON Canvas 1.0 + JSON-LD exports of the graph (layer-labeled) (LWM_038) |
 | `server/routes/search.ts` | TF-based search API — tokenizes, scores, returns ranked results |
 | `server/routes/audit.ts` | Audit CRUD API |
 | `server/routes/tree.ts` | File tree API |
 | `client/index.html` | SPA entry point with tabs (Pages/Search/Graph) |
-| `client/main.ts` | Client-side app — search, tab switching, graph loading |
-| `client/graph.ts` | Graph visualization |
+| `client/main.ts` | Client-side app — search, tab switching, graph loading, derived-edge toggle (off by default) + SVG|WebGL view switch |
+| `client/graph.ts` | Graph visualization (d3-force SVG renderer + derived-edge overlay renderer) |
+| `client/sigma-view.ts` | Sigma.js WebGL graph view (zoomable/panable, SVG fallback) (LWM_038) |
 | `client/feedback.ts` | Selection → audit feedback |
 
 ---

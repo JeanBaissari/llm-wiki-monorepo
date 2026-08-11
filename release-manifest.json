@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "release": {
-    "version": "0.6.0",
+    "version": "0.6.1",
     "canonical_version_source": "pyproject.toml:project.version"
   },
   "python": {
@@ -62,7 +62,7 @@
       {
         "path": ".",
         "name": "llm-wiki-monorepo",
-        "version": "0.6.0",
+        "version": "0.6.1",
         "role": "root-workspace"
       },
       {
@@ -159,7 +159,7 @@
     ]
   },
   "changelog": {
-    "required_entry": "0.6.0",
+    "required_entry": "0.6.1",
     "file": "docs/release/changelog.md"
   },
   "docs": {

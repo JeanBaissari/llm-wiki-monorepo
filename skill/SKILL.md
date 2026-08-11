@@ -28,7 +28,7 @@ Instead of RAG (re-retrieving raw docs on every query), the LLM **compiles** raw
 - **You** own: sourcing raw material, asking good questions, steering direction, filing feedback on anything the AI got wrong.
 - **LLM** owns: all writing, cross-referencing, filing, bookkeeping, and acting on your feedback.
 
-The wiki is a living artifact with **eight operations** — `compile`, `ingest` (single-pass), `ingest-2step` (two-step chain-of-thought), `query`, `lint`, `audit`, `research` (deep research), `insights` (graph insights). Every session starts by reading `CLAUDE.md`, `PURPOSE.md`, and `wiki/index.md`.
+The wiki is a living artifact with **ten operations** — `compile`, `ingest` (single-pass), `ingest-2step` (two-step chain-of-thought), `query`, `lint`, `audit`, `research` (deep research), `insights` (graph insights), `ask` (grounded QA, v0.6.0), `contradictions` (epistemic, v0.6.0). Every session starts by reading `CLAUDE.md`, `PURPOSE.md`, and `wiki/index.md`.
 
 ## Directory layout
 
@@ -138,7 +138,7 @@ For codebases with documentation, use graphify to build a structural knowledge g
 
 ---
 
-## The eight operations
+## The ten operations
 
 Every action on the wiki is one of these five. Each appends an entry to the current day's log file (`log/YYYYMMDD.md`).
 
@@ -295,6 +295,28 @@ Analyze the wiki's knowledge graph for surprising connections and knowledge gaps
 
 ---
 
+### 9. `ask` (Grounded Question Answering)
+
+Answer a natural-language question grounded in the wiki's pages + community summaries (v0.6.0 / LWM_033).
+
+**When to use:** Whenever a session needs "what does the wiki say about X?" answered with citations instead of a ranked page list.
+
+**Script:** `python3 skill/scripts/ask.py <wiki-root> "<question>" [--no-llm] [--keyword]`
+
+**Notes:** `--no-llm` returns the grounded passages with zero LLM calls (deterministic, offline); the answer must cite retrieved pages (faithfulness contract). Also available over MCP as `llm_wiki_ask`.
+
+### 10. `contradictions` (Epistemic — Conflicts + Evidence Confidence)
+
+Detect contradictory claims across pages and compute evidence-grounded confidence (v0.6.0 / LWM_034). Suggest-only by default.
+
+**When to use:** During lint passes or before trusting a page's `confidence` field. `detect` writes nothing; `apply`/`unapply` are reversible frontmatter writes.
+
+**Script:** `python3 skill/scripts/contradictions.py <wiki-root> detect|list|apply|unapply [--assist llm]`
+
+**Onboarding (v0.6.0):** `python3 skill/scripts/setup.py <wiki-root> [--title "…"]` wires the MCP server to the detected clients (claude/codex/opencode/hermes); `python3 skill/scripts/demo.py <dest>` materializes the committed demo wiki playground.
+
+---
+
 ## Tooling
 
 | Tool | Purpose |
@@ -309,7 +331,7 @@ Analyze the wiki's knowledge graph for surprising connections and knowledge gaps
 | `scripts/graph_insights.py` | Surprising connections and knowledge gap detection |
 | `scripts/audit_review.py` | Group open/resolved audits by target file |
 | `scripts/migrate_log.py` | Convert v1 log.md to v2 log/ directory |
-| **`mcp-server/`** | Standalone MCP server — 14 tools (status, files, read_file, reviews, search, graph, graph_build, graph_insights, graph_search, lint, ingest, suggest_links, backup, discover_entities) working against any wiki directory |
+| **`mcp-server/`** | Standalone MCP server — 15 tools (status, files, read_file, reviews, search, ask, graph, graph_build, graph_insights, graph_search, lint, ingest, suggest_links, backup, discover_entities) working against any wiki directory |
 | [qmd](https://github.com/tobi/qmd) | Optional local semantic search (useful at >100 pages) |
 | [Obsidian Headless](https://github.com/obsidian-headless/obsidian-headless) | Server-side Obsidian for headless deployments — render, lint, and sync wikis without a GUI |
 

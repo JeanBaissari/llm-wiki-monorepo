@@ -62,3 +62,26 @@ python3 skill/scripts/scaffold.py ~/my-wiki "New Topic" --template codebase --fo
 ```
 
 **20 domain templates available:** research, codebase, finance, algorithmic-trading, algorithmic-trading-mql4, cybersecurity, machine-learning, prompt-engineering, copywriting, marketing, design-systems, architecture, crypto, commodities, decompilers, medicine, developer-tools, personal-growth, reading, business.
+
+---
+
+## 2a. Fastest Path — `setup` + `demo` (v0.6.0)
+
+The fastest way to a wired wiki is one command: scaffold (if needed) **and** register
+the MCP server with every detected client (claude / codex / opencode / hermes) —
+idempotent, reversible (`--uninstall`), with a health + `tools/list` smoke test.
+
+```bash
+# Scaffold + wire the MCP server for your clients + smoke test:
+llm-wiki setup ~/my-wiki --title "My Research Topic"
+
+# Or skip setup and play with the committed demo wiki playground first:
+llm-wiki demo ~/wikis/redis-playground   # materializes a lint-clean "Redis Internals" wiki
+```
+
+Then ask the wiki questions or check it for contradictions:
+
+```bash
+llm-wiki ask ~/my-wiki "how does the event loop work?"     # grounded QA with citations
+llm-wiki contradictions ~/my-wiki detect                   # suggest-only conflict detection
+```

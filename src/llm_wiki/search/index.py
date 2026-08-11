@@ -40,8 +40,9 @@ from llm_wiki.core.layout import discover_layout
 INDEX_DIR_NAME = ".index"
 DB_FILENAME = "wiki.db"
 
-# Frontmatter regex (matches discover.py's implementation)
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
+# Frontmatter regex (matches core/frontmatter.py's implementation — tolerant
+# of CRLF line endings, which Windows checkouts/editors can introduce)
+FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
 
 # Stop words (mirrors mcp-server/src/search.ts)
 STOP_WORDS: set[str] = {

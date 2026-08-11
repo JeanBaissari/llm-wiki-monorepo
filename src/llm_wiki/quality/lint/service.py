@@ -62,7 +62,7 @@ def lint(root: str) -> int:
     dead_links: list[tuple[str, str]] = []
 
     for md_file in all_wiki_files:
-        text = md_file.read_text(encoding="utf-8")
+        text = md_file.read_text(encoding="utf-8", errors="replace")
         file_cache[md_file] = text
         fm_cache[md_file] = parse_frontmatter(text)
 
@@ -98,7 +98,7 @@ def lint(root: str) -> int:
         print("✅ No orphan pages")
 
     if index_path.exists():
-        index_text = file_cache.get(index_path) or index_path.read_text(encoding="utf-8")
+        index_text = file_cache.get(index_path) or index_path.read_text(encoding="utf-8", errors="replace")
         file_cache[index_path] = index_text
         not_in_index = [
             p for p in all_wiki_files
@@ -147,7 +147,7 @@ def lint(root: str) -> int:
                 continue
             y, mo, d = m.groups()
             iso = f"{y}-{mo}-{d}"
-            first_line = p.read_text(encoding="utf-8").splitlines()[:1]
+            first_line = p.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
             if not first_line or first_line[0].strip() != f"# {iso}":
                 log_issues.append(f"   {_rel(root_path, p)} — expected H1 '# {iso}'")
         if log_issues:
@@ -165,7 +165,7 @@ def lint(root: str) -> int:
         audit_files = [p for p in audit_path.rglob("*.md") if p.name != ".gitkeep"]
         audit_issues: list[str] = []
         for p in audit_files:
-            text = p.read_text(encoding="utf-8")
+            text = p.read_text(encoding="utf-8", errors="replace")
             fm = parse_frontmatter(text)
             rel = _rel(root_path, p)
             if fm is None:
@@ -303,7 +303,7 @@ def lint(root: str) -> int:
     if log_path and log_path.exists() and log_path.is_dir():
         for p in sorted(log_path.iterdir()):
             if p.is_file() and p.suffix == ".md":
-                log_h2_count += len(H2_RE.findall(file_cache.get(p, p.read_text(encoding="utf-8"))))
+                log_h2_count += len(H2_RE.findall(file_cache.get(p, p.read_text(encoding="utf-8", errors="replace"))))
     high_water_mark = 500
     if log_h2_count > high_water_mark:
         print(f"\n🔴 Log has {log_h2_count} H2 entries (> {high_water_mark}), consider rotation")
@@ -315,7 +315,7 @@ def lint(root: str) -> int:
     if raw_path and raw_path.exists() and raw_path.is_dir():
         for rfile in raw_path.iterdir():
             if rfile.is_file() and rfile.suffix in {".md", ".txt", ".py", ".js", ".ts", ".json", ".yaml"}:
-                content = rfile.read_text(encoding="utf-8")
+                content = rfile.read_text(encoding="utf-8", errors="replace")
                 m = SHA256_RE.search(content)
                 if m:
                     stored_hash = m.group(1)

@@ -11,7 +11,7 @@ Usage:
 import re
 
 
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
+FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
 
 
 def parse_frontmatter(text: str) -> dict | None:

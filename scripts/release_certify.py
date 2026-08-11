@@ -127,6 +127,16 @@ def gate_ts_typecheck(env: dict | None = None) -> dict:
     results = []
     packages = ["mcp-server", "graph-engine", "audit-shared"]
 
+    # mcp-server/graph-engine import @baissari/llm-wiki-shared-types whose
+    # dist/ is gitignored — build it before typechecking any consumer (fresh
+    # checkouts would otherwise fail every consumer with TS2307).
+    shared = run_command(
+        ["npx", "tsc"],
+        cwd=REPO_ROOT / "packages" / "shared-types", env=merged_env, timeout=120,
+    )
+    if shared.get("status") != "PASS":
+        results.append({"package": "shared-types (build)", **shared})
+
     for pkg in packages:
         pkg_dir = REPO_ROOT / pkg
         if not (pkg_dir / "tsconfig.json").exists():
@@ -159,6 +169,16 @@ def gate_ts_tests(env: dict | None = None) -> dict:
 
     results = []
     packages = ["mcp-server", "graph-engine"]
+
+    # mcp-server tests import ../dist/* (gitignored build output) — build the
+    # packages before running their tests on a fresh checkout.
+    for build_pkg in ("mcp-server", "graph-engine"):
+        build = run_command(
+            ["npx", "tsc"],
+            cwd=REPO_ROOT / build_pkg, env=merged_env, timeout=180,
+        )
+        if build.get("status") != "PASS":
+            results.append({"package": f"{build_pkg} (build)", **build})
 
     for pkg in packages:
         pkg_dir = REPO_ROOT / pkg

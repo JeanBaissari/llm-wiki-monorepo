@@ -148,6 +148,18 @@ def test_out_of_range_rejected():
         resolve_tuning(cli_overrides=["insights.signalScores.crossCommunity=-2"])
 
 
+def test_community_engine_validated_fail_closed():
+    """BKD-003: community.engine is enum-validated — unknown engines exit 2."""
+    with pytest.raises(ConfigError):
+        resolve_tuning(cli_overrides=["community.engine=spectral"])
+    with pytest.raises(ConfigError):
+        resolve_tuning(cli_overrides=["community.engine=42"])
+    # Valid values resolve; default is louvain (byte-identical behavior).
+    assert resolve_tuning().community.engine == "louvain"
+    assert resolve_tuning(cli_overrides=["community.engine=leiden"]).community.engine == "leiden"
+    assert resolve_tuning(cli_overrides=["community.engine=LOUVAIN"]).community.engine == "louvain"
+
+
 def test_malformed_overrides_rejected():
     with pytest.raises(ConfigError):
         resolve_tuning(cli_overrides=["retrieval.simFloor"])  # no '='

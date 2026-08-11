@@ -46,3 +46,4 @@ Thumbs.db
 _internal/
 .coverage
 reports/release-certification.json
+reports/community-engine-parity.json

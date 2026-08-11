@@ -197,8 +197,14 @@ jobs:
           cd packages/shared-types && npm run build
       - name: Run Leiden connectivity + NMI/modularity verification
         run: |
-          python3 -m pytest tests/test_leiden.py tests/test_verification.py tests/test_communities_internally_connected.py -q -m "not slow"
+          python3 -m pytest tests/test_leiden.py tests/test_verification.py tests/test_communities_internally_connected.py tests/test_community_engine_parity.py -q -m "not slow"
           python3 tests/verification/run_verification.py
+      # BKD-003/ADR-0025: the default-flip actuator — measures Leiden vs
+      # Louvain modularity + NMI on the fixture gate set and fails closed
+      # (exit 1) when the flip is not certified. Never flips on its own.
+      - name: Community-engine parity gate
+        run: |
+          PYTHONPATH=src python3 scripts/community_engine_parity.py
 
   # LWM_026: exercise the optional GLiNER backend in an isolated lane — the
   # typed-span success path (tests/test_extract.py::test_gliner_typed_spans_success_path)

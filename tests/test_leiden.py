@@ -62,6 +62,23 @@ def test_default_engine_is_louvain():
     assert _select_community_engine("nope") is louvain_detect
 
 
+def test_selector_honors_tuning_community_engine():
+    """BKD-003: the tuning surface's community.engine drives the selector."""
+    from llm_wiki.core.config import TuningConfig, resolve_tuning
+
+    assert _select_community_engine(tuning=resolve_tuning()) is louvain_detect
+    assert _select_community_engine(tuning=TuningConfig()) is louvain_detect
+    if leiden.is_leiden_available():
+        t = resolve_tuning(cli_overrides=["community.engine=leiden"])
+        assert _select_community_engine(tuning=t) is leiden.detect_communities
+    else:
+        t = resolve_tuning(cli_overrides=["community.engine=leiden"])
+        assert _select_community_engine(tuning=t) is louvain_detect  # fallback
+    # Explicit engine arg beats the tuning value.
+    t = resolve_tuning(cli_overrides=["community.engine=leiden"])
+    assert _select_community_engine("louvain", tuning=t) is louvain_detect
+
+
 def test_leiden_selector_falls_back_without_extra():
     # Selecting leiden without the extra installed must degrade to Louvain.
     if not leiden.is_leiden_available():

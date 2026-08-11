@@ -61,18 +61,26 @@ def build_graph(files, wiki_root):
     for nid, attrs in nodes.items(): attrs["degree"] = deg.get(nid, 0)
     return nodes, edges
 
-def _select_community_engine(engine: str | None = None):
+def _select_community_engine(engine: str | None = None, tuning=None):
     """Return the ``detect_communities`` callable for the selected engine.
 
-    Default is Louvain (byte-identical). Leiden (LWM_027 / ADR-0025) is opt-in via
-    ``engine="leiden"`` or ``LLM_WIKI_COMMUNITY_ENGINE=leiden`` and only when the
-    optional ``[leiden]`` extra is importable — otherwise it falls back to Louvain
-    without raising. The default is never silently flipped (gated on the ADR-0012
-    NMI/modularity gate).
+    Precedence (BKD-003): explicit ``engine`` argument > resolved tuning
+    ``community.engine`` (CLI > env > file > default on the LWM_031 surface) >
+    legacy ``LLM_WIKI_COMMUNITY_ENGINE`` env > Louvain default. Leiden
+    (LWM_027 / ADR-0025) is only selected when the optional ``[leiden]`` extra
+    is importable — otherwise it falls back to Louvain without raising. The
+    default is never silently flipped (gated on the ADR-0025 parity gate via
+    scripts/community_engine_parity.py + the committed margin baseline).
     """
     import os
 
-    name = (engine or os.environ.get("LLM_WIKI_COMMUNITY_ENGINE", "louvain")).lower()
+    name = None
+    if engine:
+        name = engine
+    elif tuning is not None:
+        name = getattr(getattr(tuning, "community", None), "engine", None)
+    name = name or os.environ.get("LLM_WIKI_COMMUNITY_ENGINE", "louvain")
+    name = str(name).lower()
     if name == "leiden":
         from llm_wiki.graph import leiden
         if leiden.is_leiden_available():
@@ -81,26 +89,28 @@ def _select_community_engine(engine: str | None = None):
 
 
 def detect_communities_for_insights(nodes, edges, engine: str | None = None,
-                                    *, resolution: float = 1.0, seed: int = 42):
+                                    *, resolution: float = 1.0, seed: int = 42,
+                                    tuning=None):
     """Community assignments via the canonical Python engine (graph/louvain.py).
 
     Replaces the former label-propagation pass so `llm-wiki insights` and the
     TypeScript graph-engine share one community-detection algorithm (LWM_024 /
     ADR-0017). Returns {node_id: community_id} renumbered size-descending — the
     same shape the old label-propagation returned, so downstream scoring is
-    unchanged. The Louvain transition warning is suppressed here because this IS
-    the intended, completed migration for insights. ``engine`` selects Louvain
-    (default) or the opt-in Leiden sidecar (LWM_027). ``resolution``/``seed`` are
-    threaded from ``community.*`` (LWM_031); Leiden consumes seed only (its
-    resolution is fixed by LWM_027's own surface), so default values are
-    byte-identical for both engines.
+    unchanged. ``engine`` selects Louvain (default) or the opt-in Leiden sidecar
+    (LWM_027); when ``engine`` is None and ``tuning`` is given,
+    ``community.engine`` from the resolved tuning surface is used (BKD-003 —
+    CLI > env > file > default). ``resolution``/``seed`` are threaded from
+    ``community.*`` (LWM_031); Leiden consumes seed only (its resolution is
+    fixed by LWM_027's own surface), so default values are byte-identical for
+    both engines.
     """
     node_list = [
         {"id": pid, "label": a["label"], "linkCount": a.get("linkCount", 0)}
         for pid, a in nodes.items()
     ]
     edge_list = [{"source": s, "target": t, "weight": 1} for s, t in edges]
-    _detect = _select_community_engine(engine)
+    _detect = _select_community_engine(engine, tuning)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         if _detect is detect_communities:  # Louvain accepts resolution
@@ -307,7 +317,7 @@ def compute_insights(wiki_root: str, connections: int = 10, gaps: int = 10,
     if tuning is None:
         tuning = TuningConfig()
     ins_cfg = tuning.insights
-    comm = detect_communities_for_insights(nodes, edges,
+    comm = detect_communities_for_insights(nodes, edges, tuning=tuning,
                                            resolution=tuning.community.resolution,
                                            seed=tuning.community.seed)
     cstats = comm_stats(edges, comm)

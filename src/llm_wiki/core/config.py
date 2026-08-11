@@ -92,6 +92,12 @@ class InsightsCfg:
 class CommunityCfg:
     resolution: float = 1.0
     seed: int = 42
+    # BKD-003: the engine selector lives on the tuning surface (default louvain;
+    # leiden only when the [leiden] extra is importable — the selector falls
+    # back to Louvain otherwise). The default-flip policy stays ADR-0025: the
+    # parity gate (scripts/community_engine_parity.py + committed margin
+    # baseline) decides, never this key alone.
+    engine: str = "louvain"
 
 
 @dataclass(frozen=True)
@@ -195,6 +201,7 @@ _VALIDATORS: "dict[str, Callable[[Any], bool]]" = {
     "insights.peripheralMaxDegree": _nonnegint, "insights.peripheralHubRatio": _unit,
     "insights.isolatedMaxDegree": _nonnegint,
     "community.resolution": _pos, "community.seed": _anyint,
+    "community.engine": lambda v: isinstance(v, str) and v.strip().lower() in ("louvain", "leiden"),
     "retrieval.rrfK": _posint, "retrieval.simFloor": _unit,
     "bm25.k1": _nonneg, "bm25.b": _unit,
     "claims.penaltyStale": _nonnegint, "claims.penaltyOpen": _nonnegint,
@@ -243,8 +250,13 @@ def _coerce(key: str, raw: Any) -> Any:
         raise ConfigError(f"unknown tuning key: {key}")
     declared = cls.__dataclass_fields__[head].type
     if isinstance(raw, str):
-        # int fields must parse as int (not float); float fields accept both.
+        # str fields pass through; int fields must parse as int (not float);
+        # float fields accept both.
+        want_str = declared in ("str", str)
         want_int = declared in ("int", int)
+        if want_str:
+            # Enum-typed str fields (community.engine) are canonical lowercase.
+            return raw.strip().lower()
         try:
             return int(raw) if want_int else float(raw)
         except ValueError:

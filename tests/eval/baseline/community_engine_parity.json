@@ -1,0 +1,61 @@
+{
+  "status": "measured",
+  "task": "community-engine-parity",
+  "generated_by": "llm_wiki.eval.community_parity.compute_parity (seed=42, resolution=1.0)",
+  "gate": {
+    "modularity_non_degradation": {
+      "leiden": 0.545731,
+      "louvain": 0.545731,
+      "tol": 1e-06,
+      "pass": true
+    },
+    "nmi_agreement_structured": {
+      "mean_nmi": 1.0,
+      "margin": 0.95,
+      "n_graphs": 5,
+      "pass": true
+    }
+  },
+  "flip_allowed": true,
+  "per_graph": [
+    {
+      "graph": "barbell",
+      "louvain_modularity": 0.545091,
+      "leiden_modularity": 0.545091,
+      "nmi": 1.0
+    },
+    {
+      "graph": "empty",
+      "note": "noise/empty graph \u2014 reported, excluded from NMI lane"
+    },
+    {
+      "graph": "random",
+      "note": "noise/empty graph \u2014 reported, excluded from NMI lane"
+    },
+    {
+      "graph": "ring_of_cliques",
+      "louvain_modularity": 0.710204,
+      "leiden_modularity": 0.710204,
+      "nmi": 1.0
+    },
+    {
+      "graph": "sbm",
+      "louvain_modularity": 0.660859,
+      "leiden_modularity": 0.660859,
+      "nmi": 1.0
+    },
+    {
+      "graph": "star",
+      "louvain_modularity": 0.2625,
+      "leiden_modularity": 0.2625,
+      "nmi": 1.0
+    },
+    {
+      "graph": "two_clique",
+      "louvain_modularity": 0.55,
+      "leiden_modularity": 0.55,
+      "nmi": 1.0
+    }
+  ],
+  "note": "Leiden-vs-Louvain parity on the committed fixture gate set. flip_allowed=True only when Leiden modularity >= Louvain AND the partitions agree (mean NMI >= margin) on structured graphs. The flip itself is a separate evidence-linked change (ADR-0025). Committed margin baseline (BKD-003, 2026-08-11): fail-on-drop against these numbers + the flip verdict."
+}

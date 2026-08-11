@@ -100,6 +100,7 @@ The graph-engine maps it into its existing `RelevanceOptions` / `InsightsOptions
 | `insights.surpriseThreshold`, `sparse*`, `bridgeCommunityMin`, `peripheral*`, `isolatedMaxDegree` | `llm-wiki insights` (`compute_insights` → `find_gaps`/`score_connections`) | `findSurprisingConnections` / `detectKnowledgeGaps` via `InsightsOptions` |
 | `insights.signalScores.*` | `score_connections` (override-only, see above) | the four signal functions in `insights.ts` |
 | `community.resolution` / `seed` | `llm-wiki insights` (Louvain via `detect_communities`) | `detectCommunities` via `LouvainOptions` (`build.ts` step 7) |
+| `community.engine` (`louvain`\|`leiden`, default `louvain`) | community-engine selector (`insights`, `summarize-communities`) — gated by the parity gate, never flips on its own | — (Python-only) |
 | `retrieval.rrfK` / `simFloor` | `llm-wiki search` hybrid; MCP sidecar `hybrid_search` (auto-resolves the wiki's `tuning.toml`) | — (Python-only) |
 | `bm25.k1` / `b` | `llm-wiki search --keyword` + hybrid fallback (Python rescoring on override) | — (Python-only) |
 | `claims.penalty*` / `failBelow` | `llm-wiki claims redteam` (health score + exit line) | — (Python-only) |

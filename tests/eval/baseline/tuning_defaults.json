@@ -6,6 +6,7 @@
   "claims.penaltyLowConf": 5,
   "claims.penaltyOpen": 10,
   "claims.penaltyStale": 2,
+  "community.engine": "louvain",
   "community.resolution": 1.0,
   "community.seed": 42,
   "insights.bridgeCommunityMin": 3,

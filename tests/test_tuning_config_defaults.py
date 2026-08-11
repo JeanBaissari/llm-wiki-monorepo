@@ -1,6 +1,6 @@
 """Defaults-snapshot golden + no-break guards for the tuning surface (LWM_031).
 
-Pins the full resolved default profile (22 scalars + 5×5 matrix + 5 signal
+Pins the full resolved default profile (23 scalars + 5×5 matrix + 5 signal
 scores) to a committed golden file so any default change fails CI (PRD §Defaults
 Freeze), and proves the Python consumers behave byte-identically when threaded
 with the resolved-default config vs nothing at all.
@@ -23,7 +23,7 @@ def test_defaults_snapshot_golden():
     golden = json.loads(BASELINE.read_text(encoding="utf-8"))
     resolved = resolve_tuning().to_flat()
     assert resolved == golden
-    assert len(resolved) == 22 + 25 + 5  # 22 scalars + 5×5 matrix + 5 signals
+    assert len(resolved) == 23 + 25 + 5  # 23 scalars + 5×5 matrix + 5 signals
     assert len(golden) == len(resolved)
 
 

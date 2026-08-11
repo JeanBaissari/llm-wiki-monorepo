@@ -540,6 +540,18 @@ def main() -> int:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
+    # BKD-003: community engine resolution — explicit --engine flag wins,
+    # else the resolved tuning surface community.engine (CLI > env > file >
+    # default), else louvain.
+    from llm_wiki.core.config import ConfigError, resolve_tuning
+
+    try:
+        tuning = resolve_tuning(args.wiki_root)
+    except ConfigError as e:
+        print(f"config error: {e}", file=sys.stderr)
+        return 2
+    engine = args.engine or tuning.community.engine
+
     from llm_wiki.operation import OperationContext
 
     with OperationContext("summarize_communities", wiki_root=args.wiki_root,
@@ -548,7 +560,7 @@ def main() -> int:
         stats = summarize_communities(
             args.wiki_root, max_communities=args.max_communities, levels=args.levels,
             provider=args.provider, model=args.model, force=args.force,
-            dry_run=args.dry_run, engine=args.engine,
+            dry_run=args.dry_run, engine=engine,
             include_derived=args.include_derived,
         )
         ctx.succeed()

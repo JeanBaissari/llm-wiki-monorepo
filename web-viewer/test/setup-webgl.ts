@@ -42,3 +42,10 @@ if (typeof (globalThis as Record<string, unknown>).WebGL2RenderingContext === "u
 if (typeof (globalThis as Record<string, unknown>).WebGLRenderingContext === "undefined") {
   (globalThis as Record<string, unknown>).WebGLRenderingContext = webglEnums;
 }
+
+// d3-drag reads `navigator.maxTouchPoints` when a drag behavior is created
+// (renderGraph -> nodeSel.call(dragBehavior)); `navigator` only exists on
+// Node 21+, so CI (Node 18) throws ReferenceError without this stub.
+if (typeof (globalThis as Record<string, unknown>).navigator === "undefined") {
+  (globalThis as Record<string, unknown>).navigator = { maxTouchPoints: 0, userAgent: "vitest" };
+}

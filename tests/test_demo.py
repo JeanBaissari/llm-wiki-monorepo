@@ -14,6 +14,7 @@ Verification contract (from LWM_036):
 All tests are hermetic (tmp dirs only; no node, no [semantic] extra).
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -36,7 +37,9 @@ GRAPH_ARTIFACT = "graph-data.json"
 
 
 def _relpath_set(root: Path) -> set[str]:
-    return {str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()}
+    # Forward slashes on every platform so the byte-identity + cache checks are
+    # OS-independent (Windows Path.relative_to yields backslashes).
+    return {str(p.relative_to(root)).replace(os.sep, "/") for p in root.rglob("*") if p.is_file()}
 
 
 class TestDemoFixture:

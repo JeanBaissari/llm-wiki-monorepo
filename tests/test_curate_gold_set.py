@@ -41,12 +41,12 @@ def _copy_gold_fixture(tmp_path: Path) -> Path:
     fixture = tmp_path / "fixture"
     dst = fixture / "tests" / "eval" / "gold"
     dst.mkdir(parents=True)
-    (dst / "search_goldset.json").write_text(GOLDSET.read_text(encoding="utf-8"),
-                                             encoding="utf-8")
-    (dst / "split_manifest.json").write_text(MANIFEST.read_text(encoding="utf-8"),
-                                             encoding="utf-8")
-    (dst / "growth_meta.json").write_text(GROWTH_META.read_text(encoding="utf-8"),
-                                          encoding="utf-8")
+    # Copy BYTES (read_bytes/write_bytes): Path.write_text translates `\n` to
+    # `\r\n` on Windows, which would change search_goldset.json's bytes and so
+    # its SHA256 — breaking the freeze idempotency this fixture must preserve.
+    (dst / "search_goldset.json").write_bytes(GOLDSET.read_bytes())
+    (dst / "split_manifest.json").write_bytes(MANIFEST.read_bytes())
+    (dst / "growth_meta.json").write_bytes(GROWTH_META.read_bytes())
     return fixture
 
 

@@ -19,6 +19,8 @@
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "express": "^4.19.2",
+    "graphology": "^0.26.0",
+    "sigma": "^3.0.0",
     "js-yaml": "^4.1.0",
     "katex": "^0.16.10",
     "markdown-it": "^14.1.0",

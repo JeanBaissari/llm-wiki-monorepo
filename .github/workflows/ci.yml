@@ -171,6 +171,30 @@ jobs:
         run: |
           python3 -m pytest tests/test_search_eval_gate.py tests/eval/test_real_wiki_gate.py -q -m "not slow"
 
+  # Lane-X (§7.8): durable cross-platform hardening regression suite. The CI
+  # green-up rounds fixed real platform bugs (macOS /var symlink indexing,
+  # Windows cp1252/CRLF, forward-slash path normalization, os.replace atomic
+  # writes, UTF-8 stdout reconfigure) — this lane runs the regression file
+  # that locks each one in, on every OS, so they can't silently regress.
+  cross-platform-edge:
+    name: Cross-platform edge cases (Lane-X)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test deps
+        run: pip install -e ".[dev,test]"
+      - name: Run cross-platform edge-case suite
+        env:
+          PYTHONPATH: src
+        run: python3 -m pytest tests/test_cross_platform_edge.py -q
+
   # LWM_027/ADR-0025: exercise the optional Leiden engine in an isolated lane —
   # per-component hierarchical_leiden (AD-18), the B4/B6 hierarchy seam, and the
   # ADR-0012 Leiden-vs-Louvain NMI/modularity gate data (AD-5) — so the base

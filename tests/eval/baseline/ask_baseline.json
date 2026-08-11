@@ -1,0 +1,28 @@
+{
+  "task": "ask-qa",
+  "split": "gate",
+  "tolerance": 1e-06,
+  "k": 10,
+  "hybrid": {
+    "mode": "hybrid",
+    "precision_at_k": {
+      "1": 1.0,
+      "3": 1.0,
+      "5": 0.9
+    },
+    "negative_pass_rate": 1.0,
+    "n": 6
+  },
+  "keyword": {
+    "mode": "keyword",
+    "precision_at_k": {
+      "1": 1.0,
+      "3": 1.0,
+      "5": 0.8
+    },
+    "negative_pass_rate": 1.0,
+    "n": 6
+  },
+  "generated_by": "llm_wiki.eval.ask_baseline.compute_ask_baseline (embedder=concept, k=10)",
+  "note": "Freeze of the LWM_033 ask-eval gate on the held-out GATE split: citation precision@k over the deterministic retrieval context (hybrid via the concept embedder + summary-aware rerank), never the LLM call. Hybrid (the ask default) >= keyword at every k; gibberish negatives stay empty. Fail-on-drop asserted by tests/test_ask_eval.py."
+}

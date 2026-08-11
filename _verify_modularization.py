@@ -178,9 +178,11 @@ check("AC-05.4: main.ts exists", file_exists("mcp-server/src/main.ts"))
 check("AC-05.5: package.json main = dist/main.js", grep_file_count('"main": \".*main.js\"', "mcp-server/package.json") >= 1)
 check("AC-05.6: TypeScript typecheck", ts_typecheck())
 
-# Tool count verification
+# Tool count verification. Counts distinct tool names in TOOL_DEFINITIONS (each
+# name appears exactly twice in registry.ts: the definition + the dispatch case,
+# so 15 tools = 30 occurrences). LWM_033 added llm_wiki_ask (14 -> 15 tools).
 tool_count = grep_file_count('"llm_wiki_', "mcp-server/src/registry.ts")
-check(f"AC-05.9: 14 tool names preserved (found {tool_count})", tool_count == 14)
+check(f"AC-05.9: 15 tool names preserved (found {tool_count})", tool_count == 30)
 
 # ══════════════════════════════════════════════════════════════════════════
 print(f"\n{'='*50}")

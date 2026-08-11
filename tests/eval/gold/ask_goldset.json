@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "task": "ask-qa",
+  "note": "question -> expected cited page stems for the LWM_033 'ask this wiki' command, over the deterministic ask gold wiki (SEARCH_GOLD_PAGES + one community-summary page per topic lane). Distinct from the search gold set (retrieval-only labels): ask labels certify the grounded CITED pages. Scored by citation precision@k on the deterministic retrieval context (never the LLM call). Disjoint tune/gate; gibberish negatives must return empty. See tests/eval/gold/GOLD_SET.md and ADR-0029.",
+  "items": [
+    {"question": "What is deep learning?", "relevant": ["community_ml", "deep_learning", "layers", "backpropagation"], "split": "tune", "kind": "positive"},
+    {"question": "How do transformers use attention?", "relevant": ["community_attn", "self_attention", "transformer"], "split": "tune", "kind": "positive"},
+    {"question": "What is espresso?", "relevant": ["community_bev", "espresso", "latte", "caffeine", "coffee"], "split": "tune", "kind": "positive"},
+    {"question": "Explain backpropagation.", "relevant": ["community_ml", "backpropagation", "gradient_descent", "neural_network", "layers", "deep_learning"], "split": "tune", "kind": "positive"},
+    {"question": "What is memory management?", "relevant": ["community_sys", "memory_management", "caching"], "split": "tune", "kind": "positive"},
+    {"question": "What is the transformer encoder?", "relevant": ["community_attn", "encoder", "transformer", "positional_encoding"], "split": "tune", "kind": "positive"},
+    {"question": "What does the wiki say about neural networks?", "relevant": ["community_ml", "neural_network", "backpropagation", "layers", "deep_learning", "gradient_descent"], "split": "gate", "kind": "positive"},
+    {"question": "How does attention work in sequences?", "relevant": ["community_attn", "self_attention", "transformer", "encoder", "positional_encoding"], "split": "gate", "kind": "positive"},
+    {"question": "What is coffee?", "relevant": ["community_bev", "coffee", "caffeine", "latte", "espresso"], "split": "gate", "kind": "positive"},
+    {"question": "What does the wiki say about caching?", "relevant": ["community_sys", "caching", "memory_management"], "split": "gate", "kind": "positive"},
+    {"question": "zzzznonexistentqqq wut", "relevant": [], "split": "gate", "kind": "negative"},
+    {"question": "quantum computing", "relevant": [], "split": "gate", "kind": "negative"}
+  ]
+}

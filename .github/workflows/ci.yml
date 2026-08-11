@@ -320,6 +320,11 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
+      # npm --workspaces build order is NOT reliably topological — build the
+      # shared-types dist explicitly first (consumers tsc against it).
+      - name: Build shared-types first
+        run: cd packages/shared-types && npm run build
+
       - name: Build TypeScript packages
         run: npm run build --workspaces --if-present
 

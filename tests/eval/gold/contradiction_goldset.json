@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "task": "contradiction-detection",
+  "note": "known-contradictory claim pairs + near-miss negatives for the LWM_034 deterministic detector, labelled against the synthetic gold wiki built by llm_wiki.eval.contradiction_baseline.build_contradiction_gold_wiki. Pairs are (page, subject, predicate, object, polarity) claim signatures exactly as the extractor emits them. expected=true pairs must be detected; expected=false pairs (unit-normalized equality, consistency, distinct subjects, single claim) must NOT be detected. Every detection on the gold wiki is labelled, so precision is well-defined; the held-out GATE split is the fail-on-drop recall/precision metric (ADR-0022).",
+  "items": [
+    {
+      "family": "numeric-value",
+      "expected": true,
+      "split": "tune",
+      "kind": "positive",
+      "pair": [
+        {"page": "server-a", "subject": "server cache", "predicate": "has", "object": "3.2 MB of cache", "polarity": "pos"},
+        {"page": "server-b", "subject": "server cache", "predicate": "has", "object": "4.0 MB of cache", "polarity": "pos"}
+      ]
+    },
+    {
+      "family": "exclusive-category",
+      "expected": true,
+      "split": "tune",
+      "kind": "positive",
+      "pair": [
+        {"page": "flag-a", "subject": "feature flag", "predicate": "is", "object": "enabled", "polarity": "pos"},
+        {"page": "flag-b", "subject": "feature flag", "predicate": "is", "object": "disabled", "polarity": "pos"}
+      ]
+    },
+    {
+      "family": "polarity",
+      "expected": true,
+      "split": "gate",
+      "kind": "positive",
+      "pair": [
+        {"page": "apollo-a", "subject": "apollo 11", "predicate": "is", "object": "the first crewed mission to land on the Moon", "polarity": "pos"},
+        {"page": "apollo-b", "subject": "apollo 11", "predicate": "is", "object": "the first crewed mission to land on the Moon", "polarity": "neg"}
+      ]
+    },
+    {
+      "family": "numeric-value-ms-s",
+      "expected": true,
+      "split": "gate",
+      "kind": "positive",
+      "pair": [
+        {"page": "latency-a", "subject": "latency budget", "predicate": "is", "object": "500 ms", "polarity": "pos"},
+        {"page": "latency-b", "subject": "latency budget", "predicate": "is", "object": "2 s", "polarity": "pos"}
+      ]
+    },
+    {
+      "family": "unit-normalization",
+      "expected": false,
+      "split": "tune",
+      "kind": "negative",
+      "pair": [
+        {"page": "size-a", "subject": "cache size", "predicate": "is", "object": "3.2 MB", "polarity": "pos"},
+        {"page": "size-b", "subject": "cache size", "predicate": "is", "object": "3.2 MiB", "polarity": "pos"}
+      ]
+    },
+    {
+      "family": "distinct-subjects",
+      "expected": false,
+      "split": "tune",
+      "kind": "negative",
+      "pair": [
+        {"page": "diffsub-a", "subject": "alpha system", "predicate": "is", "object": "a database", "polarity": "pos"},
+        {"page": "diffsub-b", "subject": "beta system", "predicate": "is", "object": "a database", "polarity": "pos"}
+      ]
+    },
+    {
+      "family": "consistency",
+      "expected": false,
+      "split": "gate",
+      "kind": "negative",
+      "pair": [
+        {"page": "dup-a", "subject": "version number", "predicate": "is", "object": "1.0", "polarity": "pos"},
+        {"page": "dup-b", "subject": "version number", "predicate": "is", "object": "1.0", "polarity": "pos"}
+      ]
+    },
+    {
+      "family": "single-claim",
+      "expected": false,
+      "split": "gate",
+      "kind": "negative",
+      "pair": [
+        {"page": "solo", "subject": "standalone fact", "predicate": "is", "object": "a unique statement", "polarity": "pos"}
+      ]
+    }
+  ]
+}

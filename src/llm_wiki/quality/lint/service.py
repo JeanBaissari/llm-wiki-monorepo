@@ -275,6 +275,22 @@ def lint(root: str) -> int:
         fm = fm_cache.get(md_file)
         if fm and (fm.get("contested") == "true" or fm.get("contradictions")):
             contradiction_pages.append(_rel(root_path, md_file))
+
+    # LWM_034: extend the existing "contradiction signals" output with the
+    # deterministic detector's suggest-only findings (no writes). Same output
+    # shape — relative page paths under the same header — so the
+    # validate_fixtures "contradiction signals" seed matching stays green.
+    try:
+        from llm_wiki.quality.contradictions import lint_contradictions
+        for rel in lint_contradictions(root):
+            if rel not in contradiction_pages:
+                contradiction_pages.append(rel)
+    except Exception:
+        # The detector is suggest-only; it must never break lint on a wiki it
+        # cannot analyze (malformed layout, pathological prose).
+        pass
+
+    contradiction_pages.sort()
     if contradiction_pages:
         print(f"\n🔴 Pages with contradictions ({len(contradiction_pages)}):")
         for s in contradiction_pages:

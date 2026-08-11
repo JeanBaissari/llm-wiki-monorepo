@@ -46,6 +46,25 @@ describe("Web Viewer Routes", () => {
     expect(mod).toBeDefined();
   });
 
+  it("derived route handler imports cleanly", async () => {
+    const mod = await import("../server/routes/derived.js");
+    expect(mod).toBeDefined();
+    expect(typeof mod.handleDerivedGraph).toBe("function");
+    expect(typeof mod.loadDerivedEdges).toBe("function");
+  });
+
+  it("export route handler imports cleanly", async () => {
+    const mod = await import("../server/routes/exports.js");
+    expect(mod).toBeDefined();
+    expect(typeof mod.handleExport).toBe("function");
+  });
+
+  it("index.ts mounts the derived and export routes", async () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "server", "index.ts"), "utf-8");
+    expect(source).toContain('/api/graph/derived", handleDerivedGraph(cfg)');
+    expect(source).toContain('/api/graph/export", handleExport(cfg)');
+  });
+
   it("audit route handler imports cleanly", async () => {
     const mod = await import("../server/routes/audit.js");
     expect(mod).toBeDefined();

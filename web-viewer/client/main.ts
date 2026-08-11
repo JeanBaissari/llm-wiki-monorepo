@@ -2,7 +2,8 @@ import mermaid from "mermaid";
 import type { AuditEntry } from "audit-shared";
 import { renderTree } from "./tree.js";
 import { installFeedbackUI } from "./feedback.js";
-import { renderGraph, type GraphData, type GraphNode } from "./graph.js";
+import { renderDerivedOverlay, type GraphData, type GraphNode, type DerivedOverlayData } from "./graph.js";
+import { SigmaView } from "./sigma-view.js";
 import { ParticleField } from "./particles.js";
 
 interface PageResponse {
@@ -142,11 +143,36 @@ async function main() {
 
   // Graph toggle.
   const graphOverlay = document.getElementById("graph-overlay")!;
+  const svgWrap = document.getElementById("graph-svg-wrap")!;
+  const sigmaWrap = document.getElementById("graph-sigma-wrap")!;
+  const sigmaContainer = document.getElementById("graph-sigma-container")!;
   const codeToggle = document.getElementById("code-toggle") as HTMLInputElement;
   const codeToggleWrap = document.getElementById("code-toggle-wrap")!;
+  const derivedToggle = document.getElementById("derived-toggle") as HTMLInputElement;
   const legendCode = document.getElementById("legend-code")!;
   const legendCross = document.getElementById("legend-cross")!;
+  const legendDerived = document.getElementById("legend-derived")!;
+  const legendDerivedSigma = document.getElementById("legend-derived-sigma")!;
+  const viewSvgBtn = document.getElementById("view-svg") as HTMLButtonElement;
+  const viewWebglBtn = document.getElementById("view-webgl") as HTMLButtonElement;
   let codeGraphData: GraphData | null = null;
+  let derivedData: DerivedOverlayData | null = null;
+  let derivedFetched = false;
+  let renderMode: "svg" | "webgl" = "svg";
+
+  // Fetch the derived layer lazily on first enable. Absent/erroring layer ⇒
+  // no overlay, never a crash.
+  const fetchDerived = async (): Promise<void> => {
+    if (derivedFetched) return;
+    derivedFetched = true;
+    try {
+      const resp = await fetch("/api/graph/derived");
+      const payload = (await resp.json()) as DerivedOverlayData;
+      derivedData = payload.available ? payload : null;
+    } catch {
+      derivedData = null;
+    }
+  };
 
   const openGraph = async () => {
     graphOverlay.classList.remove("hidden");
@@ -157,7 +183,10 @@ async function main() {
     const svg = document.getElementById("graph-svg") as unknown as SVGSVGElement;
     const canvas = document.getElementById("graph-particles") as HTMLCanvasElement;
 
-    if (state.graphTeardown) state.graphTeardown();
+    if (state.graphTeardown) {
+      state.graphTeardown();
+      state.graphTeardown = null;
+    }
 
     const particles = new ParticleField(canvas, 95);
     particles.start();
@@ -199,24 +228,58 @@ async function main() {
       return merged;
     };
 
+    const updateViewButtons = () => {
+      viewSvgBtn.classList.toggle("active", renderMode === "svg");
+      viewWebglBtn.classList.toggle("active", renderMode === "webgl");
+    };
+
     const renderFn = () => {
       if (state.graphTeardown) {
         state.graphTeardown();
         state.graphTeardown = null;
       }
       const graphData = renderWithCode(codeToggle.checked);
-      const teardownGraph = renderGraph(svg, graphData, {
-        onNodeClick: (node: GraphNode) => {
-          closeGraph();
-          void loadPage(node.path);
-          history.pushState({ page: node.path }, "", `/?page=${encodeURIComponent(node.path)}`);
-        },
-      });
+      const derivedEnabled = derivedToggle.checked;
+      const onNodeClick = (node: GraphNode) => {
+        closeGraph();
+        void loadPage(node.path);
+        history.pushState({ page: node.path }, "", `/?page=${encodeURIComponent(node.path)}`);
+      };
+
+      if (renderMode === "webgl") {
+        svgWrap.classList.add("hidden");
+        sigmaWrap.classList.remove("hidden");
+        let view: SigmaView | null = null;
+        try {
+          view = new SigmaView(sigmaContainer, graphData, derivedData, derivedEnabled, { onNodeClick });
+        } catch (err) {
+          console.error("WebGL graph view unavailable, falling back to SVG", err);
+          renderMode = "svg";
+          updateViewButtons();
+        }
+        if (renderMode === "webgl" && view) {
+          const v = view;
+          state.graphTeardown = () => {
+            particles.stop();
+            v.destroy();
+          };
+          legendDerivedSigma.classList.toggle("hidden", !(derivedEnabled && derivedData));
+          legendCode.classList.toggle("hidden", !codeToggle.checked);
+          legendCross.classList.toggle("hidden", !codeToggle.checked);
+          return;
+        }
+        // fall through to SVG when WebGL is unavailable
+      }
+
+      svgWrap.classList.remove("hidden");
+      sigmaWrap.classList.add("hidden");
+      const teardownGraph = renderDerivedOverlay(svg, graphData, derivedData, derivedEnabled, { onNodeClick });
       state.graphTeardown = () => {
         particles.stop();
         teardownGraph();
       };
-      // Show/hide code legend items
+      // Show/hide legend items
+      legendDerived.classList.toggle("hidden", !(derivedEnabled && derivedData));
       legendCode.classList.toggle("hidden", !codeToggle.checked);
       legendCross.classList.toggle("hidden", !codeToggle.checked);
     };
@@ -226,11 +289,21 @@ async function main() {
     codeToggle.onchange = () => {
       renderFn();
     };
-
-    state.graphTeardown = () => {
-      particles.stop();
-      // We'll set a new teardown in renderFn
+    derivedToggle.onchange = () => {
+      void fetchDerived().then(renderFn);
     };
+    viewSvgBtn.addEventListener("click", () => {
+      if (renderMode === "svg") return;
+      renderMode = "svg";
+      updateViewButtons();
+      renderFn();
+    });
+    viewWebglBtn.addEventListener("click", () => {
+      if (renderMode === "webgl") return;
+      renderMode = "webgl";
+      updateViewButtons();
+      renderFn();
+    });
   };
   const closeGraph = () => {
     graphOverlay.classList.add("hidden");

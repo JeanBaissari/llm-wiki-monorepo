@@ -25,6 +25,7 @@ SRC_DIR = REPO_ROOT / "src"
 sys.path.insert(0, str(SRC_DIR))
 
 from llm_wiki.ops.serve import resolve_server_entry
+import llm_wiki.ops.serve as serve
 
 MCP_SERVER_DIR = REPO_ROOT / "mcp-server"
 
@@ -96,6 +97,138 @@ class TestServeHelp:
         )
         assert result.returncode == 0
         assert "Start the MCP server" in result.stdout
+
+    def test_help_lists_build_flag(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "llm_wiki", "serve", "--help"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(REPO_ROOT),
+            env=_env_with_src(),
+        )
+        assert result.returncode == 0
+        assert "Start the MCP server" in result.stdout
+        assert "--build" in result.stdout
+
+
+class _FakeProc:
+    """Minimal stand-in for a subprocess.Popen child that already exited 0."""
+
+    def __init__(self, returncode=0):
+        self.returncode = returncode
+
+    def poll(self):
+        return self.returncode
+
+    def send_signal(self, signum):
+        pass
+
+    def wait(self, timeout=None):
+        return self.returncode
+
+    def kill(self):
+        pass
+
+
+class _FakeRunResult:
+    def __init__(self, returncode=0, stdout="", stderr=""):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+class TestServeBuildFlag:
+    """Unit tests for the missing-dist error message + `--build` flag.
+
+    These patch REPO_ROOT / dist existence / shutil.which / the subprocess seam
+    so they run with or without a real mcp-server dist (no real server spawns).
+    """
+
+    def _call_main(self, monkeypatch, tmp_path, *args, repo_root=None):
+        monkeypatch.setattr(serve, "REPO_ROOT", repo_root or tmp_path)
+        monkeypatch.setattr(sys, "argv", ["llm-wiki serve", str(tmp_path / "wiki")] + list(args))
+        return serve.main()
+
+    def test_serve_missing_dist_error_message(self, tmp_path, monkeypatch, capsys):
+        rc = self._call_main(monkeypatch, tmp_path)
+        captured = capsys.readouterr()
+        server_path = tmp_path / "mcp-server"
+        assert rc == 1
+        assert f"cd {server_path} && npm run build" in captured.err
+        assert "bash install.sh" in captured.err
+        assert "llm-wiki setup" in captured.err
+        assert "dist/main.js" in captured.err
+
+    def test_serve_build_flag_node_missing(self, tmp_path, monkeypatch, capsys):
+        monkeypatch.setattr(serve.shutil, "which", lambda _name: None)
+        build_run = []
+        monkeypatch.setattr(serve.subprocess, "run", lambda *a, **k: build_run.append(a))
+        rc = self._call_main(monkeypatch, tmp_path, "--build")
+        captured = capsys.readouterr()
+        assert rc == 1
+        assert "Node.js 18+" in captured.err
+        assert "bash install.sh" in captured.err
+        assert build_run == [], "no build subprocess should run when node is absent"
+
+    def test_serve_build_flag_builds_then_serves(self, tmp_path, monkeypatch, capsys):
+        server_path = tmp_path / "mcp-server"
+        (server_path / "node_modules").mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(serve.shutil, "which", lambda _name: "/usr/bin/node")
+
+        build_calls = []
+        monkeypatch.setattr(
+            serve.subprocess, "run",
+            lambda cmd, cwd=None, capture_output=False, text=False, **kw: (
+                build_calls.append((list(cmd), cwd)),
+                _FakeRunResult(),
+            )[1],
+        )
+        launched = {}
+        monkeypatch.setattr(
+            serve.subprocess, "Popen",
+            lambda cmd, cwd=None: (launched.update(cmd=list(cmd), cwd=cwd), _FakeProc())[1],
+        )
+
+        rc = self._call_main(monkeypatch, tmp_path, "--build")
+        assert rc == 0
+        assert build_calls == [(["npm", "run", "build"], str(server_path))]
+        assert launched["cwd"] == str(server_path)
+        assert launched["cmd"][0] == "node"
+        assert "dist" in launched["cmd"][1]
+
+    def test_serve_dist_present_no_build(self, tmp_path, monkeypatch, capsys):
+        server_path = tmp_path / "mcp-server"
+        dist = server_path / "dist" / "main.js"
+        dist.parent.mkdir(parents=True)
+        dist.write_text("// built")
+
+        run_calls = []
+        monkeypatch.setattr(
+            serve.subprocess, "run",
+            lambda cmd, cwd=None, capture_output=False, text=False, **kw: (
+                run_calls.append(list(cmd)),
+                _FakeRunResult(),
+            )[1],
+        )
+        launched = {}
+        monkeypatch.setattr(
+            serve.subprocess, "Popen",
+            lambda cmd, cwd=None: (launched.update(cmd=list(cmd)), _FakeProc())[1],
+        )
+
+        rc = self._call_main(monkeypatch, tmp_path, "--build")
+        assert rc == 0
+        assert run_calls == [], "dist present: --build is a no-op, no build runs"
+        assert launched["cmd"][0] == "node"
+
+        # Default (no --build) with dist present behaves exactly the same.
+        launched.clear()
+        rc = self._call_main(monkeypatch, tmp_path)
+        assert rc == 0
+        assert run_calls == []
+        assert launched["cmd"][0] == "node"
+
 
 
 @_NEEDS_MCP_BUILD

@@ -69,6 +69,54 @@ It's everything needed to run a self-building wiki in one monorepo: a Python CLI
 
 ---
 
+## Five ways to run this
+
+One repo, five entry surfaces — all reading and writing the same `wiki/` directory. Pick the one that fits your setup.
+
+### 1. CLI (Python package)
+
+```bash
+pip install baissarienterprises-llm-wiki
+llm-wiki search ~/my-wiki "attention"
+```
+
+Scripts, CI, and humans get the full command surface — run `llm-wiki <command> --help` to explore. See the [CLI reference](docs/reference/cli.md).
+
+### 2. MCP server (any MCP client)
+
+```bash
+npx llm-wiki-mcp --wiki ~/my-wiki
+claude mcp add llm-wiki -- npx llm-wiki-mcp --wiki ~/my-wiki
+```
+
+Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) via 14 stdio tools. Register it with `claude mcp add`, the opencode `.mcp.json` form, or your client's equivalent. Requires a built mcp-server: `cd mcp-server && npm run build` (or `bash install.sh`). See the [MCP tools reference](docs/reference/mcp-tools.md).
+
+### 3. Hermes skill (in-conversation agent workflow)
+
+```bash
+ln -sf /path/to/llm-wiki-monorepo/skill ~/.hermes/skills/research/llm-wiki
+```
+
+Loads the 8-operation skill for Claude/Hermes sessions — agent-native, no API keys needed. See [skill/SKILL.md](skill/SKILL.md).
+
+### 4. Cron / automation
+
+```bash
+0 3 * * * cd ~/wikis/my-project && llm-wiki ingest raw/ --provider opencode
+```
+
+Schedule maintenance like ingest, lint, or backup. `portalocker` advisory locks make concurrent agent runs safe — multiple agents or CI jobs can operate on the same wiki without corrupting pages. See the [concurrency reference](skill/references/concurrency.md) and the [quickstart](docs/getting-started/quickstart.md).
+
+### 5. Web preview (local browsing)
+
+```bash
+llm-wiki serve ~/my-wiki
+```
+
+Opt-in local preview server for human browsing (mermaid, KaTeX, audit feedback). Local-only by default — see the [security boundary](docs/operations/security-and-boundaries.md) before exposing it. See the [CLI reference](docs/reference/cli.md).
+
+---
+
 
 ## Features
 
@@ -216,6 +264,7 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 | `docs/reference/file-map.md` | Complete file tree with descriptions |
 | `docs/reference/tuning.md` | Tuning config surface — every constant, precedence, emit boundary |
 | `docs/operations/` | Operations runbooks — hybrid-default search migration note, index |
+| `docs/operations/security-and-boundaries.md` | Per-wiki auth/visibility boundary — filesystem + git permissions, no network surface |
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
 | `docs/architecture/overview.md` | Why this system exists — design philosophy and goals |
 | `docs/adr/` | Architecture Decision Records — ADRs 0001–0028 + index + decision register |

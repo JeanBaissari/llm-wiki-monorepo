@@ -202,7 +202,7 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
 5. **BKD-006 web-viewer derived overlay + Sigma.js** — makes the quarantined layer visible.
 6. **PRD review protocol pass** for LWM_033/034 (REVIEW_PROTOCOL checklists, Evidence Matrices already drafted).
 7. **Search gold-set standing procedure** — per-minor curation loop (the BKD-002 open question), so the gate keeps growing.
-8. **A landing README section "5 ways to run this"** (CLI / MCP / skill / cron / web) — currently the README is thorough but not onboarding-shaped.
+8. **A landing README section "5 ways to run this"** (CLI / MCP / skill / cron / web) — currently the README is thorough but not onboarding-shaped. **Now delivered (LWM_039 §D):** see README.md → *[Five ways to run this](README.md#five-ways-to-run-this)* for the five surfaces.
 
 ---
 

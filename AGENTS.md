@@ -238,6 +238,14 @@ ln -sf /path/to/llm-wiki-monorepo/skill ~/.hermes/skills/research/llm-wiki
 
 The EOW cron job loads this skill automatically. Changes to `skill/SKILL.md` or `skill/scripts/` propagate immediately — no restart needed.
 
+## Security & trust boundary
+
+Per-wiki auth/visibility is the **filesystem + git permissions** — there is no
+per-wiki auth layer, and none is planned. The MCP server is stdio-local (no
+network listeners); the web preview (`llm-wiki serve`) is opt-in local-only.
+Never commit `.env` or secrets into a wiki repo. See
+[`docs/operations/security-and-boundaries.md`](docs/operations/security-and-boundaries.md).
+
 ## External Dependencies
 
 - **graphology** + **graphology-communities-louvain** — graph-engine only. Pure JS, no native deps.

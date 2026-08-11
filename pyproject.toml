@@ -91,6 +91,12 @@ ner = ["gliner>=0.2.13", "onnxruntime>=1.17"]
 # Leiden community detection (LWM_027/ADR-0025): graspologic is MIT (chosen over
 # GPLv3 leidenalg). Optional; the community engine falls back to Louvain without it.
 leiden = ["graspologic>=3.4", "networkx>=3.0"]
+# v0.6.0/LWM_037: the recommended-extras profile — the one documented answer to
+# "which extras should I install?". A pure aggregation extra (additive; the base
+# install stays lexical-only). Deliberately EXCLUDES ner (torch/native weight —
+# gliner imports torch at package import), eval, dev, test. Install with:
+#     pip install -e ".[recommended]"
+recommended = ["semantic", "leiden", "entity-resolution"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

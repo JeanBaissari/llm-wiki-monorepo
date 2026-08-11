@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "task": "confidence-scoring",
+  "note": "page -> gold confidence label for the LWM_034 deterministic confidence scorer, labelled against the synthetic gold wiki built by llm_wiki.eval.contradiction_baseline.build_contradiction_gold_wiki. Gold labels encode the intended signal profile: 3 resolvable recent sources -> high; 2 sources (one unresolvable) older -> medium; 1 unresolvable source, stale -> low; no sources/updated -> low (never high). Disjoint tune/gate; gate is the fail-on-drop accuracy metric (ADR-0022).",
+  "items": [
+    {"page": "well-evidenced", "gold": "high", "split": "tune", "kind": "positive"},
+    {"page": "moderately-evidenced", "gold": "medium", "split": "tune", "kind": "positive"},
+    {"page": "thinly-evidenced", "gold": "low", "split": "tune", "kind": "positive"},
+    {"page": "no-evidence", "gold": "low", "split": "gate", "kind": "no-evidence"},
+    {"page": "well-evidenced-2", "gold": "high", "split": "gate", "kind": "positive"},
+    {"page": "moderately-evidenced-2", "gold": "medium", "split": "gate", "kind": "positive"},
+    {"page": "thinly-evidenced-2", "gold": "low", "split": "gate", "kind": "positive"}
+  ]
+}

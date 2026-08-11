@@ -17,6 +17,11 @@ the base graph/link output is byte-identical). The GLiNER backend
 GLiNER output is *advisory* to LWM_025: a cleaner, typed candidate set still
 subject to the two-signal auto-merge rule. Zero-shot extraction is never the sole
 basis for a merge (ADR-0021 / ADR-0024).
+
+LWM_037: ``LLM_WIKI_GLINER_MODEL`` points the gliner backend at a cached model
+directory (no re-download); when that env is set and torch is NOT importable, the
+``gliner`` / ``gliner-onnx`` backends route through the torch-free ONNX runner
+(``semantic/ner_onnx.py``) instead — base installs keep the regex path.
 """
 
 from __future__ import annotations
@@ -31,6 +36,10 @@ from llm_wiki.core.logging import warn
 # Default entity types for zero-shot extraction; operator-overridable later
 # (LWM_026 open question — per-template type lists).
 DEFAULT_ENTITY_LABELS = ("person", "organization", "location", "concept", "model", "method")
+
+# Pinned GLiNER model id. Overridable via LLM_WIKI_GLINER_MODEL (a cached model
+# directory) so local runs and CI use identical weights without re-downloading.
+DEFAULT_GLINER_MODEL_ID = "urchade/gliner_small-v2.1"
 
 
 @dataclass(frozen=True)
@@ -104,8 +113,11 @@ class GLiNERExtractor(EntityExtractor):
 
     name = "gliner"
 
-    def __init__(self, model_id: str = "urchade/gliner_small-v2.1") -> None:
-        self.model_id = model_id
+    def __init__(self, model_id: Optional[str] = None) -> None:
+        # LLM_WIKI_GLINER_MODEL: point GLiNER.from_pretrained at a cached model
+        # directory (LWM_037 model-cache convention) so a torch-present local
+        # install avoids re-downloading the 582 MB checkpoint.
+        self.model_id = model_id or os.environ.get("LLM_WIKI_GLINER_MODEL") or DEFAULT_GLINER_MODEL_ID
         self._model = None
         self._load_failed = False
         self._failure_logged = False
@@ -173,16 +185,45 @@ def detect_default_extractor() -> str:
     return os.environ.get("LLM_WIKI_NER", "regex")
 
 
+def _onnx_runner() -> Optional[EntityExtractor]:
+    """Torch-free GLiNER twin (LWM_037): onnxruntime-direct, never gliner/torch.
+
+    Imported lazily so the base path's import surface stays minimal. Returns
+    ``None`` when the runner's deps or a prepared ONNX artifact are absent —
+    the caller then degrades to the regex path byte-identically.
+    """
+    from llm_wiki.semantic.ner_onnx import NEROnnxRunner
+
+    if not NEROnnxRunner.is_available():
+        return None
+    return NEROnnxRunner()
+
+
 def get_extractor(name: Optional[str] = None) -> EntityExtractor:
     """Return an extractor instance, always falling back to ``RegexExtractor``.
 
     Unlike ``get_embedder`` (which returns ``None`` when unavailable), extraction
     always has a working default, so this never returns ``None``: an unknown
     backend or an absent ``[ner]`` extra degrades silently to the regex path.
+
+    LWM_037 routing: when ``LLM_WIKI_GLINER_MODEL`` is set and torch is NOT
+    importable (base install + onnxruntime), the ``gliner`` backend — and the
+    explicit ``gliner-onnx`` backend — route through the torch-free ONNX runner.
+    A torch-present install (the CI ``ner-verification`` lane) keeps the real
+    ``import gliner`` path untouched.
     """
     name = name or detect_default_extractor()
+    if name == "gliner-onnx":
+        runner = _onnx_runner()
+        if runner is not None:
+            return runner
+        return RegexExtractor()
     cls = EXTRACTOR_MAP.get(name)
     if cls is None or not cls.is_available():
+        if name == "gliner":
+            runner = _onnx_runner()
+            if runner is not None:
+                return runner
         return RegexExtractor()
     return cls()
 

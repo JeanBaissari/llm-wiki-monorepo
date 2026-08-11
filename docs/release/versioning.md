@@ -2,10 +2,11 @@
 
 ## Current Version
 
-The llm-wiki-monorepo Python package is at **0.5.0** (PyPI: `baissarienterprises-llm-wiki`).
+The llm-wiki-monorepo Python package is at **0.6.0** (PyPI: `baissarienterprises-llm-wiki`).
 
 | Milestone | Description |
 |-----------|-------------|
+| v0.6.0    | Epistemic & Surface — `setup` (one-command client wiring), `demo` wiki, `ask` (grounded QA), `contradictions` + evidence confidence, web-viewer derived overlay + Sigma.js + JSON Canvas/JSON-LD exports, recommended-extras profile, gold-set curation loop |
 | v0.5.0    | Graph Precision — entity resolution, Leiden, typed/derived edges, community summaries, tuning config, hybrid search default |
 | v0.4.0    | Semantic Core — pluggable embeddings, in-file vector store, hybrid search (opt-in), semantic link suggestion, eval harness |
 | v0.3.4    | Stabilization line — modularization, health checks, benchmarks |

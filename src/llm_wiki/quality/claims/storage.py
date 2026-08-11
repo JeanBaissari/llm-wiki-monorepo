@@ -49,6 +49,31 @@ def _jsonl_read_all(path: str) -> list[dict]:
     return records
 
 
+def _rewrite_jsonl(path: str, records: list[dict]) -> None:
+    """Rewrite a JSONL file with ``records``; remove the file when empty.
+
+    Used by the LWM_034 contradiction apply/unapply round-trip: ``apply``
+    persists detected claims + contradiction records (idempotently, skipping
+    ids already present), ``unapply`` rewrites the file without them so the
+    sidecar returns to its pre-apply state byte-identically.
+    """
+    if records:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                for r in records:
+                    f.write(json.dumps(r, default=str) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+        except IOError as e:
+            print(f"  ⚠  Failed to write {path}: {e}", file=sys.stderr)
+    else:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
 def has_sidecar(wiki_root: str) -> bool:
     d = Path(wiki_root) / SIDECAR_DIR / "claims"
     return d.exists() and any(d.iterdir())
@@ -89,6 +114,82 @@ class ClaimsManager:
 
     def create_contradiction(self, contradiction: Contradiction) -> None:
         _jsonl_append(self.contradictions_path, asdict(contradiction))
+
+    def append_claims(self, claims: "list[dict]") -> int:
+        """Append claim records, skipping claim_ids already present.
+
+        LWM_034: ``contradictions apply`` persists its detected-claim rows here
+        (dict records carrying the canonical ``Claim`` shape plus the
+        ``operation: contradictions-apply`` marker), idempotently — re-running
+        ``apply`` never duplicates a claim.
+        """
+        existing = {c.get("claim_id") for c in self.get_all_claims()}
+        records = self.get_all_claims()
+        added = 0
+        for c in claims:
+            cid = c.get("claim_id")
+            if cid and cid not in existing:
+                records.append(c)
+                existing.add(cid)
+                added += 1
+        _rewrite_jsonl(self.claims_path, records)
+        return added
+
+    def append_contradictions(self, contradictions: "list[dict]") -> int:
+        """Append contradiction records, skipping ids already present (idempotent)."""
+        existing = {c.get("contradiction_id") for c in self.get_all_contradictions()}
+        records = self.get_all_contradictions()
+        added = 0
+        for c in contradictions:
+            cid = c.get("contradiction_id")
+            if cid and cid not in existing:
+                records.append(c)
+                existing.add(cid)
+                added += 1
+        _rewrite_jsonl(self.contradictions_path, records)
+        return added
+
+    def remove_claims(self, claim_ids: "set[str]") -> int:
+        """Remove claim records with the given ids (the unapply half of apply)."""
+        removed = {c["claim_id"] for c in self.get_all_claims()} & set(claim_ids)
+        records = [c for c in self.get_all_claims() if c.get("claim_id") not in claim_ids]
+        _rewrite_jsonl(self.claims_path, records)
+        return len(removed)
+
+    def remove_contradictions(self, contradiction_ids: "set[str]") -> int:
+        """Remove contradiction records with the given ids."""
+        removed = {c["contradiction_id"] for c in self.get_all_contradictions()} & set(contradiction_ids)
+        records = [c for c in self.get_all_contradictions() if c.get("contradiction_id") not in contradiction_ids]
+        _rewrite_jsonl(self.contradictions_path, records)
+        return len(removed)
+
+    def cleanup_empty_sidecar(self) -> bool:
+        """Remove the claims sidecar directory when all three JSONL files are gone.
+
+        ``unapply`` restores the wiki to a byte-identical pre-apply state; if
+        the apply operation was the only writer, this removes the created
+        directory (and the parent ``.llm-wiki/`` when it becomes empty) too.
+        A sidecar holding unrelated records is never touched.
+        """
+        paths = [self.claims_path, self.events_path, self.contradictions_path]
+        empty = all(not os.path.exists(p) or os.path.getsize(p) == 0 for p in paths)
+        if not empty:
+            return False
+        try:
+            for p in paths:
+                if os.path.exists(p):
+                    os.remove(p)
+            if os.path.isdir(self.sidecar_dir):
+                os.rmdir(self.sidecar_dir)
+            parent = Path(self.sidecar_dir).parent
+            try:
+                if parent.is_dir() and not any(parent.iterdir()):
+                    parent.rmdir()
+            except OSError:
+                pass
+            return True
+        except OSError:
+            return False
 
     def get_all_claims(self) -> list[dict]:
         return _jsonl_read_all(self.claims_path)

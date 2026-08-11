@@ -10,6 +10,7 @@
           {"name": "llm_wiki_read_file", "description": "..."},
           {"name": "llm_wiki_reviews", "description": "..."},
           {"name": "llm_wiki_search", "description": "..."},
+          {"name": "llm_wiki_ask", "description": "..."},
           {"name": "llm_wiki_graph", "description": "..."},
           {"name": "llm_wiki_graph_build", "description": "..."},
           {"name": "llm_wiki_graph_insights", "description": "..."},

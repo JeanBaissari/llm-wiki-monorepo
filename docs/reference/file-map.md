@@ -130,7 +130,7 @@ pytest. Run from the repo root with `PYTHONPATH=src`.
 
 ## `mcp-server/` — Standalone MCP Server
 
-TypeScript. 14 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wiki (`--projects`) mode.
+TypeScript. 15 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wiki (`--projects`) mode.
 
 | File | Purpose |
 |------|---------|

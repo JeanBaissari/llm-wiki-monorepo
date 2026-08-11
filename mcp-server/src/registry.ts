@@ -120,6 +120,26 @@ export const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "llm_wiki_ask",
+    description:
+      `Grounded "ask this wiki" (LWM_033/ADR-0029): retrieves the LWM_030 community-summary pages + regular pages via the LWM_032 hybrid path with a summary-aware rerank (Python sidecar, deterministic + offline — no LLM call), and returns the grounded passages, citation stems, confidence, and faithfulness. The agent consumer synthesizes the answer from that context. Requires the Python sidecar; no sidecar → graceful error.${SIDE_EFFECT.READ_ONLY}`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...PROJECT_PARAM,
+        question: {
+          type: "string",
+          description: "The question to ground in the wiki",
+        },
+        top_k: {
+          type: "number",
+          description: "Number of grounded passages / citations (default: 10, max: 100)",
+        },
+      },
+      required: ["question"],
+    },
+  },
+  {
     name: "llm_wiki_graph",
     description:
       `Knowledge graph operations: build, insights, or search. (Backward-compatible wrapper — see llm_wiki_graph_build, _insights, _search for individual tools.)${SIDE_EFFECT.WRITE_PROJECT}`,
@@ -285,6 +305,10 @@ export async function handleCallTool(name: string, toolArgs: Record<string, unkn
       case "llm_wiki_search": {
         const { handleSearch } = await import("./tools/search.js");
         return await handleSearch(toolArgs);
+      }
+      case "llm_wiki_ask": {
+        const { handleAsk } = await import("./tools/ask.js");
+        return await handleAsk(toolArgs);
       }
       case "llm_wiki_graph": {
         const { handleGraph } = await import("./tools/graph.js");

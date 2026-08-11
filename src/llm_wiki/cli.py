@@ -18,6 +18,10 @@ Usage:
     llm-wiki embed <wiki-root> [--rebuild]        # requires [semantic] extra; no-op without it
     llm-wiki eval <wiki-root> [--goldset <path>] [--split gate|tune|all]
     llm-wiki entities resolve <wiki-root>         # reversible entity resolution (canonical<->alias)
+    llm-wiki setup <wiki-root> [--title <title>]  # scaffold + MCP client wiring (claude/codex/opencode/hermes)
+    llm-wiki demo <dest>                          # materialize the committed demo wiki playground
+    llm-wiki ask <wiki-root> "<question>"         # grounded QA over summaries + pages (v0.6.0)
+    llm-wiki contradictions <wiki-root> <detect|list|apply|unapply>  # epistemic (v0.6.0)
 """
 
 import sys
@@ -48,6 +52,10 @@ COMMANDS = {
     "health": "llm_wiki.ops.health",
     "serve": "llm_wiki.ops.serve",
     "claims": "llm_wiki.quality.claims",
+    "setup": "llm_wiki.setup",
+    "demo": "llm_wiki.wiki.demo",
+    "ask": "llm_wiki.graph.ask",
+    "contradictions": "llm_wiki.quality.contradictions",
 }
 
 

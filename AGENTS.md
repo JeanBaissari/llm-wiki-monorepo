@@ -18,7 +18,7 @@ A complete knowledge base operating system. It takes raw source documents and AI
    Agent Skill          MCP Server           Graph Engine
    (Python + MD)        (TypeScript)         (TypeScript)
    in-conversation      programmatic         relevance model
-    workflows            14 tools via stdio    Louvain communities
+    workflows            15 tools via stdio    Louvain communities
                                              graph insights
 ```
 
@@ -29,7 +29,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 | Dir | Language | Tier | What it does | When to touch it |
 |-----|----------|------|-------------|-----------------|
 | `skill/` | Python + MD | adapter | Agent skill: SKILL.md + 22 scripts + 13 references | Agent operations, scripts, docs |
-| `mcp-server/` | TypeScript | programmatic-access | MCP server: 14 tools via stdio | Programmatic wiki access |
+| `mcp-server/` | TypeScript | programmatic-access | MCP server: 15 tools via stdio | Programmatic wiki access |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
 | `templates/` | MD + JSON | core | 20 domain templates for scaffold.py | Adding/modifying project templates |
 | `web-viewer/` | TypeScript | optional | Local preview server: mermaid, KaTeX, feedback | UI changes |
@@ -129,7 +129,7 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 | `skill/scripts/backup.py` | Snapshot, restore, integrity verification — `--auto` one-command safe state. |
 | `skill/scripts/link_suggest.py` | Suggests missing wikilinks from entities — `--apply` auto-adds them. |
 | `skill/scripts/benchmark.py` | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages. |
-| `mcp-server/src/main.ts` | MCP server entry point. 14 tools across focused handler files under tools/. Built with @modelcontextprotocol/sdk. |
+| `mcp-server/src/main.ts` | MCP server entry point. 15 tools across focused handler files under tools/. Built with @modelcontextprotocol/sdk. |
 | `graph-engine/src/index.ts` | Graph CLI. `--action build|insights|search|relevance`. |
 | `graph-engine/src/relevance.ts` | 4-signal relevance model — configurable weights, source-indexed. |
 | `graph-engine/src/insights.ts` | Surprising connections + knowledge gaps — extensible signal registry. |
@@ -238,14 +238,39 @@ ln -sf /path/to/llm-wiki-monorepo/skill ~/.hermes/skills/research/llm-wiki
 
 The EOW cron job loads this skill automatically. Changes to `skill/SKILL.md` or `skill/scripts/` propagate immediately — no restart needed.
 
+## Security & trust boundary
+
+Per-wiki auth/visibility is the **filesystem + git permissions** — there is no
+per-wiki auth layer, and none is planned. The MCP server is stdio-local (no
+network listeners); the web preview (`llm-wiki serve`) is opt-in local-only.
+Never commit `.env` or secrets into a wiki repo. See
+[`docs/operations/security-and-boundaries.md`](docs/operations/security-and-boundaries.md).
+
 ## External Dependencies
 
 - **graphology** + **graphology-communities-louvain** — graph-engine only. Pure JS, no native deps.
 - **@modelcontextprotocol/sdk** — MCP server only. Pure JS.
 - **Readability.js** + **Turndown.js** — Browser extension only. Already vendored.
 - **Python (v0.2.0+):** openai, anthropic, litellm, instructor, tenacity, tiktoken, python-dotenv, pydantic, portalocker — specified in `pyproject.toml`. See [Python Dependency Policy](#python-dependency-policy-v020).
-- **Optional Python extras (opt-in; base install stays lexical-only with pure-Python fallbacks):** `[semantic]` (model2vec, numpy, sqlite-vec — v0.4.0), `[eval]` (deepeval), `[entity-resolution]` (splink — v0.5.0/LWM_025), `[ner]` (gliner, onnxruntime — v0.5.0/LWM_026, Apache-2.0), `[leiden]` (graspologic MIT, networkx — v0.5.0/LWM_027). Each degrades gracefully when absent.
+- **Optional Python extras (opt-in; base install stays lexical-only with pure-Python fallbacks):** `[semantic]` (model2vec, numpy, sqlite-vec — v0.4.0), `[eval]` (deepeval), `[entity-resolution]` (splink — v0.5.0/LWM_025), `[ner]` (gliner, onnxruntime — v0.5.0/LWM_026, Apache-2.0), `[leiden]` (graspologic MIT, networkx — v0.5.0/LWM_027), `[recommended]` (v0.6.0/LWM_037 — aggregation of `semantic` + `leiden` + `entity-resolution`; deliberately NOT `ner`/`eval`/`dev`/`test`). Each degrades gracefully when absent.
 - No Rust dependencies.
+
+### GLiNER `[ner]` local path (LWM_037)
+
+The typed-`EntitySpan` success path (CI `ner-verification` lane) has a **torch-free local twin** for small-disk dev machines. `import gliner` pulls torch at package import (`gliner/__init__.py` → `.model` → `model.py` has module-top `import torch` — verified against the gliner 0.2.13 wheel), so the local path never imports `gliner`; it runs an exported ONNX artifact via `onnxruntime` (`src/llm_wiki/semantic/ner_onnx.py`).
+
+- **Model-cache convention:** `~/.cache/llm-wiki/models/<pinned-key>/` (user-global), pinned key `gliner_small-v2.1` (matches the CI model `urchade/gliner_small-v2.1` so CI + local use identical weights). Per-run override via `LLM_WIKI_GLINER_MODEL=<dir>`.
+- **`LLM_WIKI_GLINER_MODEL` usage:** (a) torch-present installs — points `GLiNERExtractor`/`GLiNER.from_pretrained` at a cached model directory (avoids re-downloading the ~582 MB checkpoint); (b) torch-free installs (base + onnxruntime) — `get_extractor("gliner")` / `get_extractor("gliner-onnx")` / `LLM_WIKI_NER=gliner[-onnx]` route through the ONNX runner **when a prepared `model.onnx` artifact is present**. No model/runner/torch → `is_available()` `False`, extraction falls back to regex byte-identically (skip-gated tests skip, never fail).
+- **One-time ONNX preparation (documented command; needs a torch run ONCE under the full `[ner]` extra):** export the end-to-end `model.onnx` into the cache dir per the artifact contract in `src/llm_wiki/semantic/ner_onnx.py` (inputs `words`/`word_start`/`word_end`/`word_count`/`labels`/`label_count`; outputs `entity_start`/`entity_end`/`entity_label`/`entity_score`/`entity_count`). The upstream repo ships NO ONNX artifact — only `pytorch_model.bin`.
+- **Local run recipe:** `pip install onnxruntime` (torch-free) → populate the cache per the contract → `LLM_WIKI_GLINER_MODEL=~/.cache/llm-wiki/models/gliner_small-v2.1 LLM_WIKI_NER=gliner PYTHONPATH=src python3 -m pytest tests/test_gliner_local_path.py -q`. Local coverage = the same test + fixture as the CI lane (`tests/test_extract.py::test_gliner_typed_spans_success_path`).
+- **Measured disk budget (2026-08-11, LWM_037 lane; cp312 manylinux-x86_64):**
+  | Artifact | Measured bytes | Note |
+  |---|---|---|
+  | `urchade/gliner_small-v2.1` `pytorch_model.bin` | 610,652,234 (582.37 MiB) | torch checkpoint — the only upstream artifact; no ONNX file ships |
+  | `onnxruntime==1.20.1` wheel | 13,333,903 (12.72 MiB) | the only runtime wheel the torch-free path needs |
+  | `gliner==0.2.13` wheel | ~47.7 KiB | full `[ner]`-only; not needed on the torch-free path |
+
+  The PRD's rough planning scale ("tens-to-hundreds of MB") under-measures the pinned model: it is ~582 MiB. A torch-free inference install is onnxruntime + the exported artifact; the ONNX export itself (one-time, ~1× model size fp32) requires a torch run under `[ner]`. The disk budget here is documentation-only (not CI-asserted).
 
 ## Python Dependency Policy (v0.2.0+)
 

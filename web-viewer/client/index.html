@@ -103,6 +103,15 @@
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
             <span class="toggle-text">Code</span>
           </label>
+          <label id="derived-toggle-wrap" class="toggle-label" title="Show derived (similar_to / co_occurs_with) edges">
+            <input type="checkbox" id="derived-toggle" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-text">Derived</span>
+          </label>
+          <div class="view-toggle" id="graph-view-toggle" role="group" aria-label="Graph render mode">
+            <button id="view-svg" class="view-btn active" type="button">SVG</button>
+            <button id="view-webgl" class="view-btn" type="button">WebGL</button>
+          </div>
           <button id="graph-reset" class="btn btn-ghost" type="button">Reset</button>
           <button id="graph-close" class="btn btn-icon btn-ghost" type="button" title="Close (G or Esc)">✕</button>
         </div>
@@ -123,6 +132,24 @@
           </div>
           <div class="legend-row edge-legend hidden" id="legend-cross">
             <span class="legend-line" style="background:#ff9800; height:2px; border-top:2px dashed #ff9800;"></span> cross
+          </div>
+          <div class="legend-row edge-legend hidden" id="legend-derived">
+            <span class="legend-line" style="border-top:2px dashed #cba6f7; height:0;"></span> derived
+          </div>
+        </div>
+      </div>
+      <div id="graph-sigma-wrap" class="hidden">
+        <div id="graph-sigma-container"></div>
+        <div class="graph-hint">
+          drag to pan · <kbd>scroll</kbd> zoom · <kbd>click</kbd> open
+        </div>
+        <div class="graph-legend">
+          <div class="legend-row"><span class="legend-dot concepts"></span> concepts</div>
+          <div class="legend-row"><span class="legend-dot entities"></span> entities</div>
+          <div class="legend-row"><span class="legend-dot summaries"></span> summaries</div>
+          <div class="legend-row"><span class="legend-dot other"></span> other</div>
+          <div class="legend-row edge-legend hidden" id="legend-derived-sigma">
+            <span class="legend-line" style="border-top:2px dashed #cba6f7; height:0;"></span> derived
           </div>
         </div>
       </div>

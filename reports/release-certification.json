@@ -1,9 +1,9 @@
 {
   "certification": {
-    "timestamp": "2026-08-10T19:08:11.347491+00:00",
+    "timestamp": "2026-08-11T22:38:01.326100+00:00",
     "overall_status": "PASS",
-    "gates_total": 8,
-    "gates_passed": 8,
+    "gates_total": 1,
+    "gates_passed": 1,
     "gates_failed": 0,
     "gates_skipped": 0,
     "gates_timeout": 0,
@@ -14,111 +14,9 @@
       "gate": "release_manifest",
       "command": "/usr/bin/python3 /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/scripts/release_manifest.py --json-only",
       "exit_code": 0,
-      "stdout": "{\n  \"ok\": true,\n  \"version\": \"0.5.0\",\n  \"checked_surfaces\": 5,\n  \"pass_count\": 5,\n  \"fail_count\": 0,\n  \"checks\": [\n    {\n      \"check\": \"pyproject.toml version\",\n      \"expected\": \"0.5.0\",\n      \"actual\": \"0.5.0\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"__init__.py __version__\",\n      \"expected\": \"0.5.0\",\n      \"actual\": \"0.5.0\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"root package.json version\",\n      \"expected\": \"0.5.0\",\n      \"actual\": \"0.5.0\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"docs/release/changelog.md entry\",\n      \"expected\": \"0.5.0\",\n      \"actual\": \"Entry [0.5.0] found\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"console script imports\",\n      \"expected\": \"all importable\",\n      \"actual\": \"ok\",\n      \"status\": \"PASS\"\n    }\n  ]\n}\n",
+      "stdout": "{\n  \"ok\": true,\n  \"version\": \"0.6.0\",\n  \"checked_surfaces\": 5,\n  \"pass_count\": 5,\n  \"fail_count\": 0,\n  \"checks\": [\n    {\n      \"check\": \"pyproject.toml version\",\n      \"expected\": \"0.6.0\",\n      \"actual\": \"0.6.0\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"__init__.py __version__\",\n      \"expected\": \"0.6.0\",\n      \"actual\": \"0.6.0\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"root package.json version\",\n      \"expected\": \"0.6.0\",\n      \"actual\": \"0.6.0\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"docs/release/changelog.md entry\",\n      \"expected\": \"0.6.0\",\n      \"actual\": \"Entry [0.6.0] found\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"check\": \"console script imports\",\n      \"expected\": \"all importable\",\n      \"actual\": \"ok\",\n      \"status\": \"PASS\"\n    }\n  ]\n}\n",
       "stderr": "",
-      "duration_s": 0.412,
-      "status": "PASS"
-    },
-    {
-      "gate": "docs_truth_check",
-      "command": "/usr/bin/python3 /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/scripts/docs_truth_check.py --json-only",
-      "exit_code": 0,
-      "stdout": "{\n  \"ok\": true,\n  \"registries\": {\n    \"mcp_tools\": {\n      \"count\": 14,\n      \"names\": [\n        \"llm_wiki_status\",\n        \"llm_wiki_files\",\n        \"llm_wiki_read_file\",\n        \"llm_wiki_reviews\",\n        \"llm_wiki_search\",\n        \"llm_wiki_graph\",\n        \"llm_wiki_graph_build\",\n        \"llm_wiki_graph_insights\",\n        \"llm_wiki_graph_search\",\n        \"llm_wiki_lint\",\n        \"llm_wiki_ingest\",\n        \"llm_wiki_suggest_links\",\n        \"llm_wiki_backup\",\n        \"llm_wiki_discover_entities\"\n      ]\n    },\n    \"cli_commands\": {\n      \"count\": 23,\n      \"names\": [\n        \"scaffold\",\n        \"lint\",\n        \"ingest\",\n        \"insights\",\n        \"link-suggest\",\n        \"entities\",\n        \"derive-edges\",\n        \"summarize-communities\",\n        \"backup\",\n        \"deep-research\",\n        \"audit\",\n        \"benchmark\",\n        \"migrate-log\",\n        \"ops\",\n        \"discover\",\n        \"tuning\",\n        \"index\",\n        \"search\",\n        \"embed\",\n        \"eval\",\n        \"health\",\n        \"serve\",\n        \"claims\"\n      ]\n    },\n    \"templates\": {\n      \"count\": 20,\n      \"names\": [\n        \"algorithmic-trading\",\n        \"algorithmic-trading-mql4\",\n        \"architecture\",\n        \"business\",\n        \"codebase\",\n        \"commodities\",\n        \"copywriting\",\n        \"crypto\",\n        \"cybersecurity\",\n        \"decompilers\",\n        \"design-systems\",\n        \"developer-tools\",\n        \"finance\",\n        \"machine-learning\",\n        \"marketing\",\n        \"medicine\",\n        \"personal-growth\",\n        \"prompt-engineering\",\n        \"reading\",\n        \"research\"\n      ]\n    }\n  },\n  \"doc_checks\": [],\n  \"failures\": []\n}\n",
-      "stderr": "",
-      "duration_s": 0.169,
-      "status": "PASS"
-    },
-    {
-      "gate": "pytest",
-      "command": "/usr/bin/python3 -m pytest tests/ -q --tb=short",
-      "exit_code": 0,
-      "stdout": "anbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/conftest.py:64: UserWarning: Fixture 'empty' is stale (schema version 6ffd0dac != current a2234479). Run: python3 skill/scripts/regenerate_fixtures.py\n    warnings.warn(\n\ntests/test_lint.py::TestLintStaleWiki::test_detects_dead_links\ntests/test_lint.py::TestLintStaleWiki::test_detects_orphan_pages\ntests/test_lint.py::TestLintStaleWiki::test_detects_stale_pages\ntests/test_lint.py::TestLintStaleWiki::test_detects_low_confidence\ntests/test_lint.py::TestLintStaleWiki::test_detects_large_pages\ntests/test_lint.py::TestLintStaleWiki::test_detects_contradictions\ntests/test_lint.py::TestLintEdgeCases::test_source_drift_detection\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/conftest.py:64: UserWarning: Fixture 'stale' is stale (schema version 6ffd0dac != current a2234479). Run: python3 skill/scripts/regenerate_fixtures.py\n    warnings.warn(\n\ntests/test_lint.py::TestLintStaleWiki::test_clean_wiki_passes\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/conftest.py:64: UserWarning: Fixture 'minimal' is stale (schema version 6ffd0dac != current a2234479). Run: python3 skill/scripts/regenerate_fixtures.py\n    warnings.warn(\n\ntests/test_louvain.py::test_single_node\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:54: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assignments, communities = detect_communities(nodes, [])\n\ntests/test_louvain.py::test_two_cliques\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:81: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assignments, communities = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_star_graph\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:108: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assignments, communities = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_deterministic_output\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:129: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign1, _ = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_deterministic_output\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:130: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign2, _ = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_deterministic_output\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:131: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign3, _ = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_different_seeds_may_differ\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:158: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign_seed42, communities42 = detect_communities(nodes, edges, seed=42)\n\ntests/test_louvain.py::test_different_seeds_may_differ\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:159: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assign_seed99, communities99 = detect_communities(nodes, edges, seed=99)\n\ntests/test_louvain.py::test_four_disconnected_cliques\n  /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/tests/test_louvain.py:186: UserWarning: Community detection switched from label propagation to Louvain (Blondel et al. 2008). Results may differ from earlier runs. This warning will be removed in a future release.\n    assignments, communities = detect_communities(nodes, edges, seed=42)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n722 passed, 20 skipped, 8 deselected, 238 warnings in 373.64s (0:06:13)\n",
-      "stderr": "",
-      "duration_s": 379.025,
-      "status": "PASS"
-    },
-    {
-      "gate": "ts_typecheck",
-      "status": "PASS",
-      "packages": [
-        {
-          "package": "mcp-server",
-          "command": "npx tsc --noEmit",
-          "exit_code": 0,
-          "stdout": "",
-          "stderr": "",
-          "duration_s": 13.992,
-          "status": "PASS"
-        },
-        {
-          "package": "graph-engine",
-          "command": "npx tsc --noEmit",
-          "exit_code": 0,
-          "stdout": "",
-          "stderr": "",
-          "duration_s": 8.572,
-          "status": "PASS"
-        },
-        {
-          "package": "audit-shared",
-          "command": "npx tsc --noEmit",
-          "exit_code": 0,
-          "stdout": "",
-          "stderr": "",
-          "duration_s": 8.896,
-          "status": "PASS"
-        }
-      ]
-    },
-    {
-      "gate": "ts_tests",
-      "status": "PASS",
-      "packages": [
-        {
-          "package": "mcp-server",
-          "command": "npm run test",
-          "exit_code": 0,
-          "stdout": "\n> mcp-server@1.0.0 test\n> vitest run\n\n\n RUN  v2.1.9 /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/mcp-server\n\n \u2713 test/test_review.test.ts (11 tests) 274ms\n \u2713 test/test_stdio_e2e.test.ts (7 tests) 3169ms\n \u2713 test/test_wiki_fs.test.ts (13 tests) 306ms\n \u2713 test/test_search.test.ts (7 tests) 4032ms\n   \u2713 search \u2014 buildIndex + search > returns ranked results for a query 385ms\n   \u2713 search \u2014 buildIndex + search > returns results with snippets 362ms\n   \u2713 search \u2014 buildIndex + search > returns empty for no match 752ms\n   \u2713 search \u2014 buildIndex + search > returns empty for empty wiki 961ms\n   \u2713 search \u2014 buildIndex + search > respects the topK limit 638ms\n   \u2713 search \u2014 clearIndex > clears the connection cache for fresh reopen 576ms\n   \u2713 search \u2014 buildIndex > builds index without searching 343ms\n \u2713 test/test_search_hybrid.test.ts (7 tests) 6046ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > mode omitted \u2192 sidecar hybrid_search invoked; _[matched]_ tag formatted 874ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > mode=\"keyword\" \u2192 sidecar NOT invoked; keyword path output 1190ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > sidecar null \u2192 graceful fallthrough to keyword path 907ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > sidecar not running \u2192 graceful fallthrough to keyword path 941ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > sidecar call error \u2192 graceful fallthrough to keyword path 685ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > hybrid empty results \u2192 \"No results found\" (empty-index fallthrough) 787ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > hybrid output EQUALS the committed snapshot corpus (LWM_025 frozen format) 645ms\n\n Test Files  5 passed (5)\n      Tests  45 passed (45)\n   Start at  16:07:37\n   Duration  8.33s (transform 1.27s, setup 0ms, collect 2.11s, tests 13.83s, environment 8ms, prepare 2.85s)\n\n",
-          "stderr": "stderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Search index ready for project: default\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Starting Python sidecar...\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [sidecar] [sidecar] JSON-RPC sidecar started\n[MCP stderr] [startup] Python sidecar ready\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [shutdown] MCP server shutting down...\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [sidecar] [sidecar] Received signal 15, shutting down\n[sidecar] Shutdown complete\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [sidecar] Process exited (code=0, signal=null)\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [shutdown] Python sidecar stopped\n\n",
-          "duration_s": 11.491,
-          "status": "PASS"
-        },
-        {
-          "package": "graph-engine",
-          "command": "npm run test",
-          "exit_code": 0,
-          "stdout": "\n> graph-engine@1.0.0 test\n> vitest run\n\n\n RUN  v2.1.9 /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/graph-engine\n\n \u2713 test/test_insights.test.ts (12 tests) 29ms\n \u2713 test/test_relevance.test.ts (16 tests) 38ms\n \u2713 test/test_louvain.test.ts (12 tests) 148ms\n \u2713 test/test_build.test.ts (12 tests) 231ms\n \u2713 test/test_edge_schema.test.ts (10 tests) 151ms\n \u2713 test/import.test.ts (1 test) 24ms\n \u2713 test/test_build2.test.ts (1 test) 57ms\n \u2713 test/tuning-parity.test.ts (6 tests) 2860ms\n   \u2713 tuning parity \u2014 Python emits, TS consumes (LWM_031 AC#5) > a non-default profile resolves to identical options on the TS side 508ms\n   \u2713 tuning parity \u2014 Python emits, TS consumes (LWM_031 AC#5) > env overrides flow through the same emit surface 700ms\n   \u2713 no-break guard \u2014 resolved defaults == no options (LWM_031 AC#1) > a default profile produces byte-identical build output to no options 576ms\n   \u2713 effectiveness \u2014 a tuned profile changes graph-engine output > a non-default insight threshold filters surprising connections 647ms\n\n Test Files  8 passed (8)\n      Tests  70 passed (70)\n   Start at  16:07:48\n   Duration  7.16s (transform 1.69s, setup 0ms, collect 3.53s, tests 3.54s, environment 16ms, prepare 3.63s)\n\n",
-          "stderr": "",
-          "duration_s": 9.371,
-          "status": "PASS"
-        }
-      ]
-    },
-    {
-      "gate": "fixture_validation",
-      "command": "/usr/bin/python3 /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/skill/scripts/validate_fixtures.py --json",
-      "exit_code": 0,
-      "stdout": "{\n  \"schema_version\": \"6ffd0dac\",\n  \"exit_code\": 0,\n  \"report\": {\n    \"passes\": [\n      \"All 4 fixtures match schema version 6ffd0dac\",\n      \"Frontmatter OK in 'minimal': 5 page(s)\",\n      \"Frontmatter OK in 'stale': 10 page(s)\",\n      \"Frontmatter OK in 'populated': 53 page(s)\",\n      \"Wikilinks OK in 'empty': 1 page(s) checked\",\n      \"Wikilinks OK in 'minimal': 6 page(s) checked\",\n      \"Wikilinks OK in 'populated': 54 page(s) checked\",\n      \"Stale fixture lint check: all 7 expected issues detected\"\n    ],\n    \"warnings\": [\n      \"Fixture 'empty' has no wiki pages to check\"\n    ],\n    \"errors\": [],\n    \"has_errors\": false\n  }\n}\n",
-      "stderr": "",
-      "duration_s": 0.84,
-      "status": "PASS"
-    },
-    {
-      "gate": "mcp_stdio_e2e",
-      "command": "npm run test -- --run",
-      "exit_code": 0,
-      "stdout": "\n> mcp-server@1.0.0 test\n> vitest run --run\n\n\n RUN  v2.1.9 /home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo/mcp-server\n\n \u2713 test/test_review.test.ts (11 tests) 167ms\n \u2713 test/test_stdio_e2e.test.ts (7 tests) 3179ms\n \u2713 test/test_wiki_fs.test.ts (13 tests) 160ms\n \u2713 test/test_search_hybrid.test.ts (7 tests) 6138ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > mode omitted \u2192 sidecar hybrid_search invoked; _[matched]_ tag formatted 1038ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > mode=\"keyword\" \u2192 sidecar NOT invoked; keyword path output 1128ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > sidecar null \u2192 graceful fallthrough to keyword path 954ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > sidecar not running \u2192 graceful fallthrough to keyword path 1004ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > sidecar call error \u2192 graceful fallthrough to keyword path 692ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > hybrid empty results \u2192 \"No results found\" (empty-index fallthrough) 479ms\n   \u2713 llm_wiki_search \u2014 hybrid default (LWM_032/ADR-0020) > hybrid output EQUALS the committed snapshot corpus (LWM_025 frozen format) 828ms\n \u2713 test/test_search.test.ts (7 tests) 4296ms\n   \u2713 search \u2014 buildIndex + search > returns ranked results for a query 737ms\n   \u2713 search \u2014 buildIndex + search > returns results with snippets 487ms\n   \u2713 search \u2014 buildIndex + search > returns empty for no match 767ms\n   \u2713 search \u2014 buildIndex + search > returns empty for empty wiki 612ms\n   \u2713 search \u2014 buildIndex + search > respects the topK limit 547ms\n   \u2713 search \u2014 clearIndex > clears the connection cache for fresh reopen 594ms\n   \u2713 search \u2014 buildIndex > builds index without searching 547ms\n\n Test Files  5 passed (5)\n      Tests  45 passed (45)\n   Start at  16:07:58\n   Duration  8.34s (transform 873ms, setup 0ms, collect 1.78s, tests 13.94s, environment 3ms, prepare 2.33s)\n\n",
-      "stderr": "stderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Search index ready for project: default\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [startup] Starting Python sidecar...\n\nstderr | test/test_stdio_e2e.test.ts > MCP Stdio E2E\n[MCP stderr] [sidecar] [sidecar] JSON-RPC sidecar started\n[MCP stderr] [startup] Python sidecar ready\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [shutdown] MCP server shutting down...\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [sidecar] [sidecar] Received signal 15, shutting down\n[sidecar] Shutdown complete\n\nstderr | test/test_stdio_e2e.test.ts\n[MCP stderr] [shutdown] Python sidecar stopped\n\n",
-      "duration_s": 11.115,
-      "status": "PASS"
-    },
-    {
-      "gate": "search_eval",
-      "command": "/usr/bin/python3 -m pytest tests/test_search_eval_gate.py tests/test_search_baseline_reproducible.py tests/eval/test_search_goldset_integrity.py -q --tb=short",
-      "exit_code": 0,
-      "stdout": "...................                                                      [100%]\n19 passed in 1.84s\n",
-      "stderr": "",
-      "duration_s": 3.985,
+      "duration_s": 1.753,
       "status": "PASS"
     }
   ],

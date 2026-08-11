@@ -26,6 +26,19 @@ export interface GraphData {
   edges: GraphEdge[];
 }
 
+export interface DerivedEdge extends GraphEdge {
+  layer: "derived";
+  relType: string;
+  weight: number;
+}
+
+export interface DerivedOverlayData {
+  available: boolean;
+  layer: "derived";
+  nodes: GraphNode[];
+  edges: DerivedEdge[];
+}
+
 export interface GraphOptions {
   onNodeClick?: (node: GraphNode) => void;
 }
@@ -51,6 +64,34 @@ export function renderGraph(
   svgEl: SVGSVGElement,
   data: GraphData,
   opts: GraphOptions = {},
+): () => void {
+  return renderGraphCore(svgEl, data, opts, []);
+}
+
+/**
+ * Render the canonical graph with an optional derived-edge overlay.
+ *
+ * When `enabled` is false (or no derived data is available) the rendering is
+ * byte-identical to `renderGraph` — the derived layer is only ever created
+ * when it has edges to draw, so the overlay can never alter the canonical
+ * edge rendering.
+ */
+export function renderDerivedOverlay(
+  svgEl: SVGSVGElement,
+  data: GraphData,
+  derived: DerivedOverlayData | null,
+  enabled: boolean,
+  opts: GraphOptions = {},
+): () => void {
+  const derivedEdges = enabled && derived && derived.available ? derived.edges : [];
+  return renderGraphCore(svgEl, data, opts, derivedEdges);
+}
+
+function renderGraphCore(
+  svgEl: SVGSVGElement,
+  data: GraphData,
+  opts: GraphOptions,
+  derivedEdges: DerivedEdge[],
 ): () => void {
   const svg = d3sel.select(svgEl);
   svg.selectAll("*").remove();
@@ -163,6 +204,21 @@ export function renderGraph(
     .attr("fill", "none")
     .attr("stroke-linecap", "round");
 
+  // ── Derived overlay: dashed/dimmed layer drawn on top of nodes ─────────
+  const derivedLinks = derivedEdges.map((e) => ({ ...e }));
+  const hasDerived = derivedLinks.length > 0;
+  const derivedLayer = hasDerived ? root.append("g").attr("class", "derived-links") : null;
+  const derivedSel = hasDerived && derivedLayer
+    ? derivedLayer
+        .selectAll<SVGPathElement, DerivedEdge>("path")
+        .data(derivedLinks)
+        .enter()
+        .append("path")
+        .attr("class", "link link-derived")
+        .attr("fill", "none")
+        .attr("stroke-linecap", "round")
+    : d3sel.selectAll<SVGPathElement, DerivedEdge>([]);
+
   // ── Nodes: outer g gets d3 translate, inner g gets CSS entry animation ─
   const nodeSel = nodeLayer
     .selectAll<SVGGElement, GraphNode>("g.node")
@@ -243,27 +299,55 @@ export function renderGraph(
         const t = (l.target as GraphNode).id ?? (l.target as unknown as string);
         return s === d.id || t === d.id;
       });
+      if (hasDerived) {
+        derivedSel.classed("dim", (l) => {
+          const s = (l.source as GraphNode).id ?? (l.source as unknown as string);
+          const t = (l.target as GraphNode).id ?? (l.target as unknown as string);
+          return s !== d.id && t !== d.id;
+        });
+        derivedSel.classed("highlight", (l) => {
+          const s = (l.source as GraphNode).id ?? (l.source as unknown as string);
+          const t = (l.target as GraphNode).id ?? (l.target as unknown as string);
+          return s === d.id || t === d.id;
+        });
+      }
     })
     .on("mouseleave", () => {
       nodeSel.classed("dim", false).classed("highlight", false);
       linkSel.classed("dim", false).classed("highlight", false);
+      if (hasDerived) {
+        derivedSel.classed("dim", false).classed("highlight", false);
+      }
     })
     .on("click", (_event, d) => {
       opts.onNodeClick?.(d);
     });
 
   // ── Tick ────────────────────────────────────────────────────────────────
+  const arcPath = (sx: number, sy: number, tx: number, ty: number): string => {
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const dist = Math.hypot(dx, dy);
+    const dr = Math.max(dist * 1.8, 1); // curve radius — larger = gentler arc
+    return `M${sx},${sy}A${dr},${dr} 0 0,1 ${tx},${ty}`;
+  };
+
   sim.on("tick", () => {
     linkSel.attr("d", (d) => {
       const s = d.source as GraphNode;
       const t = d.target as GraphNode;
       if (s.x == null || s.y == null || t.x == null || t.y == null) return "";
-      const dx = t.x - s.x;
-      const dy = t.y - s.y;
-      const dist = Math.hypot(dx, dy);
-      const dr = Math.max(dist * 1.8, 1); // curve radius — larger = gentler arc
-      return `M${s.x},${s.y}A${dr},${dr} 0 0,1 ${t.x},${t.y}`;
+      return arcPath(s.x, s.y, t.x, t.y);
     });
+
+    if (hasDerived) {
+      derivedSel.attr("d", (d) => {
+        const s = d.source as GraphNode;
+        const t = d.target as GraphNode;
+        if (s.x == null || s.y == null || t.x == null || t.y == null) return "";
+        return arcPath(s.x, s.y, t.x, t.y);
+      });
+    }
 
     nodeSel.attr("transform", (d) => `translate(${d.x},${d.y})`);
   });

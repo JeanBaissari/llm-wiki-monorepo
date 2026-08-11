@@ -438,3 +438,75 @@ llm-wiki tuning ~/my-wiki --emit /tmp/tuning.json
 node graph-engine/dist/index.js --wiki ~/my-wiki --action build --tuning-json /tmp/tuning.json
 node graph-engine/dist/index.js --wiki ~/my-wiki --action insights --tuning-json /tmp/tuning.json
 ```
+
+## 17. One-Command Setup (`llm-wiki setup`)
+
+Scaffold/validate a wiki and register the MCP server with the detected client(s)
+in one command (v0.6.0 / LWM_035). Idempotent, reversible, dry-run safe.
+
+```bash
+# Scaffold a new wiki + wire the MCP server for every detected client:
+llm-wiki setup ~/wikis/my-project --title "My Project"
+
+# Operate on an existing wiki:
+llm-wiki setup ~/wikis/my-project
+
+# Register only one client, or preview what would be written:
+llm-wiki setup ~/wikis/my-project --client opencode
+llm-wiki setup ~/wikis/my-project --dry-run
+
+# Prompt to install the recommended extras profile, then smoke test:
+llm-wiki setup ~/wikis/my-project --extras recommended --yes
+
+# Reverse every registration:
+llm-wiki setup ~/wikis/my-project --uninstall
+```
+
+Clients: claude (`claude mcp add` or project `.mcp.json`), codex
+(`~/.codex/config.toml` `[mcp_servers]`), opencode (`opencode.json`), hermes
+(skill symlink). `--dry-run` writes nothing; `--uninstall` removes only the
+`llm-wiki` entries; no secrets are ever written.
+
+## 18. Demo Wiki (`llm-wiki demo`)
+
+Materialize the committed demo wiki playground ("Redis Internals", 8 pages,
+lint-clean, deterministic) to any directory (v0.6.0 / LWM_036):
+
+```bash
+llm-wiki demo ~/wikis/redis-playground
+llm-wiki demo ~/wikis/redis-playground --force   # replace an existing target
+```
+
+Regenerates the FTS index; graph build runs only when `graph-engine/dist` is
+present (base install never requires node).
+
+## 19. Ask This Wiki (`llm-wiki ask`)
+
+Grounded question answering over the wiki's pages + community summaries
+(v0.6.0 / LWM_033). Retrieval is hybrid (LWM_032) with a summary-aware rerank;
+the answer must cite retrieved pages (faithfulness contract).
+
+```bash
+llm-wiki ask ~/wikis/redis "what changed in cluster failover between 6.x and 7.x?"
+llm-wiki ask ~/wikis/redis "how does the event loop work?" --no-llm   # passages only, offline
+llm-wiki ask ~/wikis/redis "..." --keyword                            # lexical-only retrieval
+llm-wiki ask ~/wikis/redis "..." --dry-run                            # retrieval plan, no LLM
+```
+
+`--no-llm` makes zero LLM calls (deterministic, CI-tested); the agent-native
+`$0.00` default provider applies unless `--provider`/`--model` are given.
+Available over MCP as `llm_wiki_ask`.
+
+## 20. Contradictions (`llm-wiki contradictions`)
+
+Detect contradictory claims across pages and compute evidence-grounded
+confidence (v0.6.0 / LWM_034). Suggest-only by default; `apply`/`unapply` are
+reversible frontmatter writes.
+
+```bash
+llm-wiki contradictions ~/wikis/redis detect          # typed claim rows, writes NOTHING
+llm-wiki contradictions ~/wikis/redis list            # current contradiction records
+llm-wiki contradictions ~/wikis/redis apply           # write contradictions/confidence fields
+llm-wiki contradictions ~/wikis/redis unapply         # reverse (round-trip safe)
+llm-wiki contradictions ~/wikis/redis detect --assist llm   # opt-in LLM screening
+```

@@ -65,12 +65,12 @@ class TestMcpTranscripts:
 
         expected = {
             "llm_wiki_status", "llm_wiki_files", "llm_wiki_read_file",
-            "llm_wiki_reviews", "llm_wiki_search", "llm_wiki_graph",
-            "llm_wiki_graph_build", "llm_wiki_graph_insights",
+            "llm_wiki_reviews", "llm_wiki_search", "llm_wiki_ask",
+            "llm_wiki_graph", "llm_wiki_graph_build", "llm_wiki_graph_insights",
             "llm_wiki_graph_search", "llm_wiki_lint", "llm_wiki_ingest",
             "llm_wiki_suggest_links", "llm_wiki_backup",
             "llm_wiki_discover_entities",
         }
 
         assert set(names) == expected, f"Tool list mismatch. Missing: {expected - set(names)}, Extra: {set(names) - expected}"
-        assert len(tools) == 14, f"Expected 14 tools, got {len(tools)}"
+        assert len(tools) == 15, f"Expected 15 tools, got {len(tools)}"

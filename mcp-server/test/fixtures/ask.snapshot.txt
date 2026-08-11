@@ -1,0 +1,19 @@
+# Ask: "What is deep learning?" (3 grounded passages, no_llm)
+
+**Answer:** (not synthesized — deterministic no_llm retrieval)
+
+**Citations:** [[community_ml]], [[deep_learning]], [[neural_network]]
+
+**Confidence:** 0.9  **Faithfulness:** 1
+
+### 1. Machine Learning Community (community_ml) _[both]_
+**Path:** `wiki/communities/community_ml.md`
+The machine learning community covers neural networks, deep learning, backpropagation, layers, and gradient descent.
+
+### 2. deep_learning (deep_learning) _[keyword]_
+**Path:** `wiki/deep_learning.md`
+Deep learning stacks many neural network layers.
+
+### 3. neural_network (neural_network) _[vector]_
+**Path:** `wiki/neural_network.md`
+A neural network learns weights via backpropagation.

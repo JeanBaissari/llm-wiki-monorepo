@@ -1,0 +1,23 @@
+{
+  "task": "contradiction-detection",
+  "split": "gate",
+  "tolerance": 1e-06,
+  "precision": 1.0,
+  "recall": 1.0,
+  "gate_precision": 1.0,
+  "gate_recall": 1.0,
+  "n_positive": 4,
+  "n_negative": 4,
+  "n_detected": 4,
+  "true_positives": 4,
+  "false_positives": 0,
+  "false_negatives": 0,
+  "gate_n_positive": 2,
+  "gate_n_negative": 2,
+  "gate_true_positives": 2,
+  "gate_false_positives": 0,
+  "gate_false_negatives": 0,
+  "negative_pass_rate": 1.0,
+  "generated_by": "llm_wiki.eval.contradiction_baseline.compute_contradiction_baseline",
+  "note": "Freeze of the LWM_034 contradiction gate: deterministic detector precision/recall over the gold wiki (all detections labeled), with the held-out GATE split reported as gate_precision/gate_recall and fail-on-drop asserted by tests/test_contradiction_eval.py. Gold negatives encode near-miss families (unit-normalized equality, consistency, distinct subjects) that must never be flagged."
+}

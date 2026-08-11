@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -30,6 +31,53 @@ def resolve_server_entry(server_path: Path) -> Path:
     return server_path / (main_field or "dist/main.js")
 
 
+def _build_mcp_server(server_path: Path) -> bool:
+    """Build the MCP server in place (npm install if needed, then npm run build).
+
+    Returns True on success. On any failure (missing node, failed build,
+    npm not on PATH) prints an actionable hint to stderr and returns False.
+    """
+    if shutil.which("node") is None:
+        print(
+            "Error: Node.js 18+ is required to build/run the MCP server. "
+            "Install Node.js, or run `bash install.sh` to build everything.",
+            file=sys.stderr,
+        )
+        return False
+
+    commands = []
+    if not (server_path / "node_modules").exists():
+        commands.append(["npm", "install"])
+    commands.append(["npm", "run", "build"])
+
+    try:
+        for cmd in commands:
+            result = subprocess.run(
+                cmd, cwd=str(server_path), capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                tail = "\n".join(
+                    ((result.stdout or "") + "\n" + (result.stderr or "")).splitlines()[-20:]
+                )
+                print(
+                    f"Error: MCP server build failed (`{' '.join(cmd)}` in {server_path}).\n"
+                    f"Build log tail:\n{tail}\n"
+                    f"Run: cd {server_path} && npm run build  "
+                    f"(or: bash install.sh to build everything)",
+                    file=sys.stderr,
+                )
+                return False
+    except FileNotFoundError:
+        print(
+            "Error: npm is not installed or not in PATH. Node.js 18+ is required "
+            "to build/run the MCP server. Install Node.js/npm, or run "
+            "`bash install.sh` to build everything.",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
 def _signal_handler(signum, frame):
     global _shutdown_signaled
     _shutdown_signaled = True
@@ -53,21 +101,27 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Start the MCP server for a wiki directory")
     parser.add_argument("wiki", help="Path to wiki directory")
     parser.add_argument("--projects", help="Semicolon-separated project names (multi-wiki mode)")
+    parser.add_argument(
+        "--build",
+        action="store_true",
+        help="Build the MCP server (npm run build in mcp-server) before serving when dist is missing",
+    )
     args = parser.parse_args()
 
     server_path = REPO_ROOT / "mcp-server"
     dist_path = resolve_server_entry(server_path)
 
     if not dist_path.exists():
-        print(
-            f"Error: MCP server not built. dist/ not found at {dist_path}",
-            file=sys.stderr,
-        )
-        print(
-            f"Run: cd {server_path} && npm run build",
-            file=sys.stderr,
-        )
-        return 1
+        if not args.build:
+            print(
+                f"Error: MCP server not built — dist/main.js missing at {dist_path}. "
+                f"Run: cd {server_path} && npm run build  "
+                f"(or: bash install.sh to build everything; llm-wiki setup when available)",
+                file=sys.stderr,
+            )
+            return 1
+        if not _build_mcp_server(server_path):
+            return 1
 
     cmd = ["node", str(dist_path), "--wiki", args.wiki]
     if args.projects:

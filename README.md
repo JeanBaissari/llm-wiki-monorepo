@@ -33,17 +33,13 @@
 pip install baissarienterprises-llm-wiki
 ```
 
-## What's New in v0.3.0
+## What's New in v0.6.2
 
-**Modular architecture.** The Python package has been reorganized from 28 flat modules into 10 domain-organized packages — `core/`, `quality/`, `ingest/`, `providers/`, `graph/`, `search/`, `ops/`, `wiki/`, `research/`, `contracts/`. Every module now answers: what domain owns this? What category within that domain? What specific function?
+**Install.sh completeness.** `install.sh` now builds all packages in dependency order: graph-bridge → graph-engine → mcp-server → audit-shared → web-viewer → obsidian-audit. Previously graph-bridge was missing, causing graph-engine imports to fail.
 
-**MCP server modularized.** The 1,287-line `index.ts` is gone. The MCP server is now 20 focused files: per-tool handlers under `tools/`, adapters under `adapters/`, project scanning under `projects/`, path safety under `security/`. All 14 tool names, schemas, and responses preserved byte-for-byte.
+**Template scaffolding fix.** `scaffold.py` now handles both array and dict `extra-dirs.json` formats — 7 templates (business, commodities, decompilers, developer-tools, medicine, personal-growth, reading) previously created wrong directories.
 
-**Shared TypeScript types.** Canonical `GraphNode`/`GraphEdge` types extracted into `packages/shared-types/` — a single source of truth for 3 packages that previously defined near-identical interfaces independently.
-
-**Documentation taxonomy.** Root-level docs reorganized into `docs/architecture/`, `docs/getting-started/`, `docs/reference/`, `docs/legal/`, `docs/release/`. README.md and AGENTS.md kept at root for PyPI packaging and AI agent auto-discovery.
-
-**7 pre-existing test failures eliminated.** OpenCode imports fixed. MCP integration tests now match the sidecar response schema. Link suggest optimization added. 472 tests pass (up from 445).
+**Developer hygiene.** `.hermes/` added to `.gitignore` to prevent accidental commits of local skill config.
 
 ## What's New in v0.6.0 — "Epistemic & Surface"
 

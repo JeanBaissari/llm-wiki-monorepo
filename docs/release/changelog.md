@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.2] — 2026-08-17
+
+### Fixed
+
+- install.sh now builds graph-bridge (required by graph-engine), web-viewer, and obsidian-audit plugin
+- `.hermes/` added to .gitignore to prevent accidental commits of developer-local config
+- scaffold.py `load_extra_dirs()` now handles both array and dict `extra-dirs.json` formats (7 templates affected)
+
+---
+
 ## [0.6.1] — 2026-08-11
 
 ### Documentation cleanup

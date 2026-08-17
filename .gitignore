@@ -41,6 +41,9 @@ skill/references/opencode-tutorial.md
 *.swp
 *.swo
 
+# Hermes local config
+.hermes/
+
 # OS
 Thumbs.db
 _internal/

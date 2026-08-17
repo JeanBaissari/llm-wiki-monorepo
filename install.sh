@@ -69,6 +69,11 @@ npm install
 
 # ── Step c: Build TypeScript packages ────────────────────────────────
 
+info "Building graph-bridge..."
+cd "$REPO_DIR/graph-bridge"
+npm install
+npx tsc
+
 info "Building graph-engine..."
 cd "$REPO_DIR/graph-engine"
 npx tsc
@@ -79,6 +84,16 @@ npx tsc
 
 info "Building audit-shared..."
 cd "$REPO_DIR/audit-shared"
+npm run build
+
+info "Building web-viewer..."
+cd "$REPO_DIR/web-viewer"
+npm install
+npm run build
+
+info "Building obsidian-audit plugin..."
+cd "$REPO_DIR/plugins/obsidian-audit"
+npm install
 npm run build
 
 # ── Step d: Verify Python scripts syntax ─────────────────────────────

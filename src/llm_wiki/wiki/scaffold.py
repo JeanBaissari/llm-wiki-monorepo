@@ -70,7 +70,10 @@ def load_extra_dirs(template_path: Path) -> list[str]:
     if extra_json.exists():
         try:
             with open(extra_json) as f:
-                return json.load(f)
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data.get("directories", [])
+            return data
         except (json.JSONDecodeError, IOError):
             pass
     return []

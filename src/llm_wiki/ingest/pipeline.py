@@ -18,6 +18,8 @@ from llm_wiki.ingest.writer import write_wiki, write_review, update_index, appen
 from llm_wiki.core.layout import discover_layout
 from llm_wiki.providers.registry import call_llm
 
+SOURCE_EXTENSIONS = (".md", ".txt", ".json", ".yaml", ".yml",
+                     ".mq5", ".mq4", ".mqh", ".py", ".ts", ".js")
 CHUNK_SIZE = 55_000
 STAGE1_SYSTEM = "You are analyzing a source document for a knowledge base. Extract key entities, concepts, claims, relationships, and contradictions. Be thorough and structured."
 STAGE2_SYSTEM = "You are writing wiki pages for a knowledge base. Output ONLY structured blocks. Each page as ---FILE: path, each issue as ---REVIEW: type."
@@ -191,6 +193,8 @@ def main() -> int:
     p.add_argument("--llm", dest="provider", default="default", help="LLM provider")
     p.add_argument("--force", action="store_true", help="Skip cache, force overwrite")
     p.add_argument("--batch", metavar="DIR", help="Batch process all sources in DIR")
+    p.add_argument("--ext", nargs="+", default=None,
+                   help="Additional file extensions to process (e.g., --ext .mq5 .mqh)")
     p.add_argument("--llm-timeout", type=int, default=None,
                    help="Total LLM call deadline in seconds (spans retries; budget/cost control)")
     p.add_argument("--claims", action="store_true",
@@ -202,8 +206,11 @@ def main() -> int:
 
     if args.batch:
         if not os.path.isdir(args.batch): print(f"ERROR: batch dir not found: {args.batch}", file=sys.stderr); return 1
+        extensions = SOURCE_EXTENSIONS
+        if args.ext:
+            extensions = tuple(set(extensions + tuple(args.ext)))
         files = sorted(os.path.join(args.batch, f) for f in os.listdir(args.batch)
-                       if f.endswith((".md",".txt",".json",".yaml",".yml")) and not f.startswith("."))
+                       if f.endswith(extensions) and not f.startswith("."))
         if not files: print(f"No source files in {args.batch}", file=sys.stderr); return 1
         print(f"Batch: {len(files)} files", file=sys.stderr)
         for f in files:

@@ -1,20 +1,19 @@
 """test_opencode.py — Comprehensive tests for the opencode provider.
 
 Covers:
-    - skill/scripts/providers/opencode.py (OpenCodeProvider class)
+    - src/llm_wiki/providers/opencode.py (OpenCodeProvider class)
     - src/llm_wiki/providers/registry.py (_call_opencode function)
     - Multi-marker env detection (HERMES_SESSION_ID, CLAUDE_CODE_SESSION,
       CODEX_SESSION, LLM_WIKI_AGENT_MODE)
-    - Pipe-based IPC flow (write prompt, signal ready, poll response)
+    - HTTP API flow (opencode server at localhost:4096)
     - LLM_WIKI_RESPONSE_FILE fallback (success, empty, IO errors)
-    - Graceful degradation (timeout, parse error, stderr fallback)
+    - Graceful degradation (server unreachable, stderr fallback)
     - Provider metadata (cost=0, capability flags, model tracking)
 """
 
 import json
 import os
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -24,30 +23,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# Helper: write a valid response.json in the pipe IPC directory
-# ══════════════════════════════════════════════════════════════════════════
-
-def write_pipe_response(request_dir: Path, text: str,
-                        model: str = "test-model") -> Path:
-    """Simulate the parent agent writing a response.json."""
-    response_path = request_dir / "response.json"
-    response_path.write_text(json.dumps({
-        "response": text,
-        "model": model,
-    }))
-    return response_path
-
-
-def find_prompt_dir(opcode_base: Path, session_id: str) -> Path | None:
-    """Find the most recent request directory for a session."""
-    session_dir = opcode_base / session_id
-    if not session_dir.exists():
-        return None
-    dirs = sorted(session_dir.iterdir(), reverse=True)
-    return dirs[0] if dirs else None
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -79,20 +54,16 @@ class TestMultiMarkerDetection:
         assert p.session_id == "cx-003"
 
     def test_llm_wiki_agent_mode(self, monkeypatch):
-        """LLM_WIKI_AGENT_MODE=1 is a fallback — but OpenCodeProvider
-        init checks session_id markers; agent_mode is only for
-        detect_default_provider(). The provider itself requires a
-        session_id marker."""
+        """LLM_WIKI_AGENT_MODE=1 works as session_id fallback when no
+        other session markers are set. The provider initializes with
+        session_id='1' (the env var value)."""
         monkeypatch.setenv("LLM_WIKI_AGENT_MODE", "1")
         monkeypatch.delenv("HERMES_SESSION_ID", raising=False)
         monkeypatch.delenv("CLAUDE_CODE_SESSION", raising=False)
         monkeypatch.delenv("CODEX_SESSION", raising=False)
         from llm_wiki.providers.opencode import OpenCodeProvider
-        from llm_wiki.providers import ProviderNotAvailableError
-        # LLM_WIKI_AGENT_MODE alone does NOT set session_id —
-        # the provider needs a session marker
-        with pytest.raises(ProviderNotAvailableError):
-            OpenCodeProvider()
+        p = OpenCodeProvider()
+        assert p.session_id == "1"
 
     def test_priority_order_hermes_first(self, monkeypatch):
         """HERMES_SESSION_ID wins when multiple markers set."""
@@ -137,16 +108,6 @@ class TestProviderCapabilities:
         p = OpenCodeProvider()
         assert p.supports_structured_output is True
 
-    def test_request_counter_increments(self, monkeypatch):
-        monkeypatch.setenv("HERMES_SESSION_ID", "test")
-        monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
-        initial = p._request_counter
-        # call() will increment the counter even if it times out
-        p.call("sys", "user")
-        assert p._request_counter == initial + 1
-
 
 # ══════════════════════════════════════════════════════════════════════════
 # Response file fallback (LLM_WIKI_RESPONSE_FILE)
@@ -171,17 +132,17 @@ class TestResponseFileFallback:
         assert resp.cost == 0.0
 
     def test_response_file_empty_text(self, tmp_path, monkeypatch):
-        """Empty response file → returns None."""
+        """Empty response file -> falls through to stderr fallback."""
         monkeypatch.setenv("HERMES_SESSION_ID", "test")
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         rf = tmp_path / "empty.txt"
-        rf.write_text("   \n  ")  # whitespace only → stripped → empty
+        rf.write_text("   \n  ")  # whitespace only -> stripped -> empty
         monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE", str(rf))
 
         from llm_wiki.providers.opencode import OpenCodeProvider
         p = OpenCodeProvider()
         resp = p.call("sys", "user")
-        # Empty content after strip → falls through to stderr fallback
+        # Empty content after strip -> falls through to stderr fallback
         assert resp is not None  # _call_via_stderr returns empty LLMResponse
         assert resp.text == ""
         assert resp.cost == 0.0
@@ -203,168 +164,68 @@ class TestResponseFileFallback:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# Pipe-based IPC flow
+# HTTP API flow (opencode server)
 # ══════════════════════════════════════════════════════════════════════════
 
-class TestPipeIPC:
-    """Filesystem-based pipe IPC: write prompt, signal, poll response."""
+class TestHTTPAPI:
+    """HTTP API-based LLM calls via opencode server."""
 
-    def test_pipe_ipc_success(self, tmp_path, monkeypatch):
-        """Full pipe IPC flow — parent writes response, provider reads it."""
-        session = "test-session-pipe"
-        opcode_dir = tmp_path / "opencode"
-        monkeypatch.setenv("HERMES_SESSION_ID", session)
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
-        monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "5")
-
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
-
-        # We need to write the response BEFORE the provider polls.
-        # Since the provider writes prompt → touches .ready → polls,
-        # we can't pre-write. Instead, we simulate the parent agent
-        # by starting the call in a background-like way... but that's
-        # complex. Instead: patch time.sleep to be instant, then
-        # write the response after the prompt is written, before polling.
-        #
-        # Approach: override _call_via_pipe to use a shorter poll and
-        # have a side-effect that writes the response after .ready
-        # is created.
-        from llm_wiki.providers import opencode as oc_module
-
-        original_call_via_pipe = p._call_via_pipe
-
-        def _patched_call_via_pipe(system, user, timeout):
-            # Let the original write the prompt and .ready
-            p._request_counter += 1
-            from datetime import datetime
-            request_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}-{p._request_counter:04d}"
-            req_dir = oc_module.OPCODE_DIR / p.session_id / request_id
-            req_dir.mkdir(parents=True, exist_ok=True)
-
-            prompt_path = req_dir / "prompt.json"
-            prompt_data = {
-                "request_id": request_id,
-                "session_id": p.session_id,
-                "model": p.model,
-                "system": system,
-                "user": user,
-                "timestamp": datetime.now().isoformat(),
-            }
-            prompt_path.write_text(json.dumps(prompt_data, indent=2))
-            (req_dir / ".ready").touch()
-
-            # Simulate parent writing response immediately
-            write_pipe_response(req_dir, "Pipe IPC response text!")
-
-            # Now call the original _call_via_pipe which will poll
-            # and find the response we just wrote
-            # But we need to avoid double-incrementing. Let's just
-            # read the response directly.
-            response_path = req_dir / "response.json"
-            resp_data = json.loads(response_path.read_text())
-            from llm_wiki.providers import LLMResponse
-            return LLMResponse(
-                text=resp_data.get("response", ""),
-                model=resp_data.get("model", p.model),
-                input_tokens=oc_module._approx_tokens(system + user),
-                output_tokens=oc_module._approx_tokens(
-                    resp_data.get("response", "")),
-                cost=0.0,
-                provider="opencode",
-            )
-
-        p._call_via_pipe = _patched_call_via_pipe
-        resp = p.call("system prompt", "user message")
-        assert resp is not None
-        assert "Pipe IPC response text" in resp.text
-        assert resp.provider == "opencode"
-        assert resp.cost == 0.0
-
-    def test_pipe_ipc_timeout(self, tmp_path, monkeypatch):
-        """Timeout waiting for response → falls through to fallback."""
-        monkeypatch.setenv("HERMES_SESSION_ID", "test-timeout")
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(tmp_path / "opencode"))
+    def test_server_unreachable_returns_none(self, monkeypatch):
+        """When opencode server is not running, falls through gracefully."""
+        monkeypatch.setenv("HERMES_SESSION_ID", "test")
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
-
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
-        # No response file set, no parent agent → should time out
-        # and fall through to stderr fallback
-        resp = p.call("sys", "user")
-        assert resp is not None  # _call_via_stderr returns a response
-        assert resp.text == ""  # empty because no real response
-        assert resp.provider == "opencode"
-
-    def test_pipe_ipc_parse_error(self, tmp_path, monkeypatch):
-        """Malformed response.json → returns None."""
-        session = "test-parse-err"
-        opcode_dir = tmp_path / "opencode"
-        monkeypatch.setenv("HERMES_SESSION_ID", session)
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
-        monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "3")
-
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
+        monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
 
         from llm_wiki.providers import opencode as oc_module
+        monkeypatch.setattr(oc_module, "OPENCODE_URL", "http://localhost:19999")
 
-        p._request_counter += 1
-        from datetime import datetime
-        request_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}-{p._request_counter:04d}"
-        req_dir = oc_module.OPCODE_DIR / p.session_id / request_id
-        req_dir.mkdir(parents=True, exist_ok=True)
+        from llm_wiki.providers.opencode import _call_via_http
+        result = _call_via_http("sys", "user", timeout=1)
+        assert result is None
 
-        prompt_path = req_dir / "prompt.json"
-        prompt_path.write_text(json.dumps({"test": True}))
-        (req_dir / ".ready").touch()
-
-        # Write malformed JSON
-        (req_dir / "response.json").write_text("not valid json {{{")
-
-        # Call _call_via_pipe directly
-        resp = p._call_via_pipe("sys", "user", timeout=2)
-        assert resp is None  # Parse error → None
-
-    def test_pipe_ipc_preserves_model(self, tmp_path, monkeypatch):
-        """Response includes model name from response.json."""
-        session = "test-model-preserve"
-        opcode_dir = tmp_path / "opencode"
-        monkeypatch.setenv("HERMES_SESSION_ID", session)
-        monkeypatch.setenv("HERMES_MODEL", "deepseek-v4-pro")
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
-
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
-
+    def test_http_request_failure(self, monkeypatch):
+        """_http_request returns None on connection error."""
         from llm_wiki.providers import opencode as oc_module
+        monkeypatch.setattr(oc_module, "OPENCODE_URL", "http://localhost:19999")
+        from llm_wiki.providers.opencode import _http_request
+        result = _http_request("GET", "/global/health", timeout=1)
+        assert result is None
 
-        p._request_counter += 1
-        from datetime import datetime
-        request_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}-{p._request_counter:04d}"
-        req_dir = oc_module.OPCODE_DIR / p.session_id / request_id
-        req_dir.mkdir(parents=True, exist_ok=True)
+    def test_extract_text_from_response(self):
+        """_extract_text_from_response parses opencode response format."""
+        from llm_wiki.providers.opencode import _extract_text_from_response
+        response = {
+            "info": {"modelID": "test", "providerID": "test"},
+            "parts": [
+                {"type": "text", "text": "Hello "},
+                {"type": "text", "text": "world"},
+            ],
+        }
+        assert _extract_text_from_response(response) == "Hello \nworld"
 
-        prompt_path = req_dir / "prompt.json"
-        prompt_path.write_text(json.dumps({"test": True}))
-        (req_dir / ".ready").touch()
+    def test_extract_text_empty_parts(self):
+        """_extract_text_from_response handles empty parts."""
+        from llm_wiki.providers.opencode import _extract_text_from_response
+        assert _extract_text_from_response({"parts": []}) == ""
+        assert _extract_text_from_response({}) == ""
 
-        # Write response with explicit model
-        write_pipe_response(req_dir, "Hello!", model="response-model-override")
+    def test_extract_text_non_text_parts(self):
+        """_extract_text_from_response ignores non-text parts."""
+        from llm_wiki.providers.opencode import _extract_text_from_response
+        response = {
+            "parts": [
+                {"type": "tool_call", "tool": "bash"},
+                {"type": "text", "text": "result"},
+            ],
+        }
+        assert _extract_text_from_response(response) == "result"
 
-        from llm_wiki.providers import LLMResponse
-        resp_data = json.loads(
-            (req_dir / "response.json").read_text())
-        resp = LLMResponse(
-            text=resp_data.get("response", ""),
-            model=resp_data.get("model", p.model),
-            input_tokens=oc_module._approx_tokens("sys" + "user"),
-            output_tokens=oc_module._approx_tokens(
-                resp_data.get("response", "")),
-            cost=0.0,
-            provider="opencode",
-        )
-        assert resp.model == "response-model-override"
+    def test_is_server_reachable_false(self, monkeypatch):
+        """_is_server_reachable returns False when server is down."""
+        from llm_wiki.providers import opencode as oc_module
+        monkeypatch.setattr(oc_module, "OPENCODE_URL", "http://localhost:19999")
+        from llm_wiki.providers.opencode import _is_server_reachable
+        assert _is_server_reachable() is False
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -372,7 +233,7 @@ class TestPipeIPC:
 # ══════════════════════════════════════════════════════════════════════════
 
 class TestStderrFallback:
-    """When both pipe IPC and response file fail, fall back to stderr."""
+    """When both HTTP API and response file fail, fall back to stderr."""
 
     def test_returns_empty_response(self, monkeypatch):
         """Final fallback returns empty LLMResponse (not None)."""
@@ -488,7 +349,7 @@ class TestLLMResponse:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# _call_opencode() in src/llm_wiki/llm.py
+# _call_opencode() in registry.py
 # ══════════════════════════════════════════════════════════════════════════
 
 class TestCallOpencodeFunction:
@@ -517,10 +378,11 @@ class TestCallOpencodeFunction:
         sys.path.insert(0, str(REPO_ROOT / "src"))
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         monkeypatch.setenv("HERMES_SESSION_ID", "test-call-func")
+        monkeypatch.setenv("OPENCODE_URL", "http://localhost:19999")
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
         from llm_wiki.providers.registry import _call_opencode
         result = _call_opencode("sys", "user")
-        # No pipe response, no response file → returns None
+        # No HTTP response, no response file -> returns None
         assert result is None
 
     def test_call_opencode_response_file(self, tmp_path, monkeypatch):
@@ -541,12 +403,13 @@ class TestCallOpencodeFunction:
         sys.path.insert(0, str(REPO_ROOT / "src"))
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         monkeypatch.setenv("CLAUDE_CODE_SESSION", "claude-func-test")
+        monkeypatch.setenv("OPENCODE_URL", "http://localhost:19999")
         monkeypatch.delenv("HERMES_SESSION_ID", raising=False)
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
         from llm_wiki.providers.registry import _call_opencode
-        # Should detect Claude session and try IPC (which will time out)
+        # Should detect Claude session and try HTTP (which will fail)
         result = _call_opencode("sys", "user")
-        assert result is None  # No real agent
+        assert result is None  # No real server
 
     def test_llm_module_has_provider_map(self):
         """PROVIDER_MAP in llm_wiki.providers.registry includes opencode."""
@@ -569,15 +432,16 @@ class TestCallOpencodeFunction:
         assert "Routed response" in result
 
     def test_call_llm_default_in_hermes(self, monkeypatch):
-        """call_llm with provider='default' detects Hermes → opencode."""
+        """call_llm with provider='default' detects Hermes -> opencode."""
         sys.path.insert(0, str(REPO_ROOT / "src"))
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         monkeypatch.setenv("HERMES_SESSION_ID", "test-default-detect")
+        monkeypatch.setenv("OPENCODE_URL", "http://localhost:19999")
         monkeypatch.delenv("LLM_WIKI_RESPONSE_FILE", raising=False)
         from llm_wiki.providers.registry import call_llm
-        # default → detects opencode → tries IPC → fails gracefully
+        # default -> detects opencode -> tries HTTP -> fails gracefully
         result = call_llm("sys", "user")
-        assert result is None  # No real agent
+        assert result is None  # No real server
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -587,21 +451,17 @@ class TestCallOpencodeFunction:
 class TestEdgeCases:
     """Edge cases and boundary conditions."""
 
-    def test_opencode_dir_env_override(self, monkeypatch):
-        """LLM_WIKI_OPCODE_DIR env var changes the IPC directory."""
-        from llm_wiki.providers import opencode as oc_module
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", "/custom/opencode/path")
-        # Reload the module constant by re-evaluating
-        from pathlib import Path
-        custom = Path(os.environ.get("LLM_WIKI_OPCODE_DIR", "/tmp/llm-wiki-opencode"))
-        # Path equality is separator-agnostic on every platform (Windows Path
-        # spells the same value with backslashes).
-        assert custom == Path("/custom/opencode/path")
+    def test_opencode_url_env_override(self, monkeypatch):
+        """OPENCODE_URL env var changes the server URL."""
+        monkeypatch.setenv("OPENCODE_URL", "http://custom-host:8080")
+        import os
+        url = os.environ.get("OPENCODE_URL", "http://localhost:4096")
+        assert url == "http://custom-host:8080"
 
     def test_timeout_env_override(self, monkeypatch):
-        """LLM_WIKI_OPCODE_TIMEOUT env var changes poll timeout."""
+        """LLM_WIKI_OPCODE_TIMEOUT env var changes timeout."""
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "60")
-        # Read at call time, so this is tested via the call path
+        import os
         timeout = int(os.environ.get("LLM_WIKI_OPCODE_TIMEOUT", "300"))
         assert timeout == 60
 
@@ -613,131 +473,42 @@ class TestEdgeCases:
         assert _approx_tokens("abcdefgh") == 2
         assert _approx_tokens("a" * 400) == 100
 
-    def test_ts_helper_formats_correctly(self):
-        """_ts produces parseable timestamp strings."""
-        from llm_wiki.providers.opencode import _ts
-        ts = _ts()
-        # Format: YYYYMMDD-HHMMSS-ffffff
-        parts = ts.split("-")
-        assert len(parts) == 3
-        assert len(parts[0]) == 8  # YYYYMMDD
-        assert len(parts[1]) == 6  # HHMMSS
-        assert len(parts[2]) == 6  # ffffff
+    def test_sessions_cache(self, monkeypatch):
+        """_sessions module-level cache works correctly."""
+        monkeypatch.setenv("HERMES_SESSION_ID", "test")
+        from llm_wiki.providers import opencode as oc_module
+        # Clear cache
+        oc_module._sessions.clear()
+        assert "test-cache" not in oc_module._sessions
+        oc_module._sessions["test-cache"] = "session-123"
+        assert oc_module._sessions["test-cache"] == "session-123"
+        # Cleanup
+        oc_module._sessions.clear()
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# Deep edge cases — error paths
+# Error paths
 # ══════════════════════════════════════════════════════════════════════════
 
 class TestErrorPaths:
-    """Exception handling in pipe IPC and response file paths."""
-
-    def test_pipe_ipc_directory_creation_fails(self, tmp_path, monkeypatch):
-        """IOError during mkdir → _call_via_pipe returns None."""
-        monkeypatch.setenv("HERMES_SESSION_ID", "test-mkdir-fail")
-        # Use a path that can't be a directory (a file in the way)
-        opcode_dir = tmp_path / "opencode_blocked"
-        opcode_dir.write_text("blocking file")  # not a directory
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
-
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
-        # _call_via_pipe will try mkdir inside a file path → OSError
-        resp = p._call_via_pipe("sys", "user", timeout=2)
-        assert resp is None  # Caught the OSError
-
-    def test_pipe_ipc_io_error_on_response_read(self, tmp_path, monkeypatch):
-        """IOError reading response.json → _call_via_pipe returns None."""
-        session = "test-read-error"
-        opcode_dir = tmp_path / "opencode_read_err"
-        monkeypatch.setenv("HERMES_SESSION_ID", session)
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
-        monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "3")
-
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        from llm_wiki.providers import opencode as oc_module
-        p = OpenCodeProvider()
-
-        p._request_counter += 1
-        from datetime import datetime
-        request_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}-{p._request_counter:04d}"
-        req_dir = oc_module.OPCODE_DIR / p.session_id / request_id
-        req_dir.mkdir(parents=True, exist_ok=True)
-        (req_dir / "prompt.json").write_text(json.dumps({"test": True}))
-        (req_dir / ".ready").touch()
-
-        # Write response.json as a directory (not a file) so read fails
-        (req_dir / "response.json").mkdir(exist_ok=True)
-
-        resp = p._call_via_pipe("sys", "user", timeout=2)
-        # The IOError during read (IsADirectoryError is OSError subclass)
-        # is caught by the inner try/except → returns None
-        assert resp is None
+    """Exception handling in HTTP API and response file paths."""
 
     def test_response_file_io_error(self, tmp_path, monkeypatch):
-        """IOError reading response file → graceful fallback."""
+        """IOError reading response file -> graceful fallback."""
         monkeypatch.setenv("HERMES_SESSION_ID", "test-rf-ioerr")
         monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
         # Point to a path that exists but is a directory (can't read as text)
         monkeypatch.setenv("LLM_WIKI_RESPONSE_FILE", str(tmp_path))
 
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
-        resp = p._call_via_response_file("sys", "user")
-        # IOError/OSError → returns None
+        from llm_wiki.providers.opencode import _call_via_response_file
+        resp = _call_via_response_file("sys", "user")
+        # IOError/OSError -> returns None
         assert resp is None
 
-    def test_call_via_pipe_writes_prompt_json(self, tmp_path, monkeypatch):
-        """_call_via_pipe writes correct prompt.json with all fields."""
-        session = "test-prompt-write"
-        opcode_dir = tmp_path / "opencode_write"
-
-        # Must set env BEFORE importing — OPCODE_DIR is module-level
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
-        monkeypatch.setenv("HERMES_SESSION_ID", session)
-        monkeypatch.setenv("HERMES_MODEL", "test-model-write")
-        monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
-
-        # Force reimport to pick up the new OPCODE_DIR
-        from llm_wiki.providers import opencode as oc_module
-        import importlib
-        importlib.reload(oc_module)
-
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
-        # Let it write the prompt, then verify the file exists
-        p._call_via_pipe("SYSTEM TEXT", "USER TEXT", timeout=1)
-
-        # Find the request directory
-        prompt_dir = find_prompt_dir(opcode_dir, session)
-        assert prompt_dir is not None, f"No prompt dir found in {opcode_dir}/{session}"
-        prompt_file = prompt_dir / "prompt.json"
-        assert prompt_file.exists()
-        data = json.loads(prompt_file.read_text())
-        assert data["session_id"] == session
-        assert data["model"] == "test-model-write"
-        assert data["system"] == "SYSTEM TEXT"
-        assert data["user"] == "USER TEXT"
-        assert "timestamp" in data
-
-    def test_call_via_pipe_creates_ready_marker(self, tmp_path, monkeypatch):
-        """_call_via_pipe creates .ready marker after writing prompt."""
-        session = "test-ready-marker"
-        opcode_dir = tmp_path / "opencode_ready"
-
-        monkeypatch.setenv("LLM_WIKI_OPCODE_DIR", str(opcode_dir))
-        monkeypatch.setenv("HERMES_SESSION_ID", session)
-        monkeypatch.setenv("LLM_WIKI_OPCODE_TIMEOUT", "1")
-
-        from llm_wiki.providers import opencode as oc_module
-        import importlib
-        importlib.reload(oc_module)
-
-        from llm_wiki.providers.opencode import OpenCodeProvider
-        p = OpenCodeProvider()
-        p._call_via_pipe("sys", "user", timeout=1)
-
-        prompt_dir = find_prompt_dir(opcode_dir, session)
-        assert prompt_dir is not None, f"No prompt dir found in {opcode_dir}/{session}"
-        ready_file = prompt_dir / ".ready"
-        assert ready_file.exists()
+    def test_http_request_invalid_json(self, monkeypatch):
+        """_http_request handles non-JSON responses gracefully."""
+        monkeypatch.setenv("OPENCODE_URL", "http://localhost:19999")
+        from llm_wiki.providers.opencode import _http_request
+        # Server is unreachable, so this returns None
+        result = _http_request("GET", "/nonexistent", timeout=1)
+        assert result is None

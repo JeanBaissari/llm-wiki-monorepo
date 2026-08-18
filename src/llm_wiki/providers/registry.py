@@ -246,116 +246,20 @@ def _call_opencode(
     model: Optional[str] = None,
     **kwargs: Any,
 ) -> Optional[str]:
-    import json
-    from datetime import datetime
-    from pathlib import Path
+    """Thin wrapper that delegates to OpenCodeProvider via HTTP API.
 
-    session_id = (
-        os.environ.get("HERMES_SESSION_ID")
-        or os.environ.get("CLAUDE_CODE_SESSION")
-        or os.environ.get("CODEX_SESSION")
-        or "unknown"
-    )
-    agent_model = os.environ.get("HERMES_MODEL", "agent-native")
-
-    opcode_dir = Path(os.environ.get(
-        "LLM_WIKI_OPCODE_DIR",
-        "/tmp/llm-wiki-opencode",
-    ))
-    timeout = int(os.environ.get("LLM_WIKI_OPCODE_TIMEOUT", "300"))
-
-    def _approx_tokens(text: str) -> int:
-        return max(1, len(text) // 4)
-
-    def _ts() -> str:
-        return datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    The opencode provider handles the full fallback chain:
+    HTTP API -> LLM_WIKI_RESPONSE_FILE -> stderr.
+    """
+    from llm_wiki.providers.opencode import OpenCodeProvider
 
     try:
-        request_dir = opcode_dir / session_id / _ts()
-        request_dir.mkdir(parents=True, exist_ok=True)
-
-        prompt_path = request_dir / "prompt.json"
-        prompt_data = {
-            "session_id": session_id,
-            "model": agent_model,
-            "system": system,
-            "user": user,
-            "timestamp": datetime.now().isoformat(),
-        }
-        prompt_path.write_text(json.dumps(prompt_data, indent=2))
-
-        ready_path = request_dir / ".ready"
-        ready_path.touch()
-
-        sep = "=" * 70
-        print(
-            f"\n{sep}\n  SYSTEM PROMPT [opencode]:\n{sep}\n{system}",
-            file=sys.stderr,
-        )
-        print(
-            f"\n{sep}\n  USER PROMPT [opencode]:\n{sep}\n{user}",
-            file=sys.stderr,
-        )
-        print(
-            f"  \u26a1 opencode: prompt written to {prompt_path}\n"
-            f"  Waiting for response (timeout: {timeout}s)...",
-            file=sys.stderr,
-        )
-
-        response_path = request_dir / "response.json"
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            if response_path.exists():
-                try:
-                    resp_data = json.loads(response_path.read_text())
-                    response_text = resp_data.get("response", "")
-                    response_model = resp_data.get("model", agent_model)
-                    print(
-                        f"  \u2713 opencode: received {len(response_text)} chars "
-                        f"from {response_model}",
-                        file=sys.stderr,
-                    )
-                    print(
-                        f"  $ cost=$0.00 (agent-native)",
-                        file=sys.stderr,
-                    )
-                    return response_text
-                except (json.JSONDecodeError, IOError) as e:
-                    print(f"  \u26a0  opencode: response parse error: {e}",
-                          file=sys.stderr)
-                    return None
-            time.sleep(1)
-
-        print(
-            f"  \u26a0  opencode: timeout after {timeout}s waiting for response",
-            file=sys.stderr,
-        )
-    except (IOError, OSError) as e:
-        print(f"  \u26a0  opencode: pipe IPC failed: {e}", file=sys.stderr)
-
-    rf = os.environ.get("LLM_WIKI_RESPONSE_FILE")
-    if rf:
-        try:
-            response_path = Path(rf)
-            if response_path.exists():
-                text = response_path.read_text(encoding="utf-8").strip()
-                if text:
-                    print(
-                        f"  \u2713 opencode: read {len(text)} chars from "
-                        f"LLM_WIKI_RESPONSE_FILE",
-                        file=sys.stderr,
-                    )
-                    print(f"  $ cost=$0.00 (agent-native)", file=sys.stderr)
-                    return text
-        except (IOError, OSError):
-            pass
-
-    print(
-        "  \u26a0  opencode: no response received. "
-        "Set LLM_WIKI_RESPONSE_FILE with LLM output.",
-        file=sys.stderr,
-    )
-    return None
+        provider = OpenCodeProvider()
+        resp = provider.call(system, user, **kwargs)
+        return resp.text if resp.text else None
+    except Exception as e:
+        print(f"  ⚠  opencode provider init failed: {e}", file=sys.stderr)
+        return None
 
 PROVIDER_MAP: dict[str, Any] = {
     "opencode": _call_opencode,
@@ -531,7 +435,11 @@ def _call_opencode_structured(
     model: Optional[str] = None,
     **kwargs: Any,
 ) -> Optional[T]:
+    """Structured output via opencode: appends JSON schema to system prompt,
+    then parses the response into the Pydantic model.
+    """
     import json as _json
+    import re
 
     schema = response_model.model_json_schema()
     schema_json = _json.dumps(schema, indent=2)
@@ -546,7 +454,7 @@ def _call_opencode_structured(
 
     @_retry_decorator()
     def _call_and_parse() -> T:
-        raw = _call_opencode(schema_instructions, user, model=model)
+        raw = _call_opencode(schema_instructions, user, model=model, **kwargs)
         if raw is None:
             raise RuntimeError("opencode returned no response")
 
@@ -559,7 +467,6 @@ def _call_opencode_structured(
         try:
             return response_model.model_validate_json(text)
         except Exception as parse_err:
-            import re
             json_match = re.search(r'\{.*\}', text, re.DOTALL)
             if json_match:
                 try:
@@ -572,7 +479,7 @@ def _call_opencode_structured(
         return _call_and_parse()
     except Exception as e:
         print(
-            f"  \u26a0  Structured opencode error after retries: {e}",
+            f"  ⚠  Structured opencode error after retries: {e}",
             file=sys.stderr,
         )
         return None

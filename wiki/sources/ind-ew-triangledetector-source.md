@@ -1,7 +1,7 @@
 ---
 type: source
 title: Ind EW TriangleDetector Source
-authors: ["baissarienterprises@protonmail.com"]
+authors: ["Baissari Enterprises"]
 year: 2026
 url: ""
 venue: ""

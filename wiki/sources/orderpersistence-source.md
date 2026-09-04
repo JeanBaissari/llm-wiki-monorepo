@@ -1,7 +1,7 @@
 ---
 type: source
 title: OrderPersistence Source
-authors: ["baissarienterprises@protonmail.com"]
+authors: ["Baissari Enterprises"]
 year: 2026
 url: ""
 venue: ""

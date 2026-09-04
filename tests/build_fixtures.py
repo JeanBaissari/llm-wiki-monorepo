@@ -9,7 +9,7 @@ Creates:
 import os, sys, hashlib, shutil
 from pathlib import Path
 
-REPO = Path("/home/jeanbaissari/Documents/programming/projects/llm-wiki-monorepo")
+REPO = Path(__file__).resolve().parents[1]
 FIXTURES = REPO / "tests" / "fixtures"
 
 

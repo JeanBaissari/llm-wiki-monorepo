@@ -130,7 +130,7 @@
     ]
   },
   "templates": {
-    "source": "templates/",
+    "source": "src/llm_wiki/templates/",
     "expected_count": 20,
     "expected_names": [
       "algorithmic-trading",

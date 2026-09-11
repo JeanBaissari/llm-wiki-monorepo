@@ -55,23 +55,6 @@ export interface GraphData {
 
 export type GraphAction = "build" | "insights" | "search" | "relevance";
 
-// ── Code-structure types ───────────────────────────────────────────────
-
-export interface CodeNode {
-  id: string;
-  label: string;
-  type: "file" | "class" | "function" | "import" | "dependency";
-  path: string;
-  language: string;
-}
-
-export interface CodeEdge {
-  source: string;
-  target: string;
-  type: "imports" | "extends" | "implements" | "calls" | "references";
-  weight: number;
-}
-
 // ── MCP types (canonical from mcp-server) ──────────────────────────────
 
 export interface WikiProject {

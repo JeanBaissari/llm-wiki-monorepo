@@ -12,10 +12,16 @@ contract.
 ### Removed
 
 - **graphify / code-analysis surface removed (ADR-0035)** — the
-  `@sentropic/graphify` integration and its promotion are gone; `graph-bridge`
-  is retained as an adapter with no default consumer. Local-model promotion
-  (Ollama, model downloads, torch) is also out of the default story; `[ner]`
-  stays a legacy opt-in that degrades to the regex extractor.
+  `@sentropic/graphify` integration and its promotion are gone, and the
+  now-unconsumed `graph-bridge` package is removed entirely. Local-model
+  promotion (Ollama, model downloads, torch) is also out of the default story;
+  `[ner]` stays a legacy opt-in that degrades to the regex extractor.
+- **Stale artifacts retired** — the v0.3.x `production-readiness-audit.md` and
+  `prd-implementation-path.md` docs, the redundant `verify-release.yml`
+  workflow, and the extension's dead localhost auto-ingest HTTP path.
+- **Single template tree and single changelog source** — `templates/` is
+  superseded by the packaged `src/llm_wiki/templates/` (one canonical tree, no
+  drift), and `CHANGELOG.md` at the repo root is now a pointer to this file.
 
 ### Changed
 

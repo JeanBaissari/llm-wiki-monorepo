@@ -17,7 +17,7 @@ for _stream in (_sys.stdout, _sys.stderr):
     except (AttributeError, ValueError, OSError):
         break
 
-__version__ = "0.6.4"
+__version__ = "0.6.5"
 
 __all__ = [
     "cli",

@@ -39,6 +39,12 @@ pip install baissarienterprises-llm-wiki
 > extras for local computation remain opt-in and are not part of the supported
 > default story.
 
+## What's New in v0.6.5 — "CI Green"
+
+**Embedding degrades instead of crashing.** If the optional `[semantic]` model cannot load at runtime (offline runner, missing cache), `llm-wiki embed` now reports the degradation and leaves keyword search untouched instead of raising `IndexError`.
+
+**Provenance scan respects content.** Wiki pages and working directories are no longer scanned for ported-code markers, so ordinary prose can't fail the provenance gate.
+
 ## What's New in v0.6.4 — "Lean & Certified"
 
 **Local-model surface removed.** The unused `@sentropic/graphify` hard dependency is gone (with its 239-package / ~606 MiB closure: `@ai-sdk/*`, Ollama provider, tree-sitters, DB drivers), along with the `--code-analysis`/`merged`/`export-graph` code paths and the web code-graph route (ADR-0035). The knowledge graph is fully offline and wikilink-derived. Optional Python extras remain opt-in and are no longer promoted as a recommended profile.

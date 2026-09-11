@@ -2,10 +2,11 @@
 
 ## Current Version
 
-The llm-wiki-monorepo Python package is at **0.6.4** (PyPI: `baissarienterprises-llm-wiki`).
+The llm-wiki-monorepo Python package is at **0.6.5** (PyPI: `baissarienterprises-llm-wiki`).
 
 | Milestone | Description |
 |-----------|-------------|
+| v0.6.5    | Patch — `llm-wiki embed` degrades cleanly when the model is unavailable at runtime; provenance scanner ignores wiki/build content; CI green end-to-end |
 | v0.6.4    | Release integrity — graphify/code-analysis surface removed (ADR-0035), clean-room MIT relevance/insights, install.sh installs the Python package, wheels ship the 20 templates, race-free locking + verifiable backups, truthful release gates |
 | v0.6.3    | opencode HTTP API provider, batch-mode file extensions (`--ext`), MCP/graph-engine dist rebuilds |
 | v0.6.2    | Documentation accuracy — install.sh builds graph-bridge/web-viewer/obsidian-audit, .hermes/ gitignore, scaffold.py dict-format extra-dirs.json handling |

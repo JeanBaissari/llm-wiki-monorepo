@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.5] — 2026-09-11
+
+### Fixed
+
+- **`llm-wiki embed` degrades cleanly when the model is unavailable** — an
+  installed `[semantic]` extra whose model cannot load at runtime (offline
+  runner, missing/corrupt cache) previously crashed with `IndexError` from
+  `embed()[0]`. It now reports `available=false` / `degraded=true`, rolls back
+  uncommitted writes, and leaves keyword search unaffected; the CLI message
+  distinguishes runtime-unavailable from extra-absent. Regression test added.
+- **Provenance scan excludes content and working dirs** — `wiki/`, `.audit/`,
+  and `build/` are no longer scanned for ported-code markers, so ordinary wiki
+  prose ("derived from") no longer fails the `provenance` CI job.
+
 ## [0.6.4] — 2026-09-11
 
 ### Release integrity

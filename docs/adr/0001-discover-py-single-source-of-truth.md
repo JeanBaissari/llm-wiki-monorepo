@@ -1,4 +1,4 @@
-# ADR 001: `discover.py` as Single Source of Truth for Wiki Structure
+# ADR 0001: `discover.py` as Single Source of Truth for Wiki Structure
 
 - **Status:** accepted
 - **Date:** 2026-07-04

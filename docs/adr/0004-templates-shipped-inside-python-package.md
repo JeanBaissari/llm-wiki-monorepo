@@ -1,4 +1,4 @@
-# ADR 004: Templates Shipped Inside Python Package
+# ADR 0004: Templates Shipped Inside Python Package
 
 - **Status:** accepted
 - **Date:** 2026-07-04

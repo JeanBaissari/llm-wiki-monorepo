@@ -2,6 +2,7 @@
 
 - **Status:** accepted
 - **Date:** 2026-08-07
+- **Amendment (BKD-003):** `community.engine` (`louvain`\|`leiden`, default `louvain`) was added to the surface — the current inventory is **23 scalar constants / 53 settable keys**. The default-flip policy stays ADR-0025: the community parity gate decides, never this key alone.
 - **Context:** LWM_031 (v0.5.0) — ~22 magic constants scattered across the relevance model, insights signals, community detection, hybrid retrieval, BM25, and claim health each silently steer precision, but none is justified, discoverable, or tunable. Two surfaces (`relevance.ts`, `insights.ts`) already accepted override objects but had no config surface behind them, and the Python/TS copies could drift. v0.4.0's eval harness (LWM_022 / ADR-0022) built the missing piece — this PRD closes the loop by making every constant a named, validated, documented config input **without changing a single default**.
 
 ## Decision

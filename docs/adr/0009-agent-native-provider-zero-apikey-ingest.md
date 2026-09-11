@@ -1,4 +1,4 @@
-# ADR 009: Agent-Native Provider for Zero-API-Key Ingest
+# ADR 0009: Agent-Native Provider for Zero-API-Key Ingest
 
 > **Superseded by ADR-0034 (HTTP API provider).** The pipe-based IPC mechanism was architecturally broken for synchronous tool calls — it created a deadlock when running inside opencode sessions.
 

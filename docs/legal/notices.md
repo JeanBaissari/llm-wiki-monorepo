@@ -4,7 +4,16 @@ This project incorporates third-party components under various open-source licen
 
 ## Licenses in Use
 
-This project as a whole is distributed under the MIT license (see [LICENSE](./LICENSE)). Individual dependencies carry their own licenses as noted.
+This project as a whole is distributed under the MIT license (see [LICENSE](../../LICENSE)). Individual dependencies carry their own licenses as noted.
+
+## Vendored Components (Browser Extension)
+
+Two third-party libraries are vendored as standalone files under `extension/` (not consumed as npm packages):
+
+- **Readability.js** (`extension/Readability.js`) — Mozilla Readability — **Apache-2.0**, Copyright © 2010 Arc90 Inc. The Apache-2.0 license header is retained in the vendored file. Apache-2.0 requires that any upstream `NOTICE` file be preserved with distributions of the work; this section is the attribution record for the vendored copy.
+- **Turndown.js** (`extension/Turndown.js`) — Turndown — **MIT**, Copyright © Dom Christie. The MIT permission notice is retained in the vendored file.
+
+Both are consumed unmodified as vendored bundles for the Chrome extension's article extraction and HTML→Markdown conversion.
 
 ## MIT-Licensed Dependencies
 
@@ -29,6 +38,11 @@ The following dependencies are licensed under the MIT License. The MIT License r
 - **litellm** — Copyright © BerriAI. MIT License.
 - **instructor** — Copyright © Jason Liu. MIT License.
 - **pydantic** — Copyright © Pydantic Team. MIT License.
+- **tomli** — Copyright © Taneli Hukkinen. MIT License. Core dependency on Python 3.10 only (`tomllib` is stdlib on 3.11+).
+- **model2vec** — Copyright © 2024 Thomas van Dongen. MIT License. Optional `[semantic]` extra.
+- **graspologic** — Copyright © Microsoft Corporation. MIT License. Optional `[leiden]` extra.
+- **splink** — Copyright © UK Ministry of Justice. MIT License. Optional `[entity-resolution]` extra.
+- **onnxruntime** — Copyright © Microsoft Corporation. MIT License. Optional `[ner]` extra.
 - **esbuild** — Copyright © Evan Wallace. MIT License.
 - **pytest** — Copyright © pytest-dev. MIT License.
 - **pytest-cov** — Copyright © pytest-cov contributors. MIT License.
@@ -62,6 +76,8 @@ The following dependencies are licensed under the Apache License, Version 2.0.
 
 - **tenacity** — Copyright © Julien Danjou. Apache-2.0.
 - **typescript** — Copyright © Microsoft Corporation. Apache-2.0.
+- **gliner** — Copyright © Urchade Zaratiana. Apache-2.0. Optional `[ner]` extra.
+- **deepeval** — Copyright © Confident AI. Apache-2.0. Optional `[eval]` extra.
 
 ```
 Apache License, Version 2.0
@@ -83,6 +99,7 @@ limitations under the License.
 
 - **portalocker** — Copyright © 2023, Rick van Hattem. BSD-3-Clause.
 - **networkx** — Copyright © NetworkX contributors. BSD-3-Clause.
+- **numpy** — Copyright © 2005-2023, NumPy Developers. BSD-3-Clause. Optional `[semantic]` extra.
 
 ```
 Redistribution and use in source and binary forms, with or without
@@ -146,15 +163,16 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 Where a dependency offers a choice of licenses, this project elects the most permissive option:
 
 - **dompurify** — Copyright © Dr.-Ing. Mario Heiderich, Cure53. Dual-licensed `(MPL-2.0 OR Apache-2.0)`; this project elects **Apache-2.0**. Transitive dependency of `mermaid` (HTML sanitization), consumed unmodified.
+- **sqlite-vec** — Copyright © Alex Garcia. Dual-licensed `(MIT OR Apache-2.0)`; this project elects **MIT**. Optional `[semantic]` extra (SQLite vector extension with a pure-numpy KNN fallback, ADR-0016).
 - **jszip** — Dual-licensed `(MIT OR GPL-3.0-or-later)`; this project elects **MIT**. jszip was a transitive dependency of the code-analysis surface removed in v0.6.4 (ADR-0035) and is not part of the current dependency closure; the election is recorded here should it be reintroduced.
 
 ## GPL-3.0 Upstream References
 
 The following upstream projects were referenced for methodology and design. Their licenses are provided for attribution purposes only; no GPL-licensed code is incorporated into this project's distributed artifacts.
 
-- **nashsu/llm_wiki** (https://github.com/nashsu/llm_wiki) — GPL-3.0. Referenced for graph relevance model design; the graph-engine files are independent clean-room MIT implementations (see [provenance.md](./provenance.md#graph-engine--upstream-references--clean-room-reimplementations) for provenance disposition).
+- **nashsu/llm_wiki** (https://github.com/nashsu/llm_wiki) — GPL-3.0. Referenced for graph relevance model design; the graph-engine files are independent clean-room MIT implementations (see [provenance.md](provenance.md#graph-engine--upstream-references--clean-room-reimplementations) for provenance disposition).
 - **nashsu/llm_wiki_skill** (https://github.com/nashsu/llm_wiki_skill) — GPL-3.0. Referenced for API contract methodology.
 
 ---
 
-This file was generated as part of the v0.3.4 provenance review. Licenses and attributions should be verified before each public release.
+This file was regenerated for the **v0.6.5 clean-room closure review** (provenance reimplements landed in v0.6.4; dependency rows reconciled against `pyproject.toml` and each project's official license). Licenses and attributions should be verified before each public release.

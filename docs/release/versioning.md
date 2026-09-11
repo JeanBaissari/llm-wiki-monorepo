@@ -10,14 +10,15 @@ The llm-wiki-monorepo Python package is at **0.6.5** (PyPI: `baissarienterprises
 | v0.6.4    | Release integrity — graphify/code-analysis surface removed (ADR-0035), clean-room MIT relevance/insights, install.sh installs the Python package, wheels ship the 20 templates, race-free locking + verifiable backups, truthful release gates |
 | v0.6.3    | opencode HTTP API provider, batch-mode file extensions (`--ext`), MCP/graph-engine dist rebuilds |
 | v0.6.2    | Documentation accuracy — install.sh builds graph-bridge/web-viewer/obsidian-audit, .hermes/ gitignore, scaffold.py dict-format extra-dirs.json handling |
+| v0.6.1    | Documentation cleanup — post-v0.6.0 repo-state alignment (USAGE.md, AGENTS.md, SKILL.md, file-map, quickstart); no shipped-surface code change |
 | v0.6.0    | Epistemic & Surface — `setup` (one-command client wiring), `demo` wiki, `ask` (grounded QA), `contradictions` + evidence confidence, web-viewer derived overlay + Sigma.js + JSON Canvas/JSON-LD exports, recommended-extras profile, gold-set curation loop |
 | v0.5.0    | Graph Precision — entity resolution, Leiden, typed/derived edges, community summaries, tuning config, hybrid search default |
 | v0.4.0    | Semantic Core — pluggable embeddings, in-file vector store, hybrid search (opt-in), semantic link suggestion, eval harness |
 | v0.3.4    | Stabilization line — modularization, health checks, benchmarks |
 | v0.2.1    | Release integrity — manifest, docs truth, workspace gates, CI matrix |
 | v0.2.0    | Foundation — LLM SDK, concurrency, graph optimization, search, link suggestion |
-| v0.1.0    | Initial PyPI release — 11 CLI commands, 15-pass lint, graph engine, MCP server, 20 templates |
 | v0.1.1    | Templates shipped inside package for pip-installed users |
+| v0.1.0    | Initial PyPI release — 11 CLI commands, 15-pass lint, graph engine, MCP server, 20 templates |
 
 ## Version Scheme
 
@@ -88,22 +89,29 @@ Pre-release versions have lower precedence than a normal version. `3.1.0-rc.1` s
 
 ## Release Process
 
+Releases are tag-driven and automated. Pushing a `v*` tag triggers
+[`.github/workflows/release.yml`](../../.github/workflows/release.yml), which
+builds, certifies, publishes to PyPI via OIDC, and creates the GitHub Release.
+
 1. **Ensure CI passes** — All checks on the target commit must be green (lint, typecheck, integration tests).
 2. **Update `docs/release/changelog.md`** — The canonical changelog. Add the new version entry with Breaking Changes, New Features, and Bug Fixes.
 3. **Update version** — Bump `pyproject.toml` (`project.version`), then sync the mirrors: `src/llm_wiki/__init__.py`, `package.json`/`package-lock.json`, and `release-manifest.json` (`python3 scripts/release_manifest.py` verifies them).
-4. **Commit** — Commit with message format: `Release v<version>` (e.g., `Release v3.1.0`).
-5. **Tag in git**:
+4. **Commit** — Commit with the repository's actual convention: `release: vX.Y.Z` (e.g., `release: v0.6.5`), optionally with an em-dash summary of the release (`release: v0.6.5 — embed degradation fix`).
+5. **Tag and push the tag**:
 
    ```bash
    git tag v<version>
    git push origin --tags
    ```
 
-6. **Release notes** — On GitHub, create a release with notes summarizing:
-   - **Breaking Changes** — What changed and migration steps
-   - **New Features** — What was added
-   - **Bug Fixes** — What was fixed
-   - **Full changelog** — Link to the commit range
+6. **Automated pipeline** (on the `v*` tag push):
+   - **`build`** — installs the package, smoke-tests the CLI/import, builds the wheel + sdist, installs the wheel in a clean venv, and verifies the wheel version matches the tag.
+   - **`certify`** — runs `python3 scripts/release_certify.py` (release manifest, docs truth check, Python test suite, TypeScript gates, eval gates). The publish job is gated on this job (`needs: [build, certify]`).
+   - **`publish`** — uploads to PyPI with trusted OIDC publishing (`pypa/gh-action-pypi-publish`, no API tokens) and PEP 740 digital attestations, then creates the GitHub Release with generated release notes and the `dist/*` artifacts attached.
+
+   Release notes are generated from the tag by the workflow — no manual
+   GitHub Release step is required. If the tag must be re-released, delete and
+   re-push the tag after the fix (never force-push `main`).
 
 ## Backward Compatibility Guarantee
 

@@ -1,4 +1,4 @@
-# ADR 034: opencode HTTP API Provider
+# ADR 0034: opencode HTTP API Provider
 
 - **Status:** accepted
 - **Date:** 2026-08-18

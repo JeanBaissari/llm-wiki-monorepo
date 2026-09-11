@@ -1,4 +1,4 @@
-# ADR 005: Two-File Unified Graph Output (GAP-4 Prerequisite)
+# ADR 0005: Two-File Unified Graph Output (GAP-4 Prerequisite)
 
 - **Status:** superseded by [ADR-0035](0035-remove-graphify-code-analysis-surface.md) (2026-09-11)
 - **Date:** 2026-07-04

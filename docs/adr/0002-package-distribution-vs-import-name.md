@@ -1,4 +1,4 @@
-# ADR 002: Package Distribution Name vs Import Name Separation
+# ADR 0002: Package Distribution Name vs Import Name Separation
 
 - **Status:** accepted
 - **Date:** 2026-07-04

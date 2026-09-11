@@ -1,4 +1,4 @@
-# ADR 006: Two-Step CoT Ingest with SHA256 Caching
+# ADR 0006: Two-Step CoT Ingest with SHA256 Caching
 
 - **Status:** accepted
 - **Date:** 2026-07-04

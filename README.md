@@ -257,7 +257,7 @@ cd web-viewer && npm start -- --wiki ~/my-wiki
       ├── shared-types (TS)               → canonical GraphNode/GraphEdge types
       ├── Web Viewer + Obsidian Plugin    → human browsing + feedback
       ├── Browser Extension               → web clipping (auto-ingest experimental)
-      └── templates/                      → 20 domain schemas
+      └── src/llm_wiki/templates/        → 20 domain schemas
  ```
 
 ## Packages
@@ -268,7 +268,7 @@ cd web-viewer && npm start -- --wiki ~/my-wiki
 | `src/llm_wiki/` | Python | core | PyPI package — CLI, LLM providers, concurrency, search, graph insights |
 | `mcp-server/` | TypeScript | programmatic-access | MCP server — 15 tools, direct sidecar integration |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph — relevance, Louvain communities, insights, verification |
-| `templates/` | Markdown + JSON | core | 20 domain-specific project templates |
+| `src/llm_wiki/templates/` | Markdown + JSON | core | 20 domain-specific project templates (single canonical tree) |
 | `tests/` | Python + TypeScript | core | pytest (ingest, lint, concurrency, search, opencode) + vitest (graph, mcp) |
 | `web-viewer/` | TypeScript | optional | Preview server with search + graph insights panel |
 | `extension/` | JavaScript | optional | Chrome web clipper (auto-ingest experimental) |
@@ -280,6 +280,8 @@ cd web-viewer && npm start -- --wiki ~/my-wiki
 ## Templates (20 domains)
 
 `research` `codebase` `finance` `algorithmic-trading` `algorithmic-trading-mql4` `cybersecurity` `machine-learning` `prompt-engineering` `copywriting` `marketing` `design-systems` `architecture` `crypto` `commodities` `decompilers` `medicine` `developer-tools` `personal-growth` `reading` `business`
+
+Templates live in `src/llm_wiki/templates/` — a single canonical package-internal tree (also shipped in the wheel).
 
 Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.md` (page types, conventions, frontmatter, cross-referencing, contradiction handling), `extra-dirs.json` (domain directories).
 

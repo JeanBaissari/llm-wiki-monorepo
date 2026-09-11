@@ -33,7 +33,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPTS_DIR = REPO_ROOT / "skill" / "scripts"
 SEEDS_DIR = REPO_ROOT / "tests" / "fixtures" / "seeds"
 WIKIS_DIR = REPO_ROOT / "tests" / "fixtures" / "wikis"
-TEMPLATES_SHARED = REPO_ROOT / "templates" / "_shared" / "base-schema.md"
+TEMPLATES_SHARED = REPO_ROOT / "src" / "llm_wiki" / "templates" / "_shared" / "base-schema.md"
 
 
 def compute_schema_version() -> str:

@@ -1,7 +1,8 @@
 """test_drift.py — Drift detection: package vs skill wrapper parity.
 
 Ensures skill/scripts/*.py user-facing command files are thin wrappers
-that delegate to src/llm_wiki/ modules.
+that delegate to src/llm_wiki/ modules, and that the canonical package
+template tree stays complete (20 domains + _shared).
 
 For user-facing commands:
   - Must contain `from llm_wiki.<module> import main` (or equivalent)
@@ -19,6 +20,30 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILL_DIR = REPO_ROOT / "skill" / "scripts"
 PACKAGE_DIR = REPO_ROOT / "src" / "llm_wiki"
+PACKAGE_TEMPLATES_DIR = PACKAGE_DIR / "templates"
+
+EXPECTED_TEMPLATES = frozenset({
+    "algorithmic-trading",
+    "algorithmic-trading-mql4",
+    "architecture",
+    "business",
+    "codebase",
+    "commodities",
+    "copywriting",
+    "crypto",
+    "cybersecurity",
+    "decompilers",
+    "design-systems",
+    "developer-tools",
+    "finance",
+    "machine-learning",
+    "marketing",
+    "medicine",
+    "personal-growth",
+    "prompt-engineering",
+    "reading",
+    "research",
+})
 
 # User-facing command files that must be wrappers
 WRAPPER_COMMANDS = frozenset({
@@ -58,6 +83,34 @@ DUPLICATED_FUNCTIONS = frozenset({
     "clean_stale_locks",
     "parse_frontmatter",
 })
+
+
+def test_package_templates_are_complete():
+    """The package template tree is the single canonical source — 20 domains + _shared."""
+    assert PACKAGE_TEMPLATES_DIR.is_dir(), (
+        f"missing canonical template tree: {PACKAGE_TEMPLATES_DIR}"
+    )
+    assert not (REPO_ROOT / "templates").exists(), (
+        "repo-root templates/ must not exist — src/llm_wiki/templates/ is canonical"
+    )
+
+    shared = PACKAGE_TEMPLATES_DIR / "_shared" / "base-schema.md"
+    assert shared.is_file(), "_shared/base-schema.md missing"
+
+    domains = {
+        d.name for d in PACKAGE_TEMPLATES_DIR.iterdir()
+        if d.is_dir() and not d.name.startswith("_") and not d.name.startswith(".")
+    }
+    assert domains == EXPECTED_TEMPLATES, (
+        f"template drift: missing={sorted(EXPECTED_TEMPLATES - domains)}, "
+        f"unexpected={sorted(domains - EXPECTED_TEMPLATES)}"
+    )
+
+    for name in sorted(domains):
+        for required in ("PURPOSE.md", "SCHEMA.md", "extra-dirs.json"):
+            assert (PACKAGE_TEMPLATES_DIR / name / required).is_file(), (
+                f"template '{name}' missing {required}"
+            )
 
 
 def test_user_facing_commands_are_thin_wrappers():

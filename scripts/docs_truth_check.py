@@ -24,11 +24,8 @@ EXPECTED_COUNTS = {
     "scripts": 26,
 }
 
-# Historical/audit documents that describe past states are exempt.
-EXCLUDED_REFERENCE_DOCS = {
-    "prd-implementation-path.md",
-    "production-readiness-audit.md",
-}
+# Historical/audit documents that describe past states are exempt (none currently).
+EXCLUDED_REFERENCE_DOCS: set[str] = set()
 
 # Always-scanned live docs. Every other docs/reference/*.md is scanned too.
 FIXED_DOCS = (
@@ -78,7 +75,7 @@ def discover_cli_commands() -> list[str]:
 
 
 def discover_templates() -> list[str]:
-    templates_dir = REPO_ROOT / "templates"
+    templates_dir = REPO_ROOT / "src" / "llm_wiki" / "templates"
     return sorted(
         d.name for d in templates_dir.iterdir()
         if d.is_dir() and not d.name.startswith("_")

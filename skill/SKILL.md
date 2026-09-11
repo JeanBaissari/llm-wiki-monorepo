@@ -430,7 +430,7 @@ The monorepo ships with 20 domain-specific project templates. Each template prov
 python3 skill/scripts/scaffold.py ~/my-wiki "My Topic" --template codebase
 ```
 
-Templates live at `templates/<name>/` in the monorepo. Create new templates by copying an existing one and customizing.
+Templates live at `src/llm_wiki/templates/<name>/` in the monorepo. Create new templates by copying an existing one and customizing.
 
 ---
 
@@ -525,7 +525,7 @@ Quick grep across history: `grep -rh "^\#\# \[" log/ | tail -20`.
 - `references/eow-cron-pipeline.md` — Weekly automated maintenance pattern
 - `references/migration-guide.md` — Migrating v1 wikis to v2 format
 - `references/ingest-guide.md` — Two-step chain-of-thought ingest prompt architecture
-- `../templates/` — 20 domain-specific project templates with PURPOSE.md + SCHEMA.md
+- `../src/llm_wiki/templates/` — 20 domain-specific project templates with PURPOSE.md + SCHEMA.md
 - `../mcp-server/` — Standalone MCP server for programmatic wiki access
 - `../graph-engine/` — Knowledge graph engine (relevance model, Louvain communities, insights)
 - `../extension/` — Chrome browser extension for web clipping

@@ -35,7 +35,7 @@ A MAJOR version increment signals that consumers must take action to update. Exa
 - **Wiki directory structure changes** — e.g., removing or renaming the `wiki/` subdirectory
 - **Frontmatter format changes** — removing or renaming required YAML frontmatter fields (`title`, `type`, `created`, `updated`, `sources`, `tags`)
 - **MCP API breaking changes** — removing tools, changing JSON-RPC message format, altering tool input/output schemas
-- **Template schema breaking changes** — structural changes to `templates/_shared/base-schema.md` that all templates extend
+- **Template schema breaking changes** — structural changes to `src/llm_wiki/templates/_shared/base-schema.md` that all templates extend
 - **Dropping support for existing scripts/CLI flags** — removing a script or breaking flag semantics
 - **Python version requirement bumps** — raising minimum Python version (e.g., 3.10 → 3.12)
 - **Node.js version requirement bumps** — raising minimum Node version (e.g., 18 → 20)
@@ -45,7 +45,7 @@ A MAJOR version increment signals that consumers must take action to update. Exa
 A MINOR version increment adds capability without breaking existing consumers. Examples include:
 
 - **New operations** — new Python scripts (e.g., a new `skill/scripts/` entry), new MCP tools
-- **New templates** — adding domain templates under `templates/`
+- **New templates** — adding domain templates under `src/llm_wiki/templates/`
 - **New CLI flags** — optional, non-breaking flag additions to existing scripts
 - **New wiki features** — optional frontmatter fields, new conventions or conventions that don't invalidate existing files
 - **New documentation** — reference guides, README updates, QUICKGUIDE additions
@@ -88,7 +88,7 @@ Pre-release versions have lower precedence than a normal version. `3.1.0-rc.1` s
 ## Release Process
 
 1. **Ensure CI passes** — All checks on the target commit must be green (lint, typecheck, integration tests).
-2. **Update CHANGELOG.md** — If a CHANGELOG exists, add the new version entry. If one does not exist, create it with entries for Breaking Changes, New Features, and Bug Fixes.
+2. **Update `docs/release/changelog.md`** — The canonical changelog. Add the new version entry with Breaking Changes, New Features, and Bug Fixes.
 3. **Update version** — Bump `pyproject.toml` (`project.version`), then sync the mirrors: `src/llm_wiki/__init__.py`, `package.json`/`package-lock.json`, and `release-manifest.json` (`python3 scripts/release_manifest.py` verifies them).
 4. **Commit** — Commit with message format: `Release v<version>` (e.g., `Release v3.1.0`).
 5. **Tag in git**:

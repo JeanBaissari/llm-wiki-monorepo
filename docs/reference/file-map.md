@@ -198,7 +198,7 @@ TypeScript. Relevance model, Louvain communities, graph insights.
 
 ---
 
-## `templates/` — 20 Domain Templates
+## `src/llm_wiki/templates/` — 20 Domain Templates
 
 Each template directory contains:
 

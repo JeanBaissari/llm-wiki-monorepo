@@ -45,7 +45,7 @@ def _compute_current_schema_version() -> str:
         for f in sorted(schema_dir.glob("*.json")):
             hasher.update(f.read_bytes())
     # Fallback: include base-schema.md for backward compatibility
-    schema_file = REPO_ROOT / "templates" / "_shared" / "base-schema.md"
+    schema_file = REPO_ROOT / "src" / "llm_wiki" / "templates" / "_shared" / "base-schema.md"
     if schema_file.exists():
         hasher.update(schema_file.read_bytes())
     return hasher.hexdigest()[:8]

@@ -31,7 +31,7 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 | `skill/` | Python + MD | adapter | Agent skill: SKILL.md + 26 scripts + 12 references | Agent operations, scripts, docs |
 | `mcp-server/` | TypeScript | programmatic-access | MCP server: 15 tools via stdio | Programmatic wiki access |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph: build, relevance, Louvain, insights | Graph analysis, community detection |
-| `templates/` | MD + JSON | core | 20 domain templates for scaffold.py | Adding/modifying project templates |
+| `src/llm_wiki/templates/` | MD + JSON | core | 20 domain templates for scaffold.py (single canonical tree) | Adding/modifying project templates |
 | `web-viewer/` | TypeScript | optional | Local preview server: mermaid, KaTeX, feedback | UI changes |
 | `extension/` | JavaScript | optional | Chrome web clipper | Browser clipping |
 | `audit-shared/` | TypeScript | core | Audit file format library | Audit schema changes |
@@ -141,7 +141,7 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 | `graph-engine/src/relevance.ts` | 4-signal relevance model — configurable weights, source-indexed. |
 | `graph-engine/src/insights.ts` | Surprising connections + knowledge gaps — extensible signal registry. |
 | `graph-engine/src/louvain.ts` | Louvain community detection — uses graphology library. |
-| `templates/_shared/base-schema.md` | Base page types, frontmatter, naming conventions. All templates extend this. |
+| `src/llm_wiki/templates/_shared/base-schema.md` | Base page types, frontmatter, naming conventions. All templates extend this. |
 
 ## Conventions
 
@@ -180,7 +180,7 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 5. If it's a new operation, add to `skill/SKILL.md`
 
 ### "Add a new template"
-1. Copy an existing template: `cp -r templates/codebase templates/<name>`
+1. Copy an existing template: `cp -r src/llm_wiki/templates/codebase src/llm_wiki/templates/<name>`
 2. Edit `PURPOSE.md`, `SCHEMA.md`, `extra-dirs.json`
 3. Add to `README.md` template list
 4. Add to `docs/reference/file-map.md` template table

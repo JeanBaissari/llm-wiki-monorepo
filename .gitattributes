@@ -5,4 +5,4 @@
 tests/eval/gold/*.json -text
 tests/fixtures/gold/*.json -text
 tests/fixtures/wikis/**/.schema_version -text
-templates/_shared/base-schema.md -text
+src/llm_wiki/templates/_shared/base-schema.md -text

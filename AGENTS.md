@@ -100,21 +100,28 @@ python3 skill/scripts/graph_insights.py /tmp/test-wiki --format json
 | Command | Purpose | Example |
 |---------|---------|---------|
 | `llm-wiki scaffold` | Bootstrap a new wiki | `llm-wiki scaffold ~/wikis/my-project "My Project" --template codebase` |
-| `llm-wiki ingest` | Two-step CoT source ingestion | `llm-wiki ingest ~/wikis/my-project paper.pdf --llm openai` |
 | `llm-wiki lint` | 15 automated wiki checks | `llm-wiki lint ~/wikis/my-project` |
-| `llm-wiki discover` | Auto-detect wiki layout | `llm-wiki discover ~/wikis/my-project --json` |
+| `llm-wiki ingest` | Two-step CoT source ingestion | `llm-wiki ingest ~/wikis/my-project raw/articles/paper.md --llm openai` |
 | `llm-wiki insights` | Pure Python graph analysis | `llm-wiki insights ~/wikis/my-project --format json` |
-| `llm-wiki backup` | Snapshot, restore, verify | `llm-wiki backup ~/wikis/my-project --auto` |
-| `llm-wiki index` | Build FTS5 search index | `llm-wiki index ~/wikis/my-project --rebuild` |
 | `llm-wiki link-suggest` | Missing wikilink detection | `llm-wiki link-suggest ~/wikis/my-project --apply` |
-| `llm-wiki benchmark` | Synthetic wiki benchmarks | `llm-wiki benchmark /tmp/results.csv` |
-| `llm-wiki audit` | List/group audit feedback | `llm-wiki audit ~/wikis/my-project --open` |
-| `llm-wiki health` | Subsystem health check | `llm-wiki health ~/wikis/my-project` |
-| `llm-wiki deep-research` | Multi-source research pipeline | `llm-wiki deep-research ~/wikis/my-project "transformer architectures"` |
-| `llm-wiki search` | Hybrid (default) / keyword search | `llm-wiki search ~/wikis/my-project "attention" --keyword` |
 | `llm-wiki entities` | Reversible entity resolution | `llm-wiki entities resolve ~/wikis/my-project` |
 | `llm-wiki derive-edges` | Quarantined derived-edge layer (opt-in, NMI-gated) | `llm-wiki derive-edges ~/wikis/my-project` |
 | `llm-wiki summarize-communities` | Opt-in LLM community summaries | `llm-wiki summarize-communities ~/wikis/my-project --dry-run` |
+| `llm-wiki backup` | Snapshot, restore, verify | `llm-wiki backup ~/wikis/my-project --auto` |
+| `llm-wiki deep-research` | Multi-source research pipeline | `llm-wiki deep-research ~/wikis/my-project "transformer architectures"` |
+| `llm-wiki audit` | List/group audit feedback | `llm-wiki audit ~/wikis/my-project --open` |
+| `llm-wiki benchmark` | Synthetic wiki benchmarks | `llm-wiki benchmark /tmp/results.csv` |
+| `llm-wiki migrate-log` | Convert legacy `log.md` to `log/YYYYMMDD.md` | `llm-wiki migrate-log ~/wikis/my-project` |
+| `llm-wiki ops` | List operation manifests | `llm-wiki ops list ~/wikis/my-project --status completed` |
+| `llm-wiki discover` | Auto-detect wiki layout | `llm-wiki discover ~/wikis/my-project --json` |
+| `llm-wiki tuning` | Tuning config surface (`--set`, `--emit`) | `llm-wiki tuning ~/wikis/my-project --json` |
+| `llm-wiki index` | Build FTS5 search index | `llm-wiki index ~/wikis/my-project --rebuild` |
+| `llm-wiki search` | Hybrid (default) / keyword search | `llm-wiki search ~/wikis/my-project "attention" --keyword` |
+| `llm-wiki embed` | Optional `[semantic]` embeddings; no-op without it | `llm-wiki embed ~/wikis/my-project --rebuild` |
+| `llm-wiki eval` | Search/ER gold-set gates | `llm-wiki eval ~/wikis/my-project --split gate` |
+| `llm-wiki health` | Subsystem health check | `llm-wiki health ~/wikis/my-project` |
+| `llm-wiki serve` | stdio MCP server launcher (`--build`, `--projects`) | `llm-wiki serve ~/wikis/my-project` |
+| `llm-wiki claims` | Claim sidecar — health, diff, redteam | `llm-wiki claims health ~/wikis/my-project` |
 | `llm-wiki setup` | One-command client wiring (claude/codex/opencode/hermes) | `llm-wiki setup ~/wikis/my-project --title "My Project"` |
 | `llm-wiki demo` | Materialize the committed demo wiki playground | `llm-wiki demo ~/wikis/playground` |
 | `llm-wiki ask` | Grounded QA over summaries + pages | `llm-wiki ask ~/wikis/my-project "how does the event loop work?"` |

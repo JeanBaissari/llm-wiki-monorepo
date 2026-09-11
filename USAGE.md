@@ -1,4 +1,4 @@
-# llm-wiki-monorepo — Complete User & Developer Overview
+# LLM Wiki — Usage & Developer Overview
 
 ## 1. What this actually is
 
@@ -41,7 +41,7 @@ graph-data.json  (generated)  ──►  graph-engine (TS) + graph insights
 ```bash
 bash install.sh
 ```
-This checks Python ≥3.10, installs the Python package (`pip install -e .`), npm-installs the workspaces (mcp-server, graph-engine, shared-types, web-viewer, audit-shared), builds the TypeScript, and validates the CLI. Then:
+This checks Python ≥3.10, installs the Python package (`pip install -e .`), npm-installs all workspaces (`mcp-server`, `graph-engine`, `packages/shared-types`, `web-viewer`, `audit-shared`, `plugins/obsidian-audit`), builds the TypeScript surfaces (graph-engine, mcp-server, audit-shared, web-viewer, obsidian-audit), and validates the CLI. Then:
 
 ```bash
 # a) Python package usable anywhere:
@@ -161,8 +161,8 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
     ```
 12. **Wire a cron knowledge sweep (agent-native, $0.00)**
     ```bash
-    0 3 * * * cd ~/wikis/redis && llm-wiki ingest raw/ --provider opencode \
-      && llm-wiki summarize-communities . --levels 2 --force --provider opencode
+    0 3 * * * llm-wiki ingest ~/wikis/redis raw/articles/daily.md --llm opencode \
+      && llm-wiki summarize-communities ~/wikis/redis --levels 2 --force --provider opencode
     ```
 13. **CI gate that fails on wiki decay**
     ```bash
@@ -210,7 +210,7 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
 
 > **Status: all 8 shipped in v0.6.0 (2026-08-11).** 1→`llm-wiki setup` (LWM_035);
 > 2→`llm-wiki demo` (LWM_036); 3→`ask` + `contradictions` (LWM_033/034);
-> 4→`.[recommended]` + `[ner]` cache/ONNX guidance (LWM_037); 5→web-viewer
+> 4→legacy opt-in extras profile (`[recommended]`, now documented, not promoted) + `[ner]` cache/ONNX guidance (LWM_037); 5→web-viewer
 > overlay + Sigma.js + JSON Canvas/JSON-LD exports (LWM_038); 6→REVIEW_PROTOCOL
 > pass (both PRDs reviewed to approved, evidence committed); 7→standing gold-set
 > curation loop (`curate_gold_set.py` + `gate_search_goldset_fresh`); 8→README
@@ -223,4 +223,4 @@ deferral). **Now delivered (LWM_039 §D):** see README.md → *[Five ways to run
 
 ---
 
-**Bottom line:** the tool is genuinely ready to be *used* today — `bash install.sh`, `llm-wiki setup ~/wikis/my-project --title "…"`, then point Claude/Codex/opencode at `npx llm-wiki-mcp --wiki <root>`, and the 15 MCP tools + 27 CLI commands give you a reversible, eval-gated, agent-native knowledge base — including grounded `ask` answers and contradiction-aware confidence. Current counts: 27 CLI commands, 15 MCP tools, 26 skill scripts, 20 templates, 916 tests collected by default (`926 total, 10 deselected`). The release-certification suite runs the registered quality gates — release manifest, docs truth, pytest, TypeScript typecheck/tests, fixture validation, MCP stdio E2E, search-eval, and search gold-set freshness — wired across CI's 19 jobs in 3 workflows (`ci.yml` 15, `release.yml` 3, plus the community verification workflow).
+**Bottom line:** the tool is genuinely ready to be *used* today — `bash install.sh`, `llm-wiki setup ~/wikis/my-project --title "…"`, then point Claude/Codex/opencode at `npx llm-wiki-mcp --wiki <root>`, and the 15 MCP tools + 27 CLI commands give you a reversible, eval-gated, agent-native knowledge base — including grounded `ask` answers and contradiction-aware confidence. Current counts: 27 CLI commands, 15 MCP tools, 26 skill scripts, 20 templates; the full pytest suite runs in CI — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml). The release-certification suite runs the registered quality gates — release manifest, docs truth, pytest, TypeScript typecheck/tests, fixture validation, MCP stdio E2E, search-eval, and search gold-set freshness — wired across CI's 19 jobs in 3 workflows (`ci.yml` 15, `release.yml` 3, plus the community verification workflow).

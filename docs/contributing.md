@@ -12,7 +12,7 @@ Code previously derived from [nashsu/llm_wiki](https://github.com/nashsu/llm_wik
 
 Behavior parity was verified against the prior implementation before replacement (graph-engine test suite plus a deep-compare harness), and the files now carry original clean-room implementations with no copied code. The earlier v0.3.3 note did **not** discharge this review; the v0.6.4 rewrite did. The `docs/legal/provenance.md` ledger records the clean-room entries.
 
-See [docs/legal/provenance.md](./docs/legal/provenance.md) for the full provenance ledger.
+See [legal/provenance.md](legal/provenance.md) for the full provenance ledger.
 
 ## Project Structure
 
@@ -239,7 +239,7 @@ chore: Update pytest dependency to >=8.0
 When a change touches a specific package, prefix the scope:
 ```
 fix(mcp-server): Resolve __dirname in single-wiki mode
-feat(graph-engine): Add --action export-graph
+feat(graph-engine): Add --action relevance node scoring
 test(ingest): Add malformed FILE block handling
 ```
 

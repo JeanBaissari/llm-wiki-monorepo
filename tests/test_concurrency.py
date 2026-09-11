@@ -31,10 +31,31 @@ SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from llm_wiki.core.locking import WikiLock, DEFAULT_LOCK_TIMEOUT, clean_stale_locks
+from llm_wiki.core.locking import (
+    WikiLock,
+    HARD_STALE_LIMIT,
+    clean_stale_locks,
+)
 from llm_wiki.core.atomic import atomic_write, cleanup_temp_files
 from llm_wiki.core.hashing import compute_hash, read_hash, inject_hash, HASH_FIELD
 from llm_wiki.ingest.writer import write_wiki, write_file, update_index, read_file
+
+
+def _dead_pids(count):
+    """Return ``count`` PIDs that are not alive on POSIX (synthetic on others)."""
+    pids = []
+    candidate = 10_000_000
+    while len(pids) < count:
+        if os.name == "posix":
+            try:
+                os.kill(candidate, 0)
+                candidate += 1
+                continue
+            except OSError:
+                pass
+        pids.append(candidate)
+        candidate += 1
+    return pids
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -146,107 +167,245 @@ class TestStaleLockDetection:
     """Stale lock detection and breaking."""
 
     def test_stale_lock_dead_pid(self, tmp_path):
-        """Stale lock with dead PID should be breakable."""
+        """Stale lock with a dead PID is broken by the next writer."""
         page = tmp_path / "test_page.md"
         page.write_text("content")
 
-        # Create a fake stale lock with a non-existent PID
+        dead_pid = _dead_pids(1)[0]
+        old_time = time.time() - (HARD_STALE_LIMIT + 60)
         lock_path = str(page) + ".lock"
-        dead_pid = 99999  # unlikely to exist
-        # Ensure the PID doesn't exist
-        try:
-            os.kill(dead_pid, 0)
-            pytest.skip("PID 99999 exists on this system")
-        except OSError:
-            pass
-
-        old_time = time.time() - (DEFAULT_LOCK_TIMEOUT * 4)  # definitely stale
         with open(lock_path, "w") as f:
             f.write(f"pid={dead_pid}\ntimestamp={old_time}\nhostname=test\n")
 
-        # Should be able to acquire lock (stale lock broken)
-        with WikiLock(str(page), timeout=2):
-            pass
+        with WikiLock(str(page), timeout=2) as lock:
+            assert lock._fd is not None
+            assert lock.metadata["pid"] == str(os.getpid())
+            assert f"pid={os.getpid()}" in Path(lock_path).read_text()
+
+        # Our release removed our own lock.
+        assert not os.path.exists(lock_path)
 
     def test_live_pid_lock_respected(self, tmp_path):
-        """Lock held by live PID should be respected."""
+        """A lock owned by a live PID is respected, not stolen."""
         page = tmp_path / "test_page.md"
         page.write_text("content")
 
-        # Create a lock file with our own PID (simulating live lock)
         lock_path = str(page) + ".lock"
         with open(lock_path, "w") as f:
             f.write(f"pid={os.getpid()}\ntimestamp={time.time()}\nhostname=test\n")
 
-        # But we need another process to hold it... this test is using
-        # our own PID so staleness check will see it as alive.
-        # However, the lock file's fd is not actually locked, so
-        # _acquire will succeed in portalocker LOCK_NB.
-        # The test verifies the staleness check didn't unlink the file.
-        # Because the PID is alive and the lock is recent.
-        try:
-            with WikiLock(str(page), timeout=2):
-                pass  # Lock file was unlinked in __exit__
-        except TimeoutError:
-            pass  # May timeout if the stale check succeeds but acquire fails
+        with pytest.raises(TimeoutError):
+            WikiLock(str(page), timeout=1).__enter__()
+
+        # The live owner's lock file must still be present and untouched.
+        assert os.path.exists(lock_path)
+        assert f"pid={os.getpid()}" in Path(lock_path).read_text()
 
     def test_clean_stale_locks(self, tmp_path):
-        """clean_stale_locks should remove stale lock files."""
+        """clean_stale_locks removes stale locks and leaves live ones alone."""
         page = tmp_path / "test_page.md"
         page.parent.mkdir(parents=True, exist_ok=True)
         page.write_text("content")
 
-        # Create multiple stale lock files
-        stale_pids = []
-        for i in range(5):
-            pid = 90000 + i
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                stale_pids.append(pid)
+        dead_pids = _dead_pids(3)
+        old_time = time.time() - (HARD_STALE_LIMIT + 60)
+        stale_paths = []
+        for i, pid in enumerate(dead_pids):
+            p = page.parent / f"test_page.stale{i}.md.lock"
+            p.write_text(f"pid={pid}\ntimestamp={old_time}\nhostname=test\n")
+            stale_paths.append(p)
 
-        if not stale_pids:
-            pytest.skip("Test PIDs are alive on this system")
-
-        old_time = time.time() - (DEFAULT_LOCK_TIMEOUT * 4)
-        for i, pid in enumerate(stale_pids[:3]):
-            lock_path = str(page) + f".stale{i}.md.lock"
-            page_dir = str(page.parent)
-            full_lock = os.path.join(page_dir, f"test_page.stale{i}.md.lock")
-            with open(full_lock, "w") as f:
-                f.write(f"pid={pid}\ntimestamp={old_time}\nhostname=test\n")
+        live_path = page.parent / "test_page.live.md.lock"
+        live_path.write_text(
+            f"pid={os.getpid()}\ntimestamp={time.time()}\nhostname=test\n"
+        )
 
         cleaned = clean_stale_locks(str(page.parent))
-        assert cleaned >= 0  # At minimum, doesn't crash
+        assert cleaned == 3
+        for p in stale_paths:
+            assert not p.exists(), f"{p} should have been cleaned"
+        assert live_path.exists(), "live lock must not be cleaned"
 
     def test_stale_lock_corrupt_file(self, tmp_path):
-        """Stale lock detection should handle corrupt lock files gracefully."""
+        """Corrupt lock files are breakable once past the absolute hard limit."""
         page = tmp_path / "test_page.md"
         page.write_text("content")
         lock_path = str(page) + ".lock"
 
-        # Write corrupt lock file (no equals sign — empty metadata)
+        # No parseable metadata — only the file mtime can establish age.
         with open(lock_path, "w") as f:
             f.write("garbage with no metadata\n")
+        old = time.time() - (HARD_STALE_LIMIT + 60)
+        os.utime(lock_path, (old, old))
 
-        # Should not crash — stale check cleans it via timeout path
         with WikiLock(str(page), timeout=2):
             pass
 
-    def test_stale_lock_invalid_pid(self, tmp_path):
-        """Stale lock with non-integer PID should be cleaned up gracefully."""
+    def test_fresh_unreadable_lock_not_broken(self, tmp_path):
+        """A lock caught mid-creation (metadata not yet written) is not stolen."""
         page = tmp_path / "test_page.md"
         page.write_text("content")
         lock_path = str(page) + ".lock"
 
-        # Write lock file with invalid PID (not an integer)
-        old_time = time.time() - 10  # recent, so timeout check won't trigger
+        # Empty file: simulates the window between O_EXCL create and write.
+        with open(lock_path, "w"):
+            pass
+
+        with pytest.raises(TimeoutError):
+            with WikiLock(str(page), timeout=1):
+                pass
+        assert os.path.exists(lock_path)
+
+    def test_stale_lock_invalid_pid(self, tmp_path):
+        """A lock with a non-integer PID falls back to the hard limit."""
+        page = tmp_path / "test_page.md"
+        page.write_text("content")
+        lock_path = str(page) + ".lock"
+
+        old_time = time.time() - (HARD_STALE_LIMIT + 60)
         with open(lock_path, "w") as f:
             f.write(f"pid=not_a_number\ntimestamp={old_time}\nhostname=test\n")
 
-        # Should not crash — ValueError from int(pid) is caught, lock cleaned
         with WikiLock(str(page), timeout=2):
             pass
+
+    def test_release_only_unlinks_own_token(self, tmp_path):
+        """Releasing must never delete a lock file that carries another token."""
+        page = tmp_path / "test_page.md"
+        page.write_text("content")
+        lock = WikiLock(str(page), timeout=5)
+        lock.__enter__()
+        lock_path = lock.lock_path
+
+        # Simulate the holder's lock being replaced by a thief's lock.
+        foreign = "token=foreign-token\npid=1\ntimestamp=0\nhostname=thief\n"
+        Path(lock_path).write_text(foreign, encoding="utf-8")
+        lock.__exit__(None, None, None)
+
+        assert os.path.exists(lock_path), "foreign lock must not be unlinked"
+        assert "token=foreign-token" in Path(lock_path).read_text()
+
+
+class TestLockStealing:
+    """Real two-process races around stale-lock breaking (D08-01)."""
+
+    @staticmethod
+    def _hold_backdated_lock(lock_path, ready, hold_s):
+        """Child: create a lock with a live PID but an ancient timestamp."""
+        with open(lock_path, "w") as f:
+            f.write(
+                f"pid={os.getpid()}\ntimestamp={time.time() - 86400}\n"
+                f"hostname=test\ntoken=live-holder\n"
+            )
+        ready.set()
+        time.sleep(hold_s)
+
+    @pytest.mark.skipif(os.name != "posix", reason="PID liveness checks are POSIX-only")
+    def test_live_holder_not_stolen_even_if_backdated(self, tmp_path):
+        """Old code deleted any lock older than 3x timeout — even with a live PID."""
+        page = tmp_path / "page.md"
+        page.write_text("content")
+        lock_path = str(page) + ".lock"
+
+        ready = multiprocessing.Event()
+        holder = multiprocessing.Process(
+            target=self._hold_backdated_lock, args=(lock_path, ready, 30)
+        )
+        holder.start()
+        try:
+            assert ready.wait(10), "holder process did not start"
+            with pytest.raises(TimeoutError):
+                with WikiLock(str(page), timeout=1):
+                    pytest.fail("stole the lock from a live holder")
+
+            content = Path(lock_path).read_text()
+            assert f"pid={holder.pid}" in content
+            assert "token=live-holder" in content
+        finally:
+            holder.terminate()
+            holder.join(10)
+            if holder.is_alive():
+                holder.kill()
+                holder.join(5)
+        assert holder.exitcode is not None
+
+    @staticmethod
+    def _write_stale_lock_and_exit(lock_path, ready):
+        with open(lock_path, "w") as f:
+            f.write(
+                f"pid={os.getpid()}\ntimestamp={time.time() - 86400}\n"
+                f"hostname=test\ntoken=dead-owner\n"
+            )
+        ready.set()
+
+    def test_dead_owner_lock_is_broken(self, tmp_path):
+        """A lock left behind by an exited process is breakable."""
+        page = tmp_path / "page.md"
+        page.write_text("content")
+        lock_path = str(page) + ".lock"
+
+        ready = multiprocessing.Event()
+        owner = multiprocessing.Process(
+            target=self._write_stale_lock_and_exit, args=(lock_path, ready)
+        )
+        owner.start()
+        try:
+            assert ready.wait(10), "owner process did not start"
+        finally:
+            owner.join(10)
+        assert owner.exitcode == 0, f"owner exited with {owner.exitcode}"
+
+        with WikiLock(str(page), timeout=5) as lock:
+            assert lock._fd is not None
+            assert f"pid={os.getpid()}" in Path(lock_path).read_text()
+        assert not os.path.exists(lock_path)
+
+    @staticmethod
+    def _acquire_and_record(page_path, timeout, results):
+        from llm_wiki.core.locking import WikiLock as _WikiLock
+
+        try:
+            with _WikiLock(page_path, timeout=timeout):
+                t_in = time.monotonic()
+                time.sleep(0.25)
+                t_out = time.monotonic()
+            results.put(("ok", os.getpid(), t_in, t_out))
+        except Exception as e:  # pragma: no cover - diagnostic path
+            results.put(("error", str(e), 0.0, 0.0))
+
+    def test_concurrent_stale_breakers_are_mutually_exclusive(self, tmp_path):
+        """Four processes race to break one stale lock: no two hold it at once."""
+        page = tmp_path / "page.md"
+        page.write_text("content")
+        lock_path = str(page) + ".lock"
+        with open(lock_path, "w") as f:
+            f.write(
+                f"pid={_dead_pids(1)[0]}\ntimestamp={time.time() - 86400}\n"
+                f"hostname=test\ntoken=dead-owner\n"
+            )
+
+        results = multiprocessing.Queue()
+        procs = [
+            multiprocessing.Process(
+                target=self._acquire_and_record, args=(str(page), 10, results)
+            )
+            for _ in range(4)
+        ]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(30)
+        assert all(p.exitcode == 0 for p in procs), [p.exitcode for p in procs]
+
+        intervals = []
+        while not results.empty():
+            entry = results.get()
+            assert entry[0] == "ok", entry
+            intervals.append((entry[2], entry[3]))
+        assert len(intervals) == 4, f"expected 4 acquisitions, got {intervals}"
+        intervals.sort()
+        for (_, prev_end), (next_start, _) in zip(intervals, intervals[1:]):
+            assert next_start >= prev_end, f"overlapping lock holds: {intervals}"
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -586,12 +745,23 @@ class TestWriteWikiConcurrency:
         added2 = update_index(str(wiki), pages)
         assert added2 == 0  # no duplicates added
 
-    def test_write_file_atomic(self, tmp_path):
-        """write_file (legacy wrapper) uses atomic write."""
+    def test_write_file_atomic(self, tmp_path, monkeypatch):
+        """write_file must never leave a partial file when the rename fails."""
         target = tmp_path / "sub" / "test.md"
-        assert write_file(str(target), "atomic content")
-        assert target.exists()
-        assert target.read_text() == "atomic content"
+        assert write_file(str(target), "original content")
+        assert target.read_text() == "original content"
+
+        def _fail_replace(src, dst):
+            raise OSError("simulated crash before rename")
+
+        monkeypatch.setattr(os, "replace", _fail_replace)
+        assert write_file(str(target), "partial new content") is False
+        monkeypatch.undo()
+
+        # Original content survives intact and no temp file is left behind.
+        assert target.read_text() == "original content"
+        leftovers = [p.name for p in target.parent.iterdir() if ".tmp." in p.name]
+        assert leftovers == []
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -649,20 +819,24 @@ class TestConcurrencyStress:
             assert (wiki / "entities" / f"Page{i}.md").exists()
 
     def test_two_writers_same_page(self, tmp_path):
-        """2 concurrent writers to same page: one succeeds, one gets conflict."""
+        """2 concurrent writers with one base hash: exactly one write wins."""
         wiki = tmp_path / "wiki"
         wiki.mkdir()
         page_dir = wiki / "entities"
         page_dir.mkdir(parents=True)
         page_path = page_dir / "SharedPage.md"
 
-        # Seed with initial content
+        # Seed through write_wiki so the page carries a content hash; both
+        # writers then build on that same base hash.
         initial = "---\ntitle: Shared Page\ntype: concept\n---\n\n# Version 0"
-        page_path.write_text(initial)
+        status, _ = write_wiki(str(wiki), "entities/SharedPage.md", initial)
+        assert status == "created"
+        on_disk = page_path.read_text()
+        base_hash = read_hash(on_disk)
+        assert base_hash
 
-        # Both writers read the page, then try to write
-        content_a = initial.replace("Version 0", "Version A")
-        content_b = initial.replace("Version 0", "Version B")
+        content_a = on_disk.replace("Version 0", "Version A")
+        content_b = on_disk.replace("Version 0", "Version B")
 
         result_queue = multiprocessing.Queue()
 
@@ -679,17 +853,24 @@ class TestConcurrencyStress:
         p_b.start()
         p_a.join(timeout=30)
         p_b.join(timeout=30)
+        assert p_a.exitcode == 0 and p_b.exitcode == 0
 
         results = []
         while not result_queue.empty():
             results.append(result_queue.get())
 
-        # One should succeed (created/updated), one should conflict or get locked
-        statuses = [r[0] for r in results]
-        assert any(s in ("created", "updated") for s in statuses), f"No success: {results}"
-        assert any(s in ("conflict", "locked") for s in statuses) or \
-               len([s for s in statuses if s in ("created", "updated")]) >= 1, \
-               f"Expected one success + one conflict/locked: {results}"
+        assert len(results) == 2, f"Expected 2 results, got: {results}"
+        statuses = sorted(r[0] for r in results)
+        assert statuses == ["conflict", "updated"], (
+            f"Expected exactly one winner + one conflict: {results}"
+        )
+
+        final = page_path.read_text()
+        assert ("Version A" in final) != ("Version B" in final), final
+        conflict_path = str(page_path).replace(".md", " (conflict).md")
+        assert os.path.exists(conflict_path)
+        conflict_text = Path(conflict_path).read_text()
+        assert ("Version A" in conflict_text) or ("Version B" in conflict_text)
 
 
 # Count: 27 test functions

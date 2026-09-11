@@ -184,7 +184,7 @@ Relay the MCP server over stdio (with `--build` to compile it on demand and `--p
 
 - **Deep Research** — web search → fetch → ingest → synthesize. Multi-source compilation into structured wiki pages.
 
-- **Chrome Web Clipper** — one-click web page capture with Readability + Turndown. Auto-ingest after clip is experimental and only works against a locally running HTTP endpoint (the MCP server itself is stdio-only); otherwise save + `llm-wiki ingest` manually.
+- **Chrome Web Clipper** — one-click web page capture with Readability + Turndown; downloads clean markdown for manual `llm-wiki ingest`.
 
 - **Claim & Epistemic Tracking** — optional sidecar model: claims, epistemic events (created/reinforced/challenged/weakened/superseded/resolved), and contradiction records with JSONL storage. Health reports and diffs between wiki states.
 
@@ -256,7 +256,7 @@ cd web-viewer && npm start -- --wiki ~/my-wiki
       ├── Graph Engine (Node.js)          → relevance model, Louvain, insights
       ├── shared-types (TS)               → canonical GraphNode/GraphEdge types
       ├── Web Viewer + Obsidian Plugin    → human browsing + feedback
-      ├── Browser Extension               → web clipping (auto-ingest experimental)
+      ├── Browser Extension               → web clipping
       └── templates/                      → 20 domain schemas
  ```
 
@@ -271,10 +271,9 @@ cd web-viewer && npm start -- --wiki ~/my-wiki
 | `templates/` | Markdown + JSON | core | 20 domain-specific project templates |
 | `tests/` | Python + TypeScript | core | pytest (ingest, lint, concurrency, search, opencode) + vitest (graph, mcp) |
 | `web-viewer/` | TypeScript | optional | Preview server with search + graph insights panel |
-| `extension/` | JavaScript | optional | Chrome web clipper (auto-ingest experimental) |
+| `extension/` | JavaScript | optional | Chrome web clipper |
 | `audit-shared/` | TypeScript | core | Shared audit file format library |
 | `plugins/obsidian-audit/` | TypeScript | optional | Obsidian plugin — file feedback from vault |
-| `graph-bridge/` | TypeScript | adapter | Graph merger bridge (no default consumer since v0.6.4) |
 | `packages/shared-types/` | TypeScript | core | Canonical GraphNode/GraphEdge type definitions |
 
 ## Templates (20 domains)

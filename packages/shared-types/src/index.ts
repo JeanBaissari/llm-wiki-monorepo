@@ -55,7 +55,7 @@ export interface GraphData {
 
 export type GraphAction = "build" | "insights" | "search" | "relevance";
 
-// ── Code-structure types (canonical from graph-bridge) ─────────────────
+// ── Code-structure types ───────────────────────────────────────────────
 
 export interface CodeNode {
   id: string;
@@ -70,32 +70,6 @@ export interface CodeEdge {
   target: string;
   type: "imports" | "extends" | "implements" | "calls" | "references";
   weight: number;
-}
-
-// ── Unified graph types (canonical from graph-bridge) ──────────────────
-
-export interface UnifiedNode {
-  id: string;
-  label: string;
-  domain: "wiki" | "code" | "both";
-  wikiType?: string;
-  codeType?: CodeNode["type"];
-  path: string;
-  language?: string;
-}
-
-export interface UnifiedEdge {
-  source: string;
-  target: string;
-  domain: "wikilink" | "codestructure" | "cross";
-  weight: number;
-  relation?: string;
-}
-
-export interface UnifiedGraph {
-  wikilinks: { nodes: GraphNode[]; edges: GraphEdge[] };
-  codestructure: { nodes: CodeNode[]; edges: CodeEdge[] };
-  merged: { nodes: UnifiedNode[]; edges: UnifiedEdge[] };
 }
 
 // ── MCP types (canonical from mcp-server) ──────────────────────────────

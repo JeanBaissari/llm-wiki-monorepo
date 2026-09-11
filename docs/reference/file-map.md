@@ -264,7 +264,7 @@ Express + markdown-it + KaTeX + mermaid. Search bar + graph insights panel.
 
 ## `extension/` — Browser Extension
 
-Chrome Manifest V3 web clipper. Uses Readability.js + Turndown.js. Auto-ingest after clip is experimental: it POSTs to a local `/api/ingest` HTTP endpoint, while the MCP server is stdio-only — without such an endpoint the clip falls back to save-for-manual-ingest.
+Chrome Manifest V3 web clipper. Uses Readability.js + Turndown.js to download clean markdown for manual placement in the wiki's `raw/` directory followed by `llm-wiki ingest`.
 
 | File | Purpose |
 |------|---------|

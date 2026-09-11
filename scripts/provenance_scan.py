@@ -77,7 +77,7 @@ def find_provenance_markers(root: Path) -> list[dict]:
 TOP_LEVEL_DIRS = {
     "src", "skill", "mcp-server", "graph-engine", "packages", "extension",
     "plugins", "web-viewer", "audit-shared", "tests", "docs", "scripts",
-    "templates", "graph-bridge", "reports", "schema", "graphs", "internal",
+    "templates", "reports", "schema", "graphs", "internal",
 }
 
 ROOT_DOCS = {"README.md", "CONTRIBUTING.md", "AGENTS.md", "CLAUDE.md", "LICENSE"}

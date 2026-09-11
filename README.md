@@ -12,7 +12,7 @@
   <a href="#quick-start">Quick Start</a> •
   <a href="#architecture">Architecture</a> •
   <a href="#packages">Packages</a> •
-  <a href="#templates">Templates</a> •
+  <a href="#templates-20-domains">Templates</a> •
   <a href="#documentation">Docs</a> •
   <a href="#credits">Credits</a> •
   <a href="#license">License</a>
@@ -138,7 +138,7 @@ Loads the ten-operation skill for Claude/Hermes sessions — agent-native, no AP
 ### 4. Cron / automation
 
 ```bash
-0 3 * * * cd ~/wikis/my-project && llm-wiki ingest raw/ --provider opencode
+0 3 * * * llm-wiki ingest ~/wikis/my-project raw/articles/my-source.md --llm opencode
 ```
 
 Schedule maintenance like ingest, lint, or backup. `portalocker` advisory locks make concurrent agent runs safe — multiple agents or CI jobs can operate on the same wiki without corrupting pages. See the [concurrency reference](skill/references/concurrency.md) and the [quickstart](docs/getting-started/quickstart.md).
@@ -295,10 +295,13 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 | File | What it covers |
 |------|---------------|
 | `README.md` | You are here |
+| `USAGE.md` | Complete user & developer overview — install/wiring, the 27-command inventory, 20 worked examples, UX status notes |
 | `docs/getting-started/quickstart.md` | Every command with real examples |
 | `docs/reference/cli.md` | Full CLI reference — all 27 commands with flags and examples |
 | `docs/reference/mcp-tools.md` | All 15 MCP tools with schemas and usage examples |
 | `AGENTS.md` | Architecture, conventions, build/test commands, Python Dependency Policy |
+| `CONTRIBUTING.md` / `docs/contributing.md` | Contribution workflow — project structure, tests, code style, PR process |
+| `CHANGELOG.md` | Pointer to the canonical changelog (`docs/release/changelog.md`) |
 | `docs/release/changelog.md` | Full version history — all features, changes, and breaking changes |
 | `docs/reference/file-map.md` | Complete file tree with descriptions |
 | `docs/reference/tuning.md` | Tuning config surface — every constant, precedence, emit boundary |
@@ -306,7 +309,7 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 | `docs/operations/security-and-boundaries.md` | Per-wiki auth/visibility boundary — filesystem + git permissions, no network surface |
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
 | `docs/architecture/overview.md` | Why this system exists — design philosophy and goals |
-| `docs/adr/` | Architecture Decision Records — ADRs 0001–0028 + index + decision register |
+| `docs/adr/` | Architecture Decision Records — ADRs 0001–0035 (0015 and 0023 reserved) + index + decision register |
 | `skill/references/` | 12 detailed reference guides including concurrency, observability, and ingest |
 
 ## Requirements
@@ -315,6 +318,7 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 - **Node.js 18+** — for MCP server, graph engine, web viewer
 - **npm** — for TypeScript package management
 - **pip dependencies** — openai, anthropic, litellm, instructor, tenacity, pydantic, portalocker, tomli (Python 3.10 only) (auto-installed via `pip install`)
+- **Configuration (optional)** — copy [`.env.example`](.env.example) to `.env` for provider keys and agent-native overrides. `.env` is gitignored — never commit it or any secret into a wiki repo.
 
 ## Credits
 

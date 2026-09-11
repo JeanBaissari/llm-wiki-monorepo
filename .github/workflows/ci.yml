@@ -100,7 +100,7 @@ jobs:
         run: npm run test:ts
 
       - name: Zero-test guard
-        run: python3 scripts/zero_test_guard.py --test-command "npm test" --packages graph-engine mcp-server audit-shared
+        run: python3 scripts/zero_test_guard.py --test-command "npm test" --packages graph-engine mcp-server audit-shared packages/shared-types
 
   python:
     strategy:

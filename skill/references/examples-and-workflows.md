@@ -114,7 +114,7 @@ llm-wiki --help             # → usage + all 27 commands
 | `llm-wiki embed <root>` | Batch-embed pages (`[semantic]` extra; no-op without) |
 | `llm-wiki eval <root>` | Score link-suggester against a gold set |
 | `llm-wiki health <root>` | Subsystem health check |
-| `llm-wiki serve <root>` | Opt-in local web preview |
+| `llm-wiki serve <root>` | Relay the MCP server over stdio (the browser UI is the separate `web-viewer` server) |
 | `llm-wiki claims health\|diff\|redteam` | Claim sidecar management |
 | `llm-wiki setup <root>` | One-command MCP client wiring |
 | `llm-wiki demo <dest>` | Materialize the committed demo wiki |

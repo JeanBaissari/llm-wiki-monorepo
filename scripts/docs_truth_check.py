@@ -45,7 +45,7 @@ FIXED_DOCS = (
 # filters incidental numbers, e.g. README's "7 templates previously created
 # wrong directories" — that is a bugfix note, not a registry claim.
 CLAIM_PATTERNS = {
-    "mcp_tools": (re.compile(r"(\d+)[\s-]+(?:MCP\s+)?tools?\b", re.IGNORECASE), 4),
+    "mcp_tools": (re.compile(r"(\d+)[\s-]+(?:MCP\s+)?tools?\b(?!\s+handler)", re.IGNORECASE), 4),
     "cli_commands": (re.compile(r"(\d+)[\s-]+(?:CLI\s+)?(?:commands?|cmds?)\b", re.IGNORECASE), 5),
     "templates": (re.compile(r"(\d+)[\s-]+(?:domain\s+)?templates?\b", re.IGNORECASE), 10),
     "scripts": (re.compile(r"(\d+)[\s-]+(?:skill\s+)?scripts?\b", re.IGNORECASE), 10),

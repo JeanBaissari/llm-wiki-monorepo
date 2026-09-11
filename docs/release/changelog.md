@@ -49,6 +49,21 @@ contract.
 
 ---
 
+## [0.6.3] — 2026-08-18
+
+### Fixed
+- **opencode provider deadlock** — replaced filesystem IPC with HTTP API calls to the opencode server (`OPENCODE_URL`, default `http://localhost:4096`); `llm-wiki ingest --llm opencode` now works inside opencode sessions.
+- **MCP server / graph-engine dist/** — rebuilt from source; stale dists were the v0.6.3 incident.
+- **opencode test suite** — three tests now mock the HTTP layer instead of assuming no server is running.
+
+### Changed
+- **Batch mode** — `--batch` also processes `.mq5`, `.mq4`, `.mqh`, `.py`, `.ts`, `.js`; new `--ext` flag for custom extensions.
+
+### Added
+- `OPENCODE_URL` environment variable; ADR-0034 (HTTP provider, supersedes ADR-0009).
+
+---
+
 ## [0.6.2] — 2026-08-17
 
 ### Fixed

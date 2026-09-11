@@ -229,6 +229,19 @@ def run_ts_louvain(graph_path: str, seed: int) -> Optional[dict[str, int]]:
 
 
 # ── Core verification logic ────────────────────────────────────────────────
+def _partition(assignments: "dict[str, int]") -> "set[frozenset]":
+    """Label-permutation-invariant partition set for exact determinism checks.
+
+    NMI can carry floating-point noise (sklearn returns 1.0000000000000002 for
+    some identical partitions), so "same seed → identical result" is asserted
+    on the partition itself, never on a float score.
+    """
+    groups: "dict[int, set[str]]" = {}
+    for node, cid in assignments.items():
+        groups.setdefault(cid, set()).add(node)
+    return {frozenset(members) for members in groups.values()}
+
+
 def verify_graph(
     graph: dict,
 ) -> dict[str, Any]:
@@ -254,24 +267,32 @@ def verify_graph(
         "failures": [],
     }
 
-    # ── Phase 1: Run both implementations with each seed ──────────────
+    # ── Phase 1: Run both implementations twice with each seed ────────
+    # The second run (same seed) is what makes the within-implementation
+    # determinism checks real — never a dict compared against itself.
     py_assignments: dict[int, dict[str, int]] = {}
+    py_assignments_rerun: dict[int, dict[str, int]] = {}
     ts_assignments: dict[int, dict[str, int]] = {}
+    ts_assignments_rerun: dict[int, dict[str, int]] = {}
 
     for seed in SEEDS:
-        # Python
+        # Python — two independent runs of the same seeded implementation.
         try:
             py_assignments[seed] = run_python_louvain(edges, nodes, seed)
         except Exception as e:
             print(f"  [WARN] Python Louvain seed={seed} failed: {e}")
             py_assignments[seed] = {}
+        try:
+            py_assignments_rerun[seed] = run_python_louvain(edges, nodes, seed)
+        except Exception as e:
+            print(f"  [WARN] Python Louvain seed={seed} rerun failed: {e}")
+            py_assignments_rerun[seed] = {}
 
-        # TypeScript
+        # TypeScript — two independent subprocess runs of the same seed.
         ts_result = run_ts_louvain(graph_path, seed)
-        if ts_result is not None:
-            ts_assignments[seed] = ts_result
-        else:
-            ts_assignments[seed] = {}
+        ts_assignments[seed] = ts_result if ts_result is not None else {}
+        ts_rerun = run_ts_louvain(graph_path, seed)
+        ts_assignments_rerun[seed] = ts_rerun if ts_rerun is not None else {}
 
     # ── Phase 2: Per-seed results ────────────────────────────────────
     for seed in SEEDS:
@@ -328,11 +349,22 @@ def verify_graph(
     }
 
     # ── Phase 4: Within-implementation determinism ───────────────────
-    # Python: same seed → identical (NMI=1.0)
+    # Python: same seed → identical partition across two real runs (NMI=1.0)
     # Python: different seeds → stable (NMI > 0.90)
     py_nmi_same_seed = []
+    py_partition_same_seed = []
     py_nmi_diff_seed = []
     seeds_list = list(SEEDS)
+    for s1 in seeds_list:
+        a1 = py_assignments.get(s1, {})
+        a2 = py_assignments_rerun.get(s1, {})
+        if a1 and a2 and len(a1) == len(a2):
+            py_partition_same_seed.append(_partition(a1) == _partition(a2))
+            nodes_sorted = sorted(a1.keys())
+            l1 = [a1[n] for n in nodes_sorted]
+            l2 = [a2[n] for n in nodes_sorted]
+            py_nmi_same_seed.append(nmi(l1, l2))
+
     for i, s1 in enumerate(seeds_list):
         for s2 in seeds_list[i + 1 :]:
             a1 = py_assignments.get(s1, {})
@@ -341,18 +373,14 @@ def verify_graph(
                 nodes_sorted = sorted(a1.keys())
                 l1 = [a1[n] for n in nodes_sorted]
                 l2 = [a2[n] for n in nodes_sorted]
-                n = nmi(l1, l2)
-                if s1 == s2:
-                    py_nmi_same_seed.append(n)
-                else:
-                    py_nmi_diff_seed.append(n)
+                py_nmi_diff_seed.append(nmi(l1, l2))
 
     result["within_py"] = {
         "nmi_same_seed": py_nmi_same_seed,
+        "partition_same_seed": py_partition_same_seed,
         "nmi_same_seed_pass": (
-            all(v == DETERMINISM_NMI for v in py_nmi_same_seed)
-            if py_nmi_same_seed
-            else True
+            len(py_partition_same_seed) == len(SEEDS)
+            and all(py_partition_same_seed)
         ),
         "nmi_diff_seed": py_nmi_diff_seed,
         "nmi_diff_seed_mean": (
@@ -367,24 +395,26 @@ def verify_graph(
         ),
     }
 
-    # TS: same seed → identical
+    # TS: same seed → identical partition across two real subprocess runs.
     ts_nmi_same_seed = []
+    ts_partition_same_seed = []
     for seed in SEEDS:
         ass1 = ts_assignments.get(seed, {})
-        ass2_dup = ts_assignments.get(seed, {})
-        if ass1 and ass2_dup and len(ass1) == len(ass2_dup):
+        ass2 = ts_assignments_rerun.get(seed, {})
+        if ass1 and ass2 and len(ass1) == len(ass2):
+            ts_partition_same_seed.append(_partition(ass1) == _partition(ass2))
             nodes_sorted = sorted(ass1.keys())
             l1 = [ass1[n] for n in nodes_sorted]
-            l2 = [ass2_dup[n] for n in nodes_sorted]
+            l2 = [ass2[n] for n in nodes_sorted]
             n = nmi(l1, l2)
             ts_nmi_same_seed.append(n)
 
     result["within_ts"] = {
         "nmi_same_seed": ts_nmi_same_seed,
+        "partition_same_seed": ts_partition_same_seed,
         "nmi_same_seed_pass": (
-            all(v == DETERMINISM_NMI for v in ts_nmi_same_seed)
-            if ts_nmi_same_seed
-            else True
+            len(ts_partition_same_seed) == len(SEEDS)
+            and all(ts_partition_same_seed)
         ),
     }
 
@@ -475,11 +505,22 @@ def print_report(results: list[dict]):
             )
 
         wp = r["within_py"]
+        if wp.get("nmi_same_seed"):
+            print(
+                f"       PY within (same seed):  "
+                f"NMI vals={[round(v, 4) for v in wp['nmi_same_seed']]}"
+            )
         if wp.get("nmi_diff_seed"):
             print(
                 f"       PY within (diff seed):  "
                 f"mean NMI={wp['nmi_diff_seed_mean']:.4f}  "
                 f"vals={[round(v, 4) for v in wp['nmi_diff_seed']]}"
+            )
+        wt = r.get("within_ts", {})
+        if wt.get("nmi_same_seed"):
+            print(
+                f"       TS within (same seed):  "
+                f"NMI vals={[round(v, 4) for v in wt['nmi_same_seed']]}"
             )
 
         lvl = r.get("leiden_vs_louvain")

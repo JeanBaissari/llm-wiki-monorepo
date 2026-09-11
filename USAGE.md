@@ -45,7 +45,7 @@ This checks Python ≥3.10, installs the Python package (`pip install -e .`), np
 
 ```bash
 # a) Python package usable anywhere:
-pip install -e .          # or uv pip install -e ".[semantic,leiden,ner,entity-resolution]"
+pip install -e .          # base install; optional extras exist but are not required
 llm-wiki --version
 
 # b) MCP server binary (after npm build):
@@ -91,7 +91,7 @@ The skill's SKILL.md is loaded automatically by the EOW cron job; changes propag
 
 ## 4. The full command inventory
 
-**CLI (27 commands):** `scaffold` · `ingest` (2-step CoT, SHA256 cache) · `lint` (15 checks) · `discover` (auto-layout, `--json`) · `insights` (surprising connections + knowledge gaps) · `link-suggest` (lexical + semantic `--apply`, entity-aware) · `entities resolve|list|unmerge` (reversible ER, `--backend splink`) · `derive-edges` (quarantined similarity/co-occurrence, NMI-gated `--include-derived`) · `summarize-communities` (Leiden hierarchy, `--dry-run`, `--levels`) · `backup` (snapshot/restore/verify) · `deep-research` (multi-source pipeline) · `audit` (list/group human feedback) · `benchmark` · `migrate-log` · `ops` · `tuning` (config surface, `--set`, `--emit`) · `index` (FTS5) · `search` (hybrid default, `--keyword`, `--set`) · `embed` · `eval` · `health` · `serve` (local preview: mermaid, KaTeX, feedback) · `claims redteam` (claim-health scoring) · **`setup`** (one-command client wiring, v0.6.0) · **`demo`** (materialize the demo wiki) · **`ask`** (grounded QA over summaries + pages) · **`contradictions`** (detect/apply confidence + conflicts)
+**CLI (27 commands):** `scaffold` · `ingest` (2-step CoT, SHA256 cache) · `lint` (15 checks) · `discover` (auto-layout, `--json`) · `insights` (surprising connections + knowledge gaps) · `link-suggest` (lexical + semantic `--apply`, entity-aware) · `entities resolve|list|unmerge` (reversible ER, `--backend splink`) · `derive-edges` (quarantined similarity/co-occurrence, NMI-gated `--include-derived`) · `summarize-communities` (Leiden hierarchy, `--dry-run`, `--levels`) · `backup` (snapshot/restore/verify) · `deep-research` (multi-source pipeline) · `audit` (list/group human feedback) · `benchmark` · `migrate-log` · `ops` · `tuning` (config surface, `--set`, `--emit`) · `index` (FTS5) · `search` (hybrid default, `--keyword`, `--set`) · `embed` · `eval` · `health` · `serve` (stdio MCP launcher: `--build`, `--projects`) · `claims redteam` (claim-health scoring) · **`setup`** (one-command client wiring, v0.6.0) · **`demo`** (materialize the demo wiki) · **`ask`** (grounded QA over summaries + pages) · **`contradictions`** (detect/apply confidence + conflicts)
 
 **MCP tools (15):** `llm_wiki_status` · `llm_wiki_files` · `llm_wiki_read_file` · `llm_wiki_reviews` · `llm_wiki_search` (hybrid default) · **`llm_wiki_ask`** (grounded QA) · `llm_wiki_graph` · `llm_wiki_graph_build` · `llm_wiki_graph_insights` · `llm_wiki_graph_search` · `llm_wiki_lint` · `llm_wiki_ingest` · `llm_wiki_suggest_links` · `llm_wiki_backup` · `llm_wiki_discover_entities`
 
@@ -170,7 +170,7 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
     ```
 14. **Serve the wiki locally with feedback forms**
     ```bash
-    llm-wiki serve ~/wikis/redis   # mermaid + KaTeX rendering, audit feedback
+    cd web-viewer && npm start -- --wiki ~/wikis/redis   # mermaid + KaTeX rendering, audit feedback
     ```
 15. **MCP-driven session**: ask Claude to "read the wiki's stance on Lua scripting" — it calls `llm_wiki_search`, then `llm_wiki_read_file`, then `llm_wiki_graph_insights` — all through the MCP tools, no shell.
 
@@ -200,7 +200,7 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
 
 **Remaining / edge**
 1. **Cross-machine provisioning is still manual** — `llm-wiki setup` wires a wiki to the local clients, but a fresh `git clone` machine still needs `install.sh` (Node/npm for the TS surfaces) + per-client binaries. A container/devcontainer or a `setup --bootstrap` that also installs the repo is the natural next step.
-2. **Optional extras are discoverable but not automatic** — `pip install -e ".[recommended]"` now exists (semantic + leiden + entity-resolution), but users must still opt in; no auto-detection of hardware to suggest the right profile.
+2. **Optional extras are discoverable but not automatic** — `[semantic]`, `[leiden]`, `[entity-resolution]`, `[ner]` remain opt-in for advanced local computation; the supported default story is base install + external agent (no model downloads).
 3. **GLiNER local path is documented, not end-to-end ONNX** — LWM_037 delivered the torch-free runner + model-cache convention + measured budget, but the one-time ONNX export of the pinned model still requires a torch run (CI `ner-verification` covers the typed-span success path).
 4. **web-viewer Sigma view is not unit-rendered** — the WebGL path falls back to SVG on any failure; the layout/graph construction is tested, the GPU render itself is only exercised manually.
 5. **Contradiction extraction is lexical-first** — great on numeric/polarity/exclusive-category conflicts; subtle paraphrased contradictions need the opt-in `--assist llm` screening.
@@ -223,4 +223,4 @@ deferral). **Now delivered (LWM_039 §D):** see README.md → *[Five ways to run
 
 ---
 
-**Bottom line:** the tool is genuinely ready to be *used* today — `bash install.sh`, `llm-wiki setup ~/wikis/my-project --title "…"`, then point Claude/Codex/opencode at `npx llm-wiki-mcp --wiki <root>`, and the 15 MCP tools + 27 CLI commands give you a reversible, eval-gated, agent-native knowledge base — including grounded `ask` answers and contradiction-aware confidence. Verified: 860 tests, 9/9 certification, green CI on 18 jobs.
+**Bottom line:** the tool is genuinely ready to be *used* today — `bash install.sh`, `llm-wiki setup ~/wikis/my-project --title "…"`, then point Claude/Codex/opencode at `npx llm-wiki-mcp --wiki <root>`, and the 15 MCP tools + 27 CLI commands give you a reversible, eval-gated, agent-native knowledge base — including grounded `ask` answers and contradiction-aware confidence. Current counts: 27 CLI commands, 15 MCP tools, 26 skill scripts, 20 templates, 916 tests collected by default (`926 total, 10 deselected`). The release-certification suite runs the registered quality gates — release manifest, docs truth, pytest, TypeScript typecheck/tests, fixture validation, MCP stdio E2E, search-eval, and search gold-set freshness — wired across CI's 17 jobs in 4 workflows (`ci.yml` 13, `release.yml` 2, plus the community and release verification workflows).

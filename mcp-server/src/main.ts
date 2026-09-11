@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * LLM Wiki MCP Server — stdio-based server with 14 tools.
+ * LLM Wiki MCP Server — stdio-based server with 15 tools.
  *
  * LWM_07: Python sidecar + direct TypeScript imports replace per-call
  * subprocess spawning. Zero fork/exec overhead per tool call.

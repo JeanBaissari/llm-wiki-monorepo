@@ -6,7 +6,7 @@ The wiki's operation log is a **folder**, not a single file. One file per day, n
 
 - Filename: `log/YYYYMMDD.md` (e.g., `log/20260409.md`)
 - Regex: `^\d{8}\.md$`
-- No other files are allowed at the top of `log/`. `scripts/lint_wiki.py` will flag stray files.
+- No other files are allowed at the top of `log/`. `skill/scripts/lint_wiki.py` will flag stray files.
 
 ## File format
 

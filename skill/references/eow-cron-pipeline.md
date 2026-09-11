@@ -1,13 +1,12 @@
 # EOW Cron Pipeline — Concrete Pattern
 
-This is the exact workflow executed by the weekly wiki/graphify cron job.
+This is the exact workflow executed by the weekly wiki maintenance cron job.
 Use this as the template for future EOW runs.
 
 ## Step 1: Discover repos with wikis
 
 ```bash
 find ~/projects -maxdepth 3 -type d -name 'wiki' 2>/dev/null
-find ~/projects -maxdepth 3 -type d -name '.graphify' 2>/dev/null
 ```
 
 ## Step 2: Assess each repo
@@ -76,6 +75,7 @@ One paragraph per repo. Cover:
 
 - The lint script exits with code 1 when issues are found — that's normal, not an error.
 - Don't commit `wiki/graphs/graph-data.json` — it's in `.gitignore`.
-- Graph-engine can handle 1000+ pages. For very large wikis (>5000 pages), use `timeout 120`.
+- Graph-engine handles 1000+ pages. For very large wikis (>5000 pages), use `timeout 120`.
 - The `graph_insights.py` script is a pure Python fallback — use graph-engine for production.
 - Always run insights after graph build — the insight analysis depends on fresh graph data.
+- No external model or network call is involved: the graph is wikilink/entity-derived.

@@ -5,6 +5,12 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  # Model-download lanes ([ner], real-embedder recertification) run
+  # weekly/manual only; push/PR lanes run with HuggingFace offline so no model
+  # can be downloaded (owner policy, 2026-09).
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
 
 jobs:
   release-manifest:
@@ -95,7 +101,7 @@ jobs:
         run: npm run test:ts
 
       - name: Zero-test guard
-        run: python3 scripts/zero_test_guard.py --test-command "npm test" --packages graph-engine mcp-server audit-shared --allow-zero audit-shared
+        run: python3 scripts/zero_test_guard.py --test-command "npm test" --packages graph-engine mcp-server audit-shared packages/shared-types
 
   python:
     strategy:
@@ -108,6 +114,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
       - name: Check Python scripts syntax
         run: |
@@ -121,14 +128,39 @@ jobs:
       - name: Check fixture freshness
         run: python3 -m pytest tests/test_fixtures_fresh.py -q
 
+      # Floor is set a few points below the locally measured 73% (3.12,
+      # `pytest tests/ -q --cov=src/llm_wiki`) — a real regression alarm that
+      # still leaves headroom for interpreter-to-interpreter variance.
       - name: Run pytest with coverage
-        run: python3 -m pytest tests/ -v --cov=src/llm_wiki --cov-report=term --cov-report=xml
+        run: python3 -m pytest tests/ -v --cov=src/llm_wiki --cov-report=term --cov-report=xml --cov-fail-under=70
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage-python-${{ matrix.python-version }}
           path: coverage.xml
+
+  # LWM_023: the opt-in absolute-latency / large-scale benchmarks are marked
+  # ``slow`` (excluded from the default pytest lane via addopts). Run the 10
+  # of them in a dedicated lane so benchmark regressions stay visible.
+  slow-tests:
+    name: Slow benchmarks (-m slow)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python test dependencies
+        run: pip install -e ".[dev,test]"
+
+      - name: Run slow-marked tests
+        env:
+          PYTHONPATH: src
+        run: python3 -m pytest tests/ -q -m slow
 
   # LWM_023: exercise the semantic layer's platform-sensitive paths (sqlite-vec
   # loadable extension + numpy KNN + hybrid fusion) on more than one OS. macOS is
@@ -142,17 +174,46 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # Push/PR must never download models. Cached models are used when
+      # present; on a cache miss the real-embedder tests skip (weekly job
+      # `semantic-real-embedder` recertifies them with downloads allowed).
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+      - name: Cache model caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/model2vec
+            ~/.cache/huggingface
+          key: ${{ runner.os }}-model-cache-${{ hashFiles('pyproject.toml') }}
       - name: Install test deps + platform-sensitive semantic deps
         run: |
           pip install -e ".[dev,test,semantic]"
           pip install numpy "sqlite-vec>=0.1.1"
       - name: Run full suite (with vector paths active)
         run: python3 -m pytest tests/ -q -m "not slow"
+
+  # LWM_029/AD-11: real model2vec embedder recertification — downloads the
+  # pinned model on cache miss, so it runs weekly/manual only (owner policy).
+  semantic-real-embedder:
+    name: Semantic recert with real embedder (weekly/manual)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Install test deps + semantic extra
+        run: pip install -e ".[dev,test,semantic]"
       # LWM_029 (hardening H-3): the [semantic]-gated similar_to generator runs
       # for real here — real model2vec embeddings over a small wiki, tau/top-m
       # enforcement, and the embed_meta mismatch skip guard.
@@ -161,10 +222,7 @@ jobs:
           PYTHONPATH: src
         run: |
           python3 -m pytest tests/test_derived_similarity.py -q -m "not slow"
-      # AD-11: the search-eval gate is re-certified with the REAL [semantic]
-      # embedder here (model2vec downloads a small model on first run). Local
-      # runs use the deterministic concept embedder; the real-wiki lane runs
-      # only when the extra is present.
+      # AD-11: re-certify the search-eval gate with the REAL [semantic] embedder.
       - name: Re-certify search-eval gate with the real embedder
         env:
           PYTHONPATH: src
@@ -252,11 +310,12 @@ jobs:
 
   # LWM_026: exercise the optional GLiNER backend in an isolated lane — the
   # typed-span success path (tests/test_extract.py::test_gliner_typed_spans_success_path)
-  # plus the LLM_WIKI_NER=gliner selection test — so the base install and other
-  # lanes stay free of the [ner] extra, while the real model download runs
-  # here. A model-download failure fails the lane visibly (hardening H-3).
+  # plus the LLM_WIKI_NER=gliner selection test. Runs weekly/manual only:
+  # the lane downloads a ~582 MiB checkpoint, and the default push/PR path
+  # must stay free of model downloads (owner policy, 2026-09).
   ner-verification:
-    name: GLiNER verification ([ner] extra)
+    name: GLiNER verification ([ner] extra, weekly/manual)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

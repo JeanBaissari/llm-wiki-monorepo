@@ -14,6 +14,7 @@ Gates:
   6. Fixture validation (schema freshness)
   7. MCP stdio E2E (tools/list, representative calls)
   8. Search-eval gate (hybrid default certification, LWM_032 / ADR-0020)
+     + ask-eval gate (grounded QA citation precision, LWM_033)
   9. Search gold-set freshness (per-minor curation loop, LWM_039 §A)
 
 Usage:
@@ -99,7 +100,9 @@ def gate_release_manifest(env: dict | None = None) -> dict:
             "status": "SKIP",
             "reason": f"{script} not found",
         }
-    result = run_command([sys.executable, str(script), "--json-only"], env=env)
+    # No --json-only: the gate is the script's real exit status. (The flag
+    # used to force exit 0, so a failing manifest still certified green.)
+    result = run_command([sys.executable, str(script)], env=env)
     return {"gate": "release_manifest", **result}
 
 
@@ -112,7 +115,9 @@ def gate_docs_truth_check(env: dict | None = None) -> dict:
             "status": "SKIP",
             "reason": f"{script} not found",
         }
-    result = run_command([sys.executable, str(script), "--json-only"], env=env)
+    # No --json-only: use the checker's real exit status (exit-code parity
+    # with --json — both are nonzero on stale docs).
+    result = run_command([sys.executable, str(script)], env=env)
     return {"gate": "docs_truth_check", **result}
 
 
@@ -271,12 +276,13 @@ def gate_mcp_stdio_e2e(env: dict | None = None) -> dict:
 
 
 def gate_search_eval(env: dict | None = None) -> dict:
-    """Gate 8: Search-eval gate (LWM_032 / ADR-0020).
+    """Gate 8: Search-eval gate (LWM_032 / ADR-0020) + ask-eval gate (LWM_033).
 
     Certifies the hybrid-default flip: deterministic concept-embedder gate +
-    baseline reproducibility + gold-set integrity. Green even when the
-    [semantic] extra is absent — the deterministic proxy is the point; CI's
-    semantic job additionally recertifies with the real embedder.
+    baseline reproducibility + gold-set integrity, and the grounded-QA
+    citation-precision@k gate. Green even when the [semantic] extra is absent
+    — the deterministic proxy is the point; CI's semantic job additionally
+    recertifies with the real embedder.
     """
     result = run_command(
         [
@@ -284,6 +290,7 @@ def gate_search_eval(env: dict | None = None) -> dict:
             "tests/test_search_eval_gate.py",
             "tests/test_search_baseline_reproducible.py",
             "tests/eval/test_search_goldset_integrity.py",
+            "tests/test_ask_eval.py",
             "-q", "--tb=short",
         ],
         cwd=REPO_ROOT, env=env, timeout=600,

@@ -25,7 +25,7 @@ Each section below shows `llm-wiki` first, then the direct script invocation as 
 bash install.sh
 ```
 
-Detects Python/Node versions, installs npm dependencies, builds all TypeScript packages, verifies all Python scripts, and optionally creates Hermes symlinks and PATH wrappers.
+Detects Python/Node versions, pip-installs the Python package (installing the `llm-wiki` console script), installs npm dependencies, builds all TypeScript packages, verifies all Python scripts, and optionally creates Hermes symlinks and PATH wrappers.
 
 No `llm-wiki` equivalent — this sets up the monorepo itself.
 

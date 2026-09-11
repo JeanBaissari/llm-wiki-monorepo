@@ -19,13 +19,21 @@ COMMANDS = [
     "ingest",
     "insights",
     "link-suggest",
+    "entities",
+    "derive-edges",
+    "summarize-communities",
     "backup",
     "deep-research",
     "audit",
     "benchmark",
     "migrate-log",
+    "ops",
     "discover",
+    "tuning",
     "index",
+    "search",
+    "embed",
+    "eval",
     "health",
     "serve",
     "claims",
@@ -61,12 +69,21 @@ class TestCliBaseline:
         # Read the version dynamically so this snapshot survives version bumps.
         assert r.stdout.strip() == f"llm-wiki {__version__}"
 
-    def test_no_args_shows_help(self):
+    def test_no_args_shows_usage_exit_2(self):
         r = _run_cli()
-        assert r.returncode == 1
+        assert r.returncode == 2
         assert "Available commands" in r.stderr
         for cmd in sorted(COMMANDS):
             assert cmd in r.stderr
+
+    @pytest.mark.parametrize("flag", ["--help", "-h"])
+    def test_top_level_help_exits_0(self, flag):
+        r = _run_cli(flag)
+        assert r.returncode == 0
+        assert "Usage: llm-wiki" in r.stdout
+        assert "Available commands" in r.stdout
+        for cmd in sorted(COMMANDS):
+            assert cmd in r.stdout
 
     def test_unknown_command(self):
         r = _run_cli("nonexistent-command-xyz")

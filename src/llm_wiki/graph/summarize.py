@@ -97,6 +97,29 @@ def _default_summarizer(provider: str, model, timeout):
     return _fn
 
 
+def _resolve_summarizer(provider: str, model, timeout):
+    """Build the default summarizer, failing closed when no provider exists.
+
+    Only reached when an actual LLM call is needed (dry-run and fully-cached
+    runs never call this), so the error is actionable rather than a silent
+    ``failed=N`` + exit 0.
+    """
+    if provider == "default":
+        from llm_wiki.providers.registry import detect_default_provider
+
+        if detect_default_provider() == "default":
+            from llm_wiki.providers import ProviderNotAvailableError
+
+            raise ProviderNotAvailableError(
+                "no LLM provider available. Export an API key "
+                "(OPENAI_API_KEY, ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, "
+                "TOGETHER_API_KEY), run inside an agent session "
+                "(HERMES_SESSION_ID / CLAUDE_CODE_SESSION / CODEX_SESSION / "
+                "LLM_WIKI_AGENT_MODE=1), or pass --dry-run to plan only."
+            )
+    return _default_summarizer(provider, model, timeout)
+
+
 def _build_prompt(nodes, pages, stems, child_summaries=None) -> "tuple[str, str]":
     """Per-community prompt. Leaf communities get member excerpts; parent
     communities (level > 0) get their child summaries instead (LWM_030)."""
@@ -326,8 +349,6 @@ def summarize_communities(
     partitions, hierarchy = _partition_levels(nodes, edges, engine=engine,
                                               max_levels=levels)
     out_dir = wiki_dir / "communities"
-    if summarizer is None:
-        summarizer = _default_summarizer(provider, model, timeout)
 
     stats = {"communities": 0, "summarized": 0, "skipped": 0, "calls": 0,
              "written": 0, "failed": 0, "dry_run": dry_run, "removed": 0,
@@ -375,6 +396,8 @@ def summarize_communities(
 
             children = _child_summaries(level_summaries, prev_by_comm, by_comm, cid)
             system, user = _build_prompt(nodes, pages, members, children)
+            if summarizer is None:
+                summarizer = _resolve_summarizer(provider, model, timeout)
             result = summarizer(system, user)
             stats["calls"] += 1
             if result is None:
@@ -475,11 +498,6 @@ def _existing_summary_files(out_dir: Path) -> "dict[str, list[Path]]":
     return found
 
 
-def _existing_member_shas(out_dir: Path) -> "set[str]":
-    """Member-set SHAs of already-written community-summary pages (all levels)."""
-    return set(_existing_summary_files(out_dir))
-
-
 def _faithful_entities(candidates, member_ents_normalized) -> "list[str]":
     """Keep only key_entities whose normalized form is an actual member entity."""
     from llm_wiki.graph.resolve import normalize
@@ -553,17 +571,22 @@ def main() -> int:
     engine = args.engine or tuning.community.engine
 
     from llm_wiki.operation import OperationContext
+    from llm_wiki.providers import ProviderNotAvailableError
 
-    with OperationContext("summarize_communities", wiki_root=args.wiki_root,
-                          inputs={"dry_run": args.dry_run, "force": args.force,
-                                  "levels": args.levels}) as ctx:
-        stats = summarize_communities(
-            args.wiki_root, max_communities=args.max_communities, levels=args.levels,
-            provider=args.provider, model=args.model, force=args.force,
-            dry_run=args.dry_run, engine=engine,
-            include_derived=args.include_derived,
-        )
-        ctx.succeed()
+    try:
+        with OperationContext("summarize_communities", wiki_root=args.wiki_root,
+                              inputs={"dry_run": args.dry_run, "force": args.force,
+                                      "levels": args.levels}) as ctx:
+            stats = summarize_communities(
+                args.wiki_root, max_communities=args.max_communities, levels=args.levels,
+                provider=args.provider, model=args.model, force=args.force,
+                dry_run=args.dry_run, engine=engine,
+                include_derived=args.include_derived,
+            )
+            ctx.succeed()
+    except ProviderNotAvailableError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
 
     if args.include_derived and isinstance(stats.get("derived_gate"), dict):
         g = stats["derived_gate"]

@@ -49,6 +49,26 @@ def test_community_verification():
     # Leiden-vs-Louvain NMI/modularity section.
     assert results, "no graph results reported"
     for r in results:
+        # Determinism must be exercised for real (two independent runs per
+        # seed) — never vacuously pass on an empty comparison list.
+        assert len(r["within_py"]["partition_same_seed"]) == len(SEEDS), (
+            f"{r['graph']}: Python same-seed determinism was not exercised"
+        )
+        assert all(r["within_py"]["partition_same_seed"]), (
+            f"{r['graph']}: Python same-seed partitions differ"
+        )
+        assert r["within_py"]["nmi_same_seed_pass"] is True, (
+            f"{r['graph']}: Python same-seed determinism failed"
+        )
+        assert len(r["within_ts"]["partition_same_seed"]) == len(SEEDS), (
+            f"{r['graph']}: TS same-seed determinism was not exercised"
+        )
+        assert all(r["within_ts"]["partition_same_seed"]), (
+            f"{r['graph']}: TS same-seed partitions differ"
+        )
+        assert r["within_ts"]["nmi_same_seed_pass"] is True, (
+            f"{r['graph']}: TS same-seed determinism failed"
+        )
         assert "leiden_vs_louvain" in r, (
             f"{r['graph']}: missing leiden_vs_louvain report section"
         )

@@ -220,6 +220,7 @@ def test_llm_failure_degrades_to_grounded_passages(tmp_path):
 def test_llm_mode_makes_exactly_one_call(tmp_path, monkeypatch):
     """AC#2: the LLM path is exactly ONE structured call."""
     root = _build_wiki(tmp_path)
+    monkeypatch.setenv("LLM_WIKI_AGENT_MODE", "1")  # provider available (opencode)
     calls = []
 
     def _spy(system, user, response_model, **kwargs):
@@ -230,6 +231,74 @@ def test_llm_mode_makes_exactly_one_call(tmp_path, monkeypatch):
     monkeypatch.setattr(ask_mod, "call_llm_structured", _spy)
     ask(str(root), "what is deep learning?", provider="default")
     assert len(calls) == 1
+
+
+def _clear_provider_env(monkeypatch):
+    for key in ("HERMES_SESSION_ID", "CLAUDE_CODE_SESSION", "CODEX_SESSION",
+                "LLM_WIKI_AGENT_MODE", "LLM_WIKI_RESPONSE_FILE",
+                "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY",
+                "TOGETHER_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_no_provider_without_no_llm_exits_nonzero(tmp_path, monkeypatch, capsys):
+    """No provider + no --no-llm → actionable error, nonzero exit (not answer=null/0)."""
+    root = _build_wiki(tmp_path)
+    _clear_provider_env(monkeypatch)
+    from llm_wiki.graph.ask import run
+
+    code = run([str(root), "what is deep learning?"])
+    err = capsys.readouterr().err
+    assert code != 0
+    assert "no LLM provider available" in err
+    assert "--no-llm" in err
+
+
+def test_no_provider_with_no_llm_stays_deterministic(tmp_path, monkeypatch, capsys):
+    """--no-llm keeps the deterministic zero-call path and exit 0."""
+    root = _build_wiki(tmp_path)
+    _clear_provider_env(monkeypatch)
+    from llm_wiki.graph.ask import run
+
+    code = run([str(root), "what is deep learning?", "--no-llm", "--json"])
+    out = capsys.readouterr().out
+    assert code == 0
+    payload = json.loads(out)
+    assert payload["llm_calls"] == 0
+    assert payload["answer"] is None
+    assert payload["citations"]
+
+
+def test_explicit_keyless_provider_raises_typed_error(monkeypatch):
+    """Explicit SDK provider without its key → typed provider error, never RuntimeError."""
+    import pytest
+
+    from llm_wiki.providers import ProviderNotAvailableError
+    from llm_wiki.providers.registry import call_llm, call_llm_structured
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    with pytest.raises(ProviderNotAvailableError):
+        call_llm("sys", "user", provider="openai")
+    with pytest.raises(ProviderNotAvailableError):
+        call_llm_structured("sys", "user", AskResponse, provider="openai")
+
+    # The structured default resolves via detect_default_provider and degrades
+    # like call_llm (no implicit provider="openai").
+    import inspect
+
+    assert inspect.signature(call_llm_structured).parameters["provider"].default == "default"
+
+
+def test_ask_cli_keyless_explicit_provider_exits_nonzero(tmp_path, monkeypatch, capsys):
+    """CLI --provider openai without a key → actionable exit 2, no traceback."""
+    root = _build_wiki(tmp_path)
+    _clear_provider_env(monkeypatch)
+    from llm_wiki.graph.ask import run
+
+    code = run([str(root), "what is deep learning?", "--provider", "openai"])
+    err = capsys.readouterr().err
+    assert code == 2
+    assert "OPENAI_API_KEY" in err
 
 
 def test_dry_run_prints_plan_no_calls(tmp_path, monkeypatch):

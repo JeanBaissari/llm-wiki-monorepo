@@ -146,16 +146,11 @@ async function main() {
   const svgWrap = document.getElementById("graph-svg-wrap")!;
   const sigmaWrap = document.getElementById("graph-sigma-wrap")!;
   const sigmaContainer = document.getElementById("graph-sigma-container")!;
-  const codeToggle = document.getElementById("code-toggle") as HTMLInputElement;
-  const codeToggleWrap = document.getElementById("code-toggle-wrap")!;
   const derivedToggle = document.getElementById("derived-toggle") as HTMLInputElement;
-  const legendCode = document.getElementById("legend-code")!;
-  const legendCross = document.getElementById("legend-cross")!;
   const legendDerived = document.getElementById("legend-derived")!;
   const legendDerivedSigma = document.getElementById("legend-derived-sigma")!;
   const viewSvgBtn = document.getElementById("view-svg") as HTMLButtonElement;
   const viewWebglBtn = document.getElementById("view-webgl") as HTMLButtonElement;
-  let codeGraphData: GraphData | null = null;
   let derivedData: DerivedOverlayData | null = null;
   let derivedFetched = false;
   let renderMode: "svg" | "webgl" = "svg";
@@ -191,43 +186,6 @@ async function main() {
     const particles = new ParticleField(canvas, 95);
     particles.start();
 
-    // Fetch code graph data (silently fail if unavailable)
-    codeGraphData = null;
-    try {
-      const codeResp = await fetch("/api/graph/code");
-      const codeData = await codeResp.json();
-      if (codeData.available && codeData.nodes?.length > 0) {
-        codeGraphData = codeData as GraphData;
-        codeToggleWrap.classList.remove("hidden");
-        codeToggle.checked = false;
-      } else {
-        codeToggleWrap.classList.add("hidden");
-      }
-    } catch {
-      codeToggleWrap.classList.add("hidden");
-    }
-
-    const renderWithCode = (showCode: boolean) => {
-      const merged: GraphData = {
-        nodes: [...data.nodes],
-        edges: [...data.edges.map((e) => ({ ...e, domain: "wikilink" }))],
-      };
-      if (showCode && codeGraphData) {
-        // Add code nodes that don't already exist
-        const existingIds = new Set(data.nodes.map((n) => n.id));
-        for (const cn of codeGraphData.nodes) {
-          if (!existingIds.has(cn.id)) {
-            merged.nodes.push(cn);
-          }
-        }
-        // Add code edges with domain labels
-        for (const ce of codeGraphData.edges) {
-          merged.edges.push({ ...ce, domain: ce.domain ?? "codestructure" });
-        }
-      }
-      return merged;
-    };
-
     const updateViewButtons = () => {
       viewSvgBtn.classList.toggle("active", renderMode === "svg");
       viewWebglBtn.classList.toggle("active", renderMode === "webgl");
@@ -238,7 +196,10 @@ async function main() {
         state.graphTeardown();
         state.graphTeardown = null;
       }
-      const graphData = renderWithCode(codeToggle.checked);
+      const graphData: GraphData = {
+        nodes: [...data.nodes],
+        edges: [...data.edges.map((e) => ({ ...e, domain: "wikilink" }))],
+      };
       const derivedEnabled = derivedToggle.checked;
       const onNodeClick = (node: GraphNode) => {
         closeGraph();
@@ -264,8 +225,6 @@ async function main() {
             v.destroy();
           };
           legendDerivedSigma.classList.toggle("hidden", !(derivedEnabled && derivedData));
-          legendCode.classList.toggle("hidden", !codeToggle.checked);
-          legendCross.classList.toggle("hidden", !codeToggle.checked);
           return;
         }
         // fall through to SVG when WebGL is unavailable
@@ -280,15 +239,10 @@ async function main() {
       };
       // Show/hide legend items
       legendDerived.classList.toggle("hidden", !(derivedEnabled && derivedData));
-      legendCode.classList.toggle("hidden", !codeToggle.checked);
-      legendCross.classList.toggle("hidden", !codeToggle.checked);
     };
 
     renderFn();
 
-    codeToggle.onchange = () => {
-      renderFn();
-    };
     derivedToggle.onchange = () => {
       void fetchDerived().then(renderFn);
     };

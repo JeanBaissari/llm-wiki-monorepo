@@ -78,6 +78,15 @@ def pure_nmi(
 ) -> float:
     """Pure-Python Normalized Mutual Information.
 
+    Degenerate semantics are **lane-independent** — they match
+    ``sklearn.metrics.normalized_mutual_info_score`` so gate results do not
+    depend on whether sklearn is installed:
+
+    * empty labelings (and identical labelings) → ``1.0``;
+    * both labelings a single cluster → ``1.0``;
+    * exactly one labeling a single cluster → ``0.0`` (a constant partition
+      carries no information about a non-constant one; sklearn returns 0.0).
+
     Supports average_method: 'sqrt', 'max', 'min', 'arithmetic'.
     """
     total = len(labels_true)
@@ -88,9 +97,13 @@ def pure_nmi(
     if labels_true == labels_pred:
         return 1.0
 
-    # Single cluster check
-    if len(set(labels_true)) <= 1 or len(set(labels_pred)) <= 1:
+    # Degenerate partitions: mirror sklearn exactly (see docstring).
+    n_true = len(set(labels_true))
+    n_pred = len(set(labels_pred))
+    if n_true <= 1 and n_pred <= 1:
         return 1.0
+    if n_true <= 1 or n_pred <= 1:
+        return 0.0
 
     mi = _mutual_info(labels_true, labels_pred, total)
 
@@ -131,7 +144,12 @@ def _comb2(n: int) -> int:
 
 
 def pure_ari(labels_true: list[int], labels_pred: list[int]) -> float:
-    """Pure-Python Adjusted Rand Index."""
+    """Pure-Python Adjusted Rand Index.
+
+    Degenerate semantics match ``sklearn.metrics.adjusted_rand_score``
+    (lane-independent gates): empty/identical labelings → ``1.0``; both
+    labelings a single cluster → ``1.0``; exactly one single cluster → ``0.0``.
+    """
     total = len(labels_true)
     if total == 0:
         return 1.0
@@ -144,9 +162,12 @@ def pure_ari(labels_true: list[int], labels_pred: list[int]) -> float:
     classes = set(labels_true)
     clusters = set(labels_pred)
 
-    # If either is trivial
-    if len(classes) <= 1 or len(clusters) <= 1:
+    # If either is trivial: both trivial → same partition (ARI 1.0);
+    # exactly one trivial → sklearn's 0.0 (no agreement beyond chance).
+    if len(classes) <= 1 and len(clusters) <= 1:
         return 1.0
+    if len(classes) <= 1 or len(clusters) <= 1:
+        return 0.0
 
     contingency: dict[tuple[int, int], int] = defaultdict(int)
     for t, p in zip(labels_true, labels_pred):
@@ -194,7 +215,9 @@ def nmi(
 ) -> float:
     """Normalized Mutual Information.
 
-    Uses sklearn if available; otherwise pure-Python fallback."""
+    Uses sklearn if available; otherwise pure-Python fallback. Both paths share
+    the same degenerate-partition semantics (see :func:`pure_nmi`), so gate
+    results are identical whether or not sklearn is installed."""
     if HAVE_SKLEARN:
         method = average_method if average_method != "sqrt" else "geometric"
         return sklearn_nmi(labels_true, labels_pred, average_method=method)
@@ -204,7 +227,9 @@ def nmi(
 def ari(labels_true: list[int], labels_pred: list[int]) -> float:
     """Adjusted Rand Index.
 
-    Uses sklearn if available; otherwise pure-Python fallback."""
+    Uses sklearn if available; otherwise pure-Python fallback. Both paths share
+    the same degenerate-partition semantics (see :func:`pure_ari`), so gate
+    results are identical whether or not sklearn is installed."""
     if HAVE_SKLEARN:
         return sklearn_ari(labels_true, labels_pred)
     return pure_ari(labels_true, labels_pred)

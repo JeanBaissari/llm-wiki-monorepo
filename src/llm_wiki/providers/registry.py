@@ -31,14 +31,6 @@ from typing import Any, Optional, Type, TypeVar
 
 import tenacity
 
-RETRY_KWARGS: dict[str, Any] = dict(
-    wait=tenacity.wait_exponential(multiplier=1, min=1, max=30),
-    stop=tenacity.stop_after_attempt(3),
-    retry=tenacity.retry_if_exception_type(Exception),
-    before_sleep=tenacity.before_log(tenacity.after_log(None, None), None),
-    reraise=True,
-)
-
 def _retry_decorator():
     return tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=1, max=30),
@@ -57,9 +49,14 @@ DEFAULT_MODELS: dict[str, str] = {
 def _require_key(env_var: str, provider: str) -> str:
     key = os.environ.get(env_var)
     if not key:
-        raise RuntimeError(
-            f"{env_var} not set. Export it to use provider='{provider}' "
-            f"or set LLM_WIKI_RESPONSE_FILE for offline mode."
+        # Typed provider error (never a bare RuntimeError traceback): callers
+        # can fail closed with an actionable message instead of crashing.
+        from llm_wiki.providers import ProviderNotAvailableError
+
+        raise ProviderNotAvailableError(
+            f"{env_var} not set. Export it to use provider='{provider}', "
+            f"or pass provider='default' for auto-detection, or set "
+            f"LLM_WIKI_RESPONSE_FILE for offline mode."
         )
     return key
 
@@ -323,23 +320,13 @@ def _print_prompts(system: str, user: str) -> None:
         file=sys.stderr,
     )
 
-def read_response() -> Optional[str]:
-    rf = os.environ.get("LLM_WIKI_RESPONSE_FILE")
-    if not rf:
-        return None
-    try:
-        with open(rf, "r", encoding="utf-8") as f:
-            return f.read()
-    except (FileNotFoundError, IOError):
-        return None
-
 T = TypeVar("T")
 
 def call_llm_structured(
     system: str,
     user: str,
     response_model: Type[T],
-    provider: str = "openai",
+    provider: str = "default",
     model: Optional[str] = None,
     total_timeout: Optional[int] = None,
     **kwargs: Any,

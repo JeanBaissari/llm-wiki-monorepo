@@ -9,6 +9,12 @@ export interface ServerConfig {
   author: string;
 }
 
+export function isLoopbackHost(host: string): boolean {
+  const h = host.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h === "::1" || h === "0:0:0:0:0:0:0:1") return true;
+  return /^127(?:\.\d{1,3}){3}$/.test(h);
+}
+
 export function parseArgs(argv: string[]): ServerConfig {
   const args = argv.slice(2);
   let wikiRoot: string | null = null;

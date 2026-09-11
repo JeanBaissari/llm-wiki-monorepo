@@ -4,6 +4,11 @@ CLAUDE.md
 node_modules/
 npm-debug.log*
 
+# Environment / secrets — never commit credentials (keep the template)
+.env
+.env.*
+!.env.example
+
 # TypeScript build output
 dist/
 *.tsbuildinfo
@@ -31,6 +36,7 @@ graph-data.json
 # Agent working files (not for public distribution)
 MASTER_PROMPT.md
 skill/references/opencode-tutorial.md
+.audit/
 
 # Session transcripts (reference only, never committed)
 20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt

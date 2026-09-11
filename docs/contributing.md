@@ -4,15 +4,13 @@
 
 ## Release Blocker: GPL Provenance Review
 
-> **✅ RESOLVED in v0.3.3 — Public release is unblocked.**
+> **✅ RESOLVED in v0.6.4 — Public release is unblocked.**
 
-Code previously derived from [nashsu/llm_wiki](https://github.com/nashsu/llm_wiki) (GPL-3.0) has been substantially rewritten and expanded in v0.3.3:
-- `graph-engine/src/relevance.ts` — Added configurable weights, source indexing, type-safe interfaces (Phase 2, 16 tests)
-- `graph-engine/src/insights.ts` — Added extensible signal registry, configurable thresholds, performance optimization (Phase 3, 12 tests)
+Code previously derived from [nashsu/llm_wiki](https://github.com/nashsu/llm_wiki) (GPL-3.0) was independently reimplemented as clean-room MIT code in v0.6.4:
+- `graph-engine/src/relevance.ts` — reimplemented from the behavioral contract (public API + tests): 4-signal relevance model, configurable weights, source overlap, Adamic-Adar, type affinity.
+- `graph-engine/src/insights.ts` — reimplemented from the behavioral contract: surprise-signal registry, knowledge-gap detection, configurable thresholds.
 
-These files now represent original, substantially transformed work. All provenance markers have been removed from source files. The `docs/legal/provenance.md` ledger records the transformation history.
-
-The provenance scan (`python3 scripts/provenance_scan.py`) no longer flags these files.
+Behavior parity was verified against the prior implementation before replacement (graph-engine test suite plus a deep-compare harness), and the files now carry original clean-room implementations with no copied code. The earlier v0.3.3 note did **not** discharge this review; the v0.6.4 rewrite did. The `docs/legal/provenance.md` ledger records the clean-room entries.
 
 See [docs/legal/provenance.md](./docs/legal/provenance.md) for the full provenance ledger.
 
@@ -22,7 +20,7 @@ See [docs/legal/provenance.md](./docs/legal/provenance.md) for the full provenan
 src/llm_wiki/         ← Python package — CLI, LLM providers, concurrency, search
   ├── core/           ← Primitives: frontmatter, hashing, atomic, locking, logging, layout, wikilinks
   ├── quality/        ← Claims, lint, audit (claims/, lint/, audit/)
-  ├── ingest/         ← Pipeline: blocks, writer, cache
+  ├── ingest/         ← Pipeline: blocks, writer
   ├── providers/      ← LLM adapters (registry, openai, anthropic, opencode)
   ├── graph/          ← Louvain, insights, link suggestions
   ├── search/         ← FTS5 indexing
@@ -30,11 +28,12 @@ src/llm_wiki/         ← Python package — CLI, LLM providers, concurrency, se
   ├── wiki/           ← Scaffold, backup
   ├── research/       ← Deep research pipeline
   └── contracts/      ← Schema validation
-skill/scripts/        ← Thin CLI wrappers — delegate to src/llm_wiki/
+skill/scripts/        ← Python CLI entry points — most delegate to src/llm_wiki/,
+                        a few (sidecar.py, validate_fixtures.py, regenerate_fixtures.py) are standalone
 skill/SKILL.md        ← Agent skill definition — loaded by Hermes/Claude/Codex
 templates/            ← 20 domain templates (PURPOSE.md + SCHEMA.md + extra-dirs.json)
-tests/                ← pytest suite — 16 test files + conftest.py fixtures
-mcp-server/           ← TypeScript — MCP server (stdio, 14 tools)
+tests/                ← pytest suite — 67 test files + conftest.py fixtures
+mcp-server/           ← TypeScript — MCP server (stdio, 15 tools)
 graph-engine/         ← TypeScript — knowledge graph (relevance, Louvain, insights)
 web-viewer/           ← TypeScript — local preview server
 extension/            ← JavaScript — Chrome web clipper

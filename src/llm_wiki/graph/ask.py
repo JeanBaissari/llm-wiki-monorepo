@@ -394,6 +394,22 @@ def ask(
         return result
 
     if summarizer is None:
+        # No-provider fail-closed: an LLM synthesis was requested (no --no-llm /
+        # --dry-run) and grounded passages exist, so silently returning
+        # answer=None would hide the misconfiguration. --no-llm and the MCP
+        # no_llm=True path return above and stay deterministic.
+        from llm_wiki.providers.registry import detect_default_provider
+
+        if provider == "default" and detect_default_provider() == "default":
+            result["error"] = (
+                "no LLM provider available. Export an API key "
+                "(OPENAI_API_KEY, ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, "
+                "TOGETHER_API_KEY), run inside an agent session "
+                "(HERMES_SESSION_ID / CLAUDE_CODE_SESSION / CODEX_SESSION / "
+                "LLM_WIKI_AGENT_MODE=1), or pass --no-llm for deterministic "
+                "retrieval."
+            )
+            return result
         summarizer = _default_summarizer(provider, model, timeout)
     system, user = _build_prompt(question, result["passages"])
     resp = summarizer(system, user)
@@ -485,11 +501,20 @@ def run(argv: "list[str]") -> int:
     args = parser.parse_args(argv)
     if args.top_k < 1:
         parser.error("--top-k must be >= 1")
-    result = ask(
-        args.wiki_root, args.question,
-        no_llm=args.no_llm, keyword=args.keyword, provider=args.provider,
-        model=args.model, top_k=args.top_k, dry_run=args.dry_run,
-    )
+    from llm_wiki.providers import ProviderNotAvailableError
+
+    try:
+        result = ask(
+            args.wiki_root, args.question,
+            no_llm=args.no_llm, keyword=args.keyword, provider=args.provider,
+            model=args.model, top_k=args.top_k, dry_run=args.dry_run,
+        )
+    except ProviderNotAvailableError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+    if result.get("error"):
+        print(f"Error: {result['error']}", file=sys.stderr)
+        return 2
     if args.dry_run:
         _print_dry_run(result)
     else:

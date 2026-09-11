@@ -1,7 +1,9 @@
 """Tests for hybrid search: RRF fusion + keyword/hybrid query (LWM_019/020)."""
 
 import hashlib
+import json
 import math
+import sys
 
 import pytest
 
@@ -124,3 +126,51 @@ def test_hybrid_gibberish_with_floor_returns_empty(tmp_path):
     # no keyword hit + an impossible similarity floor → nothing survives
     res = hybrid_search(root, "zzzznonexistentqqq", 5, embedder=_Fake(), sim_floor=1.1)
     assert res == []
+
+
+# ── CLI --set bm25 overrides on the default hybrid path (LWM_031) ────────────
+
+def _make_tf_wiki(tmp_path):
+    """3 pages: z.md has a huge tf for 'zebra'; k1=0 collapses the tf boost so
+    the path tie-break flips the ranking (same fixture as the shared-BM25 test)."""
+    w = tmp_path / "wiki"
+    w.mkdir()
+    (w / "a.md").write_text(
+        "---\ntitle: Alpha\n---\n# Alpha\n\nzebra attention\n", encoding="utf-8")
+    (w / "z.md").write_text(
+        "---\ntitle: Zulu\n---\n# Zulu\n\n" + "zebra " * 10 + "attention\n",
+        encoding="utf-8")
+    (w / "m.md").write_text(
+        "---\ntitle: Mike\n---\n# Mike\n\nzebra\n", encoding="utf-8")
+    index_wiki(tmp_path, rebuild=True)
+    return tmp_path
+
+
+def _cli_search(monkeypatch, argv):
+    from llm_wiki.search import query as query_mod
+    monkeypatch.setattr(sys, "argv", ["llm-wiki search", *argv])
+    return query_mod.main()
+
+
+def test_hybrid_cli_set_bm25_override_reaches_rescorer(tmp_path, monkeypatch, capsys):
+    """`llm-wiki search --set bm25.k1` (default hybrid path) must reach the
+    hybrid rescorer exactly like `--keyword` does — not be silently ignored."""
+    root = _make_tf_wiki(tmp_path)
+    query = "zebra attention"
+
+    # Baseline: default bm25 → z.md (huge tf) first; k1=0 flips to a.md.
+    default = hybrid_search(root, query, 10)
+    override = hybrid_search(root, query, 10, bm25_k1=0.0, bm25_b=0.75)
+    assert [r["path"] for r in default] == ["wiki/z.md", "wiki/a.md", "wiki/m.md"]
+    assert [r["path"] for r in override] == ["wiki/a.md", "wiki/z.md", "wiki/m.md"]
+
+    code = _cli_search(monkeypatch, [str(root), query, "--set", "bm25.k1=0.0", "--json"])
+    assert code == 0
+    cli_tuned = json.loads(capsys.readouterr().out)
+    assert [r["path"] for r in cli_tuned] == [r["path"] for r in override]
+
+    code = _cli_search(monkeypatch, [str(root), query, "--json"])
+    assert code == 0
+    cli_default = json.loads(capsys.readouterr().out)
+    assert [r["path"] for r in cli_default] == [r["path"] for r in default]
+    assert cli_default != cli_tuned  # the override is effective, not ignored

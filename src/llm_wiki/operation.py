@@ -32,10 +32,6 @@ def _generate_run_id() -> str:
     return f"run_{uuid.uuid4().hex[:12]}"
 
 
-def _sha256_of(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
 def _sha256_of_file(path: str) -> Optional[str]:
     try:
         return hashlib.sha256(Path(path).read_bytes()).hexdigest()

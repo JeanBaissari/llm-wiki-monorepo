@@ -282,7 +282,11 @@ def _load_file(path: Path) -> "dict[str, Any]":
     except ImportError:  # pragma: no cover - py<3.11
         import tomli as tomllib  # tomli>=2.0 is a conditional dep on py<3.11
     with open(path, "rb") as f:
-        data = tomllib.load(f)
+        try:
+            data = tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            # Documented config-error surface (exit 2) — never a raw traceback.
+            raise ConfigError(f"malformed tuning file {path}: {e}") from e
     flat: dict[str, Any] = {}
     for section, tbl in data.items():
         if isinstance(tbl, dict):

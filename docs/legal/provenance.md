@@ -16,14 +16,15 @@
 
 ## Upstream-Derived Components
 
-### Graph Engine — Ported Code
+### Graph Engine — Upstream References & Clean-Room Reimplementations
 
 | Source | URL | License | Class | Local File | Disposition |
 |--------|-----|---------|-------|------------|-------------|
-| nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `P` — Ported | `graph-engine/src/relevance.ts` | `clean_room_replace` — 4-signal relevance model ported from `src/lib/graph-relevance.ts`. Must be replaced with clean-room implementation from algorithmic description before public release. |
-| nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `P` — Ported | `graph-engine/src/insights.ts` | `clean_room_replace` — surprising connections + knowledge gap detection ported from `graph-insights.ts`. Must be replaced with clean-room implementation before public release. |
+| nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | MIT (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/relevance.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
+| nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | MIT (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/insights.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
 | nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `X` — Doc reference | `CONTRIBUTING.md`, `docs/contributing.md`, `README.md` | `docs_only_credit` — Historical provenance disclosure ("code previously derived from nashsu/llm_wiki has been substantially rewritten in v0.3.3"). Documentation mentions only; no code copied. |
 | mixmark-io/turndown | https://github.com/mixmark-io/turndown | MIT | `C` — Vendored with attribution | `extension/Turndown.js` | `vendored_with_attribution` — Vendored turndown bundle; `collapseWhitespace` adapted from `collapse-whitespace` (MIT) and one helper adapted from https://gist.github.com/1129031 (public domain). Attribution retained in-file. |
+| mozilla/readability | https://github.com/mozilla/readability | Apache-2.0 | `C` — Vendored with attribution | `extension/Readability.js` | `vendored_with_attribution` — Readability.js vendored into the Chrome extension for article extraction. Apache-2.0 header retained in-file; the exact upstream version is unknown (the vendored file carries no version marker). |
 
 ### Algorithm — Inspired Implementation
 
@@ -54,16 +55,16 @@
 | js-yaml | ^4.1.0 | MIT | https://github.com/nodeca/js-yaml |
 | katex | ^0.16.10 | MIT | https://github.com/KaTeX/KaTeX |
 | markdown-it | ^14.1.0 | MIT | https://github.com/markdown-it/markdown-it |
-| markdown-it-anchor | ^9.0.1 | MIT | https://github.com/valeriangalliat/markdown-it-anchor |
+| markdown-it-anchor | ^9.0.1 | Unlicense | https://github.com/valeriangalliat/markdown-it-anchor |
 | markdown-it-attrs | ^4.2.0 | MIT | https://github.com/arve0/markdown-it-attrs |
 | markdown-it-texmath | ^1.0.0 | MIT | https://github.com/goessner/markdown-it-texmath |
 | mermaid | ^10.9.0 | MIT | https://github.com/mermaid-js/mermaid |
+| sigma | ^3.0.0 | MIT | https://github.com/jacomyal/sigma.js |
 | d3-drag | ^3.0.0 | ISC | https://github.com/d3/d3-drag |
 | d3-force | ^3.0.0 | ISC | https://github.com/d3/d3-force |
 | d3-selection | ^3.0.0 | ISC | https://github.com/d3/d3-selection |
 | d3-zoom | ^3.0.0 | ISC | https://github.com/d3/d3-zoom |
 | zod | ^3.23.8 | MIT | https://github.com/colinhacks/zod |
-| @sentropic/graphify | ^0.17.1 | MIT | https://github.com/sentropic/graphify |
 | esbuild | ^0.20.0 | MIT | https://github.com/evanw/esbuild |
 | typescript | ^5.4.0+ | Apache-2.0 | https://github.com/microsoft/TypeScript |
 
@@ -76,8 +77,6 @@
 | litellm | ≥1.90 | MIT | https://github.com/BerriAI/litellm |
 | instructor | ≥1.15 | MIT | https://github.com/jxnl/instructor |
 | tenacity | ≥8.0 | Apache-2.0 | https://github.com/jd/tenacity |
-| tiktoken | ≥0.7 | MIT | https://github.com/openai/tiktoken |
-| python-dotenv | ≥1.0 | BSD-3-Clause | https://github.com/theskumar/python-dotenv |
 | pydantic | ≥2.0 | MIT | https://github.com/pydantic/pydantic |
 | portalocker | ≥2.8 | BSD-3-Clause | https://github.com/WoLpH/portalocker |
 | pytest | ≥8.0 | MIT | https://github.com/pytest-dev/pytest |
@@ -89,11 +88,11 @@
 
 | File | Class | Disposition | Status |
 |------|-------|-------------|--------|
-| `graph-engine/src/relevance.ts` | `P` — Ported | `clean_room_replace` | **UNRESOLVED — Release blocker** |
-| `graph-engine/src/insights.ts` | `P` — Ported | `clean_room_replace` | **UNRESOLVED — Release blocker** |
+| `graph-engine/src/relevance.ts` | `C` — Clean-room implementation | `clean_room_reimplemented` | Resolved — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests); MIT, no copied code. |
+| `graph-engine/src/insights.ts` | `C` — Clean-room implementation | `clean_room_reimplemented` | Resolved — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests); MIT, no copied code. |
 | `graph-engine/src/louvain.ts` | `I` — Inspired | `docs_only_credit` | Resolved |
 | `src/llm_wiki/` methodology | `I` — Inspired | `docs_only_credit` | Resolved |
 | `skill/SKILL.md` methodology | `X` — Upstream reference | `docs_only_credit` | Resolved |
 | All `D` — Direct dependencies | `D` — Direct dependency | `license_compatible_include` | Resolved |
 
-> **Resolved in v0.3.3**: Items previously marked `clean_room_replace` have been substantially rewritten and expanded. See [CONTRIBUTING.md](CONTRIBUTING.md#release-blocker-gpl-provenance-review) for the resolution summary.
+> **Resolved in v0.6.4 (2026-09)**: `graph-engine/src/relevance.ts` and `graph-engine/src/insights.ts` were independently reimplemented from their behavioral contract (public API + tests). No copied code; both files are original MIT implementations. The earlier v0.3.3 note described rewrites of the then-ported code, which did not by itself discharge the provenance review.

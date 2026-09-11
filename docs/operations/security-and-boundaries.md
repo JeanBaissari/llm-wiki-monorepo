@@ -40,10 +40,11 @@ The system has a deliberately small network surface:
   speaks the MCP protocol over standard input/output. **No HTTP or RPC
   listeners; nothing binds a port.** It only ever talks to the process that
   launched it.
-- **Web preview (`llm-wiki serve`) is an opt-in, local-only server** for human
-  browsing (mermaid, KaTeX, audit feedback). It binds a localhost port and is
-  meant for a single user's browser. **It must not be exposed to untrusted
-  networks without an authentication layer in front of it** (see pattern 2).
+- **Web preview (`web-viewer`, started with `npm start -- --wiki <root>`) is an
+  opt-in, local-only server** for human browsing (mermaid, KaTeX, audit
+  feedback). It binds a localhost port and is meant for a single user's browser.
+  **It must not be exposed to untrusted networks without an authentication layer
+  in front of it** (see pattern 2).
 - The Python sidecar spawned by the MCP server never leaves the repo —
   everything is local and private.
 
@@ -78,6 +79,7 @@ them:
   stdio-local; the web preview is opt-in local-only.
 - **Out of scope (by design):** any application-level authentication,
   authorization, or per-wiki visibility layer. No such code is planned.
-- **Do not:** expose `llm-wiki serve` to untrusted networks without an
-  authentication layer; commit secrets into the wiki repo; treat derived
-  caches or `raw/` as an access-control mechanism.
+- **Do not:** expose the web preview (or a web server bound to a non-loopback
+  host) to untrusted networks without an authentication layer; commit secrets
+  into the wiki repo; treat derived caches or `raw/` as an access-control
+  mechanism.

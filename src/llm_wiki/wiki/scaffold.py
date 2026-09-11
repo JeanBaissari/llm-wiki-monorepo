@@ -37,18 +37,49 @@ from datetime import date, datetime
 from llm_wiki.core.layout import discover_layout, WikiLayout, format_json
 
 
-# Try multiple locations: installed package, then dev repo
-_T = Path(__file__).resolve().parent / "templates"
-TEMPLATES_DIR = _T if _T.is_dir() else Path(__file__).resolve().parent.parent.parent.parent / "templates"
 DEFAULT_TEMPLATE = "research"
+
+
+def _templates_candidates() -> tuple[Path, ...]:
+    """Template search path: package-internal first, then repo-root (dev)."""
+    return (
+        # src/llm_wiki/templates — installed wheel or PYTHONPATH=src checkout
+        Path(__file__).resolve().parent.parent / "templates",
+        # repo-root templates/ — editable/dev checkout
+        Path(__file__).resolve().parents[3] / "templates",
+    )
+
+
+def _resolve_templates_dir() -> Path | None:
+    for candidate in _templates_candidates():
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+TEMPLATES_DIR = _resolve_templates_dir()
+
+
+def _require_templates_dir() -> Path:
+    """Return the templates directory or exit with a clear error."""
+    if TEMPLATES_DIR is None:
+        print("ERROR: templates directory not found. Looked in:", file=sys.stderr)
+        for candidate in _templates_candidates():
+            print(f"  - {candidate}", file=sys.stderr)
+        print(
+            "Reinstall the package (pip install -e .) or run "
+            "`python3 skill/scripts/scaffold.py --list-templates` from the repo checkout.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return TEMPLATES_DIR
 
 
 def list_templates() -> list[str]:
     """Discover available templates in the templates/ directory."""
-    if not TEMPLATES_DIR.exists():
-        return [DEFAULT_TEMPLATE]
+    templates_dir = _require_templates_dir()
     templates = []
-    for d in sorted(TEMPLATES_DIR.iterdir()):
+    for d in sorted(templates_dir.iterdir()):
         if d.is_dir() and not d.name.startswith("_") and not d.name.startswith("."):
             if (d / "SCHEMA.md").exists():
                 templates.append(d.name)
@@ -57,11 +88,12 @@ def list_templates() -> list[str]:
 
 def get_template(template_name: str) -> Path:
     """Resolve template path, falling back to default if not found."""
-    template_path = TEMPLATES_DIR / template_name
+    templates_dir = _require_templates_dir()
+    template_path = templates_dir / template_name
     if template_path.exists() and (template_path / "SCHEMA.md").exists():
         return template_path
     print(f"⚠️  Template '{template_name}' not found, falling back to '{DEFAULT_TEMPLATE}'")
-    return TEMPLATES_DIR / DEFAULT_TEMPLATE
+    return templates_dir / DEFAULT_TEMPLATE
 
 
 def load_extra_dirs(template_path: Path) -> list[str]:

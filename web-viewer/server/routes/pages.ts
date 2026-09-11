@@ -3,6 +3,7 @@ import path from "node:path";
 import type { Request, Response } from "express";
 import type { ServerConfig } from "../config.js";
 import { createRenderer } from "../render/markdown.js";
+import { resolveInsideRoot, safeRel } from "../paths.js";
 
 export function handlePage(cfg: ServerConfig) {
   const renderer = createRenderer({ wikiRoot: cfg.wikiRoot });
@@ -16,29 +17,28 @@ export function handlePage(cfg: ServerConfig) {
     }
 
     // Default to wiki/index.md if a directory is requested.
-    let full = path.join(cfg.wikiRoot, rel);
-    if (fs.existsSync(full) && fs.statSync(full).isDirectory()) {
-      full = path.join(full, "index.md");
+    let candidate = path.join(cfg.wikiRoot, rel);
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+      candidate = path.join(candidate, "index.md");
     }
 
-    if (!full.endsWith(".md")) full += ".md";
+    if (!candidate.endsWith(".md")) candidate += ".md";
+
+    const full = resolveInsideRoot(cfg.wikiRoot, path.relative(cfg.wikiRoot, candidate));
+    if (!full) {
+      res.status(403).json({ error: "path escapes wiki root" });
+      return;
+    }
 
     if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
       res.status(404).json({ error: "file not found", path: rel });
       return;
     }
 
-    // Guarantee the resolved path is still inside wikiRoot.
-    const relFromRoot = path.relative(cfg.wikiRoot, full);
-    if (relFromRoot.startsWith("..") || path.isAbsolute(relFromRoot)) {
-      res.status(403).json({ error: "path escapes wiki root" });
-      return;
-    }
-
     const rawMarkdown = fs.readFileSync(full, "utf-8");
     const rendered = renderer.render(rawMarkdown);
     res.json({
-      path: relFromRoot.split(path.sep).join("/"),
+      path: path.relative(cfg.wikiRoot, candidate).split(path.sep).join("/"),
       title: rendered.title,
       frontmatter: rendered.frontmatter,
       html: rendered.html,
@@ -55,20 +55,15 @@ export function handleRaw(cfg: ServerConfig) {
       res.status(400).send("bad path");
       return;
     }
-    const full = path.join(cfg.wikiRoot, rel);
+    const full = resolveInsideRoot(cfg.wikiRoot, rel);
+    if (!full) {
+      res.status(403).send("path escapes wiki root");
+      return;
+    }
     if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
       res.status(404).send("not found");
       return;
     }
     res.type("text/markdown").send(fs.readFileSync(full));
   };
-}
-
-function safeRel(input: string): string | null {
-  if (!input) return "wiki/index.md";
-  // Reject absolute and ..
-  if (path.isAbsolute(input)) return null;
-  const normalized = path.posix.normalize(input);
-  if (normalized.startsWith("..")) return null;
-  return normalized;
 }

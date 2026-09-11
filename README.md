@@ -33,6 +33,24 @@
 pip install baissarienterprises-llm-wiki
 ```
 
+> **No local models required.** LLM Wiki is agent-native: the intelligence comes
+> from the agent you already run (Codex, Hermes, Claude, OpenCode). The base
+> install is lexical/keyword-only and performs **no model downloads**. Optional
+> extras for local computation remain opt-in and are not part of the supported
+> default story.
+
+## What's New in v0.6.4 — "Lean & Certified"
+
+**Local-model surface removed.** The unused `@sentropic/graphify` hard dependency is gone (with its 239-package / ~606 MiB closure: `@ai-sdk/*`, Ollama provider, tree-sitters, DB drivers), along with the `--code-analysis`/`merged`/`export-graph` code paths and the web code-graph route (ADR-0035). The knowledge graph is fully offline and wikilink-derived. Optional Python extras remain opt-in and are no longer promoted as a recommended profile.
+
+**Provenance closed.** `graph-engine/src/relevance.ts` and `insights.ts` were independently reimplemented as clean-room MIT code with behavior parity verified against the previous implementation; the provenance ledger now reflects this.
+
+**Packaging fixed.** `install.sh` now installs the Python package (the `llm-wiki` console script actually exists afterwards), and wheels ship all 20 domain templates plus `py.typed`. `scaffold` resolves package-internal templates first, so pip-installed wikis are no longer silently generic.
+
+**Integrity hardened.** Lock acquisition is race-free (`O_EXCL` + owner token + rename-based stale break), page writes are atomic, backups are temp+rename with sha256 verification and staged restore, malformed `tuning.toml` yields a clean config error, hybrid search honors `--set bm25.*`, and no-provider `ask` fails with an actionable message instead of a silent null.
+
+**Release gates are real.** The version manifest is green, `docs_truth_check` scans the live docs, the certifier's gates exit nonzero on failure, the zero-test guard covers all workspaces, a slow-tests lane runs, coverage is floored at 70%, and publishing is gated on certification.
+
 ## What's New in v0.6.2
 
 **Install.sh completeness.** `install.sh` now builds all packages in dependency order: graph-bridge → graph-engine → mcp-server → audit-shared → web-viewer → obsidian-audit. Previously graph-bridge was missing, causing graph-engine imports to fail.
@@ -51,7 +69,7 @@ pip install baissarienterprises-llm-wiki
 
 **Demo wiki.** `llm-wiki demo <dest>` materializes a committed, lint-clean "Redis Internals" playground (8 pages) from the installed package or repo, in one command (LWM_036).
 
-**Recommended extras + GLiNER local path.** `pip install -e ".[recommended]"` = `semantic` + `leiden` + `entity-resolution`; `[ner]` gains a documented torch-free ONNX model-cache path with a measured disk budget (LWM_037).
+**Optional local-compute extras (legacy, not required):** `[semantic]`, `[leiden]`, `[entity-resolution]`, and `[ner]` remain available for advanced local computation but are deliberately outside the supported default story — the base install and the agent-native `$0.00` path cover every core operation (LWM_037).
 
 **Web-viewer derived overlay + Sigma.js + exports.** The quarantined derived layer renders as an off-by-default dashed overlay (byte-identical when off), with a Sigma.js WebGL view and JSON Canvas / JSON-LD exports — web-viewer-only diff, no backend change (LWM_038).
 
@@ -101,7 +119,7 @@ npx llm-wiki-mcp --wiki ~/my-wiki
 claude mcp add llm-wiki -- npx llm-wiki-mcp --wiki ~/my-wiki
 ```
 
-Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) via 15 stdio tools. Register it with `claude mcp add`, the opencode `.mcp.json` form, or `llm-wiki setup` (one-command wiring, v0.6.0). Requires a built mcp-server: `cd mcp-server && npm run build` (or `bash install.sh`). See the [MCP tools reference](docs/reference/mcp-tools.md).
+Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) via 15 stdio tools. Register it with `claude mcp add`, the opencode `opencode.json` `mcp` form, or `llm-wiki setup` (one-command wiring, v0.6.0). Requires a built mcp-server: `cd mcp-server && npm run build` (or `bash install.sh`). See the [MCP tools reference](docs/reference/mcp-tools.md).
 
 ### 3. Hermes skill (in-conversation agent workflow)
 
@@ -109,7 +127,7 @@ Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) vi
 ln -sf /path/to/llm-wiki-monorepo/skill ~/.hermes/skills/research/llm-wiki
 ```
 
-Loads the 8-operation skill for Claude/Hermes sessions — agent-native, no API keys needed. See [skill/SKILL.md](skill/SKILL.md).
+Loads the ten-operation skill for Claude/Hermes sessions — agent-native, no API keys needed. See [skill/SKILL.md](skill/SKILL.md).
 
 ### 4. Cron / automation
 
@@ -119,13 +137,13 @@ Loads the 8-operation skill for Claude/Hermes sessions — agent-native, no API 
 
 Schedule maintenance like ingest, lint, or backup. `portalocker` advisory locks make concurrent agent runs safe — multiple agents or CI jobs can operate on the same wiki without corrupting pages. See the [concurrency reference](skill/references/concurrency.md) and the [quickstart](docs/getting-started/quickstart.md).
 
-### 5. Web preview (local browsing)
+### 5. MCP server launcher (stdio)
 
 ```bash
 llm-wiki serve ~/my-wiki
 ```
 
-Opt-in local preview server for human browsing (mermaid, KaTeX, audit feedback). Local-only by default — see the [security boundary](docs/operations/security-and-boundaries.md) before exposing it. See the [CLI reference](docs/reference/cli.md).
+Relay the MCP server over stdio (with `--build` to compile it on demand and `--projects` for multi-wiki mode). MCP clients normally launch `npx llm-wiki-mcp --wiki <root>` directly — see section 2 above. The optional **web preview** (mermaid, KaTeX, audit feedback) is the separate `web-viewer` server: `cd web-viewer && npm start -- --wiki ~/my-wiki`. It is local-only by default — see the [security boundary](docs/operations/security-and-boundaries.md).
 
 ---
 
@@ -166,11 +184,11 @@ Opt-in local preview server for human browsing (mermaid, KaTeX, audit feedback).
 
 - **Deep Research** — web search → fetch → ingest → synthesize. Multi-source compilation into structured wiki pages.
 
-- **Chrome Web Clipper** — one-click web page capture with Readability + Turndown, auto-triggering ingest after clip.
+- **Chrome Web Clipper** — one-click web page capture with Readability + Turndown. Auto-ingest after clip is experimental and only works against a locally running HTTP endpoint (the MCP server itself is stdio-only); otherwise save + `llm-wiki ingest` manually.
 
 - **Claim & Epistemic Tracking** — optional sidecar model: claims, epistemic events (created/reinforced/challenged/weakened/superseded/resolved), and contradiction records with JSONL storage. Health reports and diffs between wiki states.
 
-- **Modular Architecture** — 28 flat modules reorganized into 10 domain packages: `core/` (primitives), `quality/{claims,lint,audit}/`, `ingest/` (pipeline), `providers/` (LLM adapters), `graph/` (louvain, insights, suggestions), `search/` (FTS5), `ops/` (health, serve, benchmark), `wiki/` (scaffold, backup), `research/` (deep-research), `contracts/` (schema validation). MCP server split from 1,287-line monolith into 20 focused files.
+- **Modular Architecture** — the package ships 14 subpackages under `src/llm_wiki/`: `core/` (primitives), `quality/{claims,lint,audit}/`, `ingest/` (pipeline), `providers/` (LLM adapters), `graph/` (louvain, insights, suggestions, entities, ask), `search/` (FTS5), `semantic/` (optional embeddings), `eval/` (gold-set gates), `setup/` (client wiring), `ops/` (health, serve, benchmark), `wiki/` (scaffold, backup, demo), `research/` (deep-research), `contracts/` (schema validation), and `templates/` (wheel template data). The MCP server is split from a 1,287-line monolith into 32 focused TypeScript files.
 
 - **CI/CD Pipeline** — pytest + vitest matrix across Python 3.10–3.12 and Node 18–22, coverage reporting, trusted OIDC publishing to PyPI on tag push.
 
@@ -180,7 +198,9 @@ Opt-in local preview server for human browsing (mermaid, KaTeX, audit feedback).
 # Install from PyPI
 pip install baissarienterprises-llm-wiki
 
-# Or install from source
+# Or install the full repo from source — pip-installs the Python package
+# (installing the `llm-wiki` console script), builds the TypeScript
+# surfaces, and validates the CLI.
 git clone https://github.com/JeanBaissari/llm-wiki-monorepo.git
 cd llm-wiki-monorepo
 bash install.sh
@@ -194,11 +214,8 @@ llm-wiki ingest ~/my-wiki raw/articles/my-source.md
 # Use agent-native provider (no API keys — inside Hermes/Claude Code/Codex)
 llm-wiki ingest ~/my-wiki raw/articles/my-source.md --llm opencode
 
-# Check quality
+# Check quality (15 automated checks; --json for machine output)
 llm-wiki lint ~/my-wiki
-
-# Clean up old conflicts automatically
-llm-wiki lint ~/my-wiki --clean-conflicts
 
 # Build search index
 llm-wiki index ~/my-wiki
@@ -212,8 +229,11 @@ llm-wiki health ~/my-wiki
 # Claim tracking (optional sidecar)
 llm-wiki claims health ~/my-wiki
 
-# Start MCP server (15 tools via stdio)
-llm-wiki serve ~/my-wiki
+# Start the MCP server (15 tools via stdio)
+npx llm-wiki-mcp --wiki ~/my-wiki
+
+# Or run the opt-in local web preview (mermaid, KaTeX, audit feedback)
+cd web-viewer && npm start -- --wiki ~/my-wiki
 ```
 
 ## Architecture
@@ -236,7 +256,7 @@ llm-wiki serve ~/my-wiki
       ├── Graph Engine (Node.js)          → relevance model, Louvain, insights
       ├── shared-types (TS)               → canonical GraphNode/GraphEdge types
       ├── Web Viewer + Obsidian Plugin    → human browsing + feedback
-      ├── Browser Extension               → web clipping + auto-ingest
+      ├── Browser Extension               → web clipping (auto-ingest experimental)
       └── templates/                      → 20 domain schemas
  ```
 
@@ -244,17 +264,17 @@ llm-wiki serve ~/my-wiki
 
 | Package | Language | Tier | Purpose |
 |---------|----------|------|---------|
-| `skill/` | Python + Markdown | adapter | Agent skill (8 operations) + 20+ scripts + 13 reference docs |
+| `skill/` | Python + Markdown | adapter | Agent skill (10 operations) + 26 scripts + 12 reference docs |
 | `src/llm_wiki/` | Python | core | PyPI package — CLI, LLM providers, concurrency, search, graph insights |
 | `mcp-server/` | TypeScript | programmatic-access | MCP server — 15 tools, direct sidecar integration |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph — relevance, Louvain communities, insights, verification |
 | `templates/` | Markdown + JSON | core | 20 domain-specific project templates |
 | `tests/` | Python + TypeScript | core | pytest (ingest, lint, concurrency, search, opencode) + vitest (graph, mcp) |
 | `web-viewer/` | TypeScript | optional | Preview server with search + graph insights panel |
-| `extension/` | JavaScript | optional | Chrome web clipper with auto-ingest |
+| `extension/` | JavaScript | optional | Chrome web clipper (auto-ingest experimental) |
 | `audit-shared/` | TypeScript | core | Shared audit file format library |
 | `plugins/obsidian-audit/` | TypeScript | optional | Obsidian plugin — file feedback from vault |
-| `graph-bridge/` | TypeScript | adapter | AST extraction + graph merger bridge |
+| `graph-bridge/` | TypeScript | adapter | Graph merger bridge (no default consumer since v0.6.4) |
 | `packages/shared-types/` | TypeScript | core | Canonical GraphNode/GraphEdge type definitions |
 
 ## Templates (20 domains)
@@ -280,14 +300,14 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
 | `docs/architecture/overview.md` | Why this system exists — design philosophy and goals |
 | `docs/adr/` | Architecture Decision Records — ADRs 0001–0028 + index + decision register |
-| `skill/references/` | 13 detailed reference guides including concurrency, observability, and ingest |
+| `skill/references/` | 12 detailed reference guides including concurrency, observability, and ingest |
 
 ## Requirements
 
 - **Python 3.10+** — for all skill scripts and PyPI package
 - **Node.js 18+** — for MCP server, graph engine, web viewer
 - **npm** — for TypeScript package management
-- **pip dependencies** — openai, anthropic, litellm, instructor, tenacity, tiktoken, python-dotenv, pydantic, portalocker (auto-installed via `pip install`)
+- **pip dependencies** — openai, anthropic, litellm, instructor, tenacity, pydantic, portalocker, tomli (Python 3.10 only) (auto-installed via `pip install`)
 
 ## Credits
 
@@ -299,8 +319,8 @@ Additional design patterns and API methodology were informed by [nashsu/llm_wiki
 
 ### Code Derivations
 
-- **`graph-engine/src/relevance.ts`** — 4-signal relevance model with configurable weights, source indexing, and type-safe interfaces. Substantially rewritten in v0.3.3. See [docs/legal/provenance.md](./docs/legal/provenance.md).
-- **`graph-engine/src/insights.ts`** — Surprising connection detection and knowledge gap discovery with extensible signal registry. Substantially rewritten in v0.3.3. See [docs/legal/provenance.md](./docs/legal/provenance.md).
+- **`graph-engine/src/relevance.ts`** — 4-signal relevance model with configurable weights, source indexing, and type-safe interfaces. Independently reimplemented as clean-room MIT code in v0.6.4. See [docs/legal/provenance.md](./docs/legal/provenance.md).
+- **`graph-engine/src/insights.ts`** — Surprising connection detection and knowledge gap discovery with extensible signal registry. Independently reimplemented as clean-room MIT code in v0.6.4. See [docs/legal/provenance.md](./docs/legal/provenance.md).
 - **`graph-engine/src/louvain.ts`** — Implements the Louvain community detection algorithm (Blondel et al. 2008) via the MIT-licensed `graphology-communities-louvain` library.
 
 ### Related Projects
@@ -310,7 +330,7 @@ Additional design patterns and API methodology were informed by [nashsu/llm_wiki
 
 ### Upstream License Notice
 
-This project was inspired by concepts from GPL-3.0-licensed upstream projects. Code previously derived from `nashsu/llm_wiki` has been substantially rewritten and expanded in v0.3.3 with configurable weights, extensible signal registries, and performance optimizations. See [docs/legal/provenance.md](./docs/legal/provenance.md) for full provenance ledger.
+This project was inspired by concepts from GPL-3.0-licensed upstream projects. Code previously derived from `nashsu/llm_wiki` was independently reimplemented as clean-room MIT code in v0.6.4 (`graph-engine/src/relevance.ts`, `graph-engine/src/insights.ts`) with behavior parity verified against the prior implementation. See [docs/legal/provenance.md](./docs/legal/provenance.md) for the full provenance ledger.
 
 ## License
 

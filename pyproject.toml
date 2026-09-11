@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "baissarienterprises-llm-wiki"
-version = "0.6.3"
+version = "0.6.4"
 description = "Agent-native knowledge compiler — 27 CLI commands, 15 MCP tools, 10 domain packages. AI agents turn raw documents into persistent, cross-linked Markdown wikis with modular architecture, concurrency control, multi-provider LLM support, hybrid search, entity resolution, claims tracking, Louvain/Leiden community detection, grounded 'ask this wiki' QA, and contradiction-aware evidence confidence"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -40,8 +40,6 @@ dependencies = [
     "litellm>=1.90",
     "instructor>=1.15",
     "tenacity>=8.0",
-    "tiktoken>=0.7",
-    "python-dotenv>=1.0",
     "pydantic>=2.0",
     "portalocker>=2.8",
     # tuning.toml parsing: stdlib tomllib on 3.11+, official backport on 3.10
@@ -115,8 +113,14 @@ addopts = "-m 'not slow'"
 # by setuptools>=62.3; the build requires >=64 (see [build-system]). Dotfiles
 # are not matched by the recursive glob, so the hidden fixture markers are
 # listed explicitly (audit/.gitkeep keeps the audit/ dir present in the wheel).
+#
+# ADR-0004: the 20 domain templates are package-internal too, so
+# `llm-wiki scaffold --template <name>` works from an installed wheel.
+# src/llm_wiki/templates/ is an exact copy of the repo-root templates/ tree.
 llm_wiki = [
     "py.typed",
+    "templates/**",
+    "templates/algorithmic-trading-mql4/.gitignore",
     "wiki/demo_wiki/**",
     "wiki/demo_wiki/.schema_version",
     "wiki/demo_wiki/audit/.gitkeep",

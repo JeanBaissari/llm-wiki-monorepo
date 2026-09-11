@@ -19,17 +19,15 @@ The following dependencies are licensed under the MIT License. The MIT License r
 - **js-yaml** — Copyright © nodeca. MIT License.
 - **katex** — Copyright © Khan Academy. MIT License.
 - **markdown-it** — Copyright © Vitaly Puzrin. MIT License.
-- **markdown-it-anchor** — Copyright © Val (valeriangalliat). MIT License.
 - **markdown-it-attrs** — Copyright © Arve Seljebo. MIT License.
 - **markdown-it-texmath** — Copyright © Stefan Gössner. MIT License.
 - **mermaid** — Copyright © Knut Sveidqvist. MIT License.
+- **sigma** — Copyright © Alexis Jacomy and contributors. MIT License.
 - **zod** — Copyright © Colin McDonnell. MIT License.
-- **@sentropic/graphify** — MIT License.
 - **openai** — Copyright © OpenAI. MIT License.
 - **anthropic** — Copyright © Anthropic. MIT License.
 - **litellm** — Copyright © BerriAI. MIT License.
 - **instructor** — Copyright © Jason Liu. MIT License.
-- **tiktoken** — Copyright © OpenAI. MIT License.
 - **pydantic** — Copyright © Pydantic Team. MIT License.
 - **esbuild** — Copyright © Evan Wallace. MIT License.
 - **pytest** — Copyright © pytest-dev. MIT License.
@@ -83,7 +81,6 @@ limitations under the License.
 
 ## BSD-3-Clause-Licensed Dependencies
 
-- **python-dotenv** — Copyright © Saurabh Kumar. BSD-3-Clause.
 - **portalocker** — Copyright © 2023, Rick van Hattem. BSD-3-Clause.
 - **networkx** — Copyright © NetworkX contributors. BSD-3-Clause.
 
@@ -136,11 +133,26 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
+## Unlicense (Public Domain)
+
+- **markdown-it-anchor** — Copyright © Val (valeriangalliat). Released under the Unlicense (public domain dedication).
+
+## EPL-2.0-Licensed Dependencies
+
+- **elkjs** — Copyright © Ulf Rüegg and contributors. Eclipse Public License 2.0 (EPL-2.0). Transitive dependency of `mermaid` (ELK graph layout); consumed unmodified as an npm package, not forked or modified. EPL-2.0 is a weak-copyleft license; the unmodified-binary distribution obligation is satisfied by this notice and the upstream source at https://www.eclipse.org/legal/epl-2.0/.
+
+## Dual-Licensed Dependencies (License Elections)
+
+Where a dependency offers a choice of licenses, this project elects the most permissive option:
+
+- **dompurify** — Copyright © Dr.-Ing. Mario Heiderich, Cure53. Dual-licensed `(MPL-2.0 OR Apache-2.0)`; this project elects **Apache-2.0**. Transitive dependency of `mermaid` (HTML sanitization), consumed unmodified.
+- **jszip** — Dual-licensed `(MIT OR GPL-3.0-or-later)`; this project elects **MIT**. jszip was a transitive dependency of the code-analysis surface removed in v0.6.4 (ADR-0035) and is not part of the current dependency closure; the election is recorded here should it be reintroduced.
+
 ## GPL-3.0 Upstream References
 
 The following upstream projects were referenced for methodology and design. Their licenses are provided for attribution purposes only; no GPL-licensed code is incorporated into this project's distributed artifacts.
 
-- **nashsu/llm_wiki** (https://github.com/nashsu/llm_wiki) — GPL-3.0. Referenced for graph relevance model design (see [provenance.md](./provenance.md#graph-engine--ported-code) for provenance disposition).
+- **nashsu/llm_wiki** (https://github.com/nashsu/llm_wiki) — GPL-3.0. Referenced for graph relevance model design; the graph-engine files are independent clean-room MIT implementations (see [provenance.md](./provenance.md#graph-engine--upstream-references--clean-room-reimplementations) for provenance disposition).
 - **nashsu/llm_wiki_skill** (https://github.com/nashsu/llm_wiki_skill) — GPL-3.0. Referenced for API contract methodology.
 
 ---

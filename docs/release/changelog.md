@@ -1,5 +1,69 @@
 # Changelog
 
+## [0.6.4] — 2026-09-11
+
+### Release integrity
+
+The release-integrity patch: licensing-clean graph code, packaging that actually
+installs the product, and release gates that can fail. No new user-facing
+surface — every change fixes shipped behavior or the truth of the release
+contract.
+
+### Removed
+
+- **graphify / code-analysis surface removed (ADR-0035)** — the
+  `@sentropic/graphify` integration and its promotion are gone; `graph-bridge`
+  is retained as an adapter with no default consumer. Local-model promotion
+  (Ollama, model downloads, torch) is also out of the default story; `[ner]`
+  stays a legacy opt-in that degrades to the regex extractor.
+
+### Changed
+
+- **graph-engine relevance/insights clean-room rewrite** — `relevance.ts` and
+  `insights.ts` rewritten under MIT with no GPL-derived code or provenance;
+  public contracts and the golden/parity tests are unchanged.
+- **install.sh installs the Python package** — `pip install -e .` is now a
+  first-class install step, so the `llm-wiki` console script exists after
+  `bash install.sh`.
+- **Wheels ship the 20 templates** — `src/llm_wiki/templates/**` is package
+  data; `llm-wiki scaffold --template <name>` works from an installed wheel.
+- **Race-free locking + verifiable atomic backups** — per-page lock
+  acquisition/stealing is race-free; backups verify integrity and restore
+  atomically.
+- **Config/search/provider error semantics** — fail-closed config parsing,
+  explicit search-mode errors, and provider-registry error contracts.
+- **Packaging/CI truth fixes** — `release-manifest.json` points at the real
+  registries (`mcp-server/src/registry.ts`; MCP 15 / CLI 27 / templates 20 /
+  scripts 26) and the real workspace versions; `release_manifest.py
+  --json-only` exits nonzero on failure; the certifier gates the PyPI publish
+  and includes the ask-eval gate; CI drops the `audit-shared` zero-test
+  exemption, adds a slow-benchmark lane, and enforces a Python coverage floor.
+- **Docs truth check expanded** to the live user-facing docs, failing on stale
+  surface counts.
+
+### Version
+
+- Bumped to **0.6.4** across `pyproject.toml`, `llm_wiki.__version__`,
+  `package.json`, `package-lock.json`, and `release-manifest.json`
+  (canonical source: `pyproject.toml:project.version`).
+
+---
+
+## [0.6.3] — 2026-08-18
+
+### Fixed
+- **opencode provider deadlock** — replaced filesystem IPC with HTTP API calls to the opencode server (`OPENCODE_URL`, default `http://localhost:4096`); `llm-wiki ingest --llm opencode` now works inside opencode sessions.
+- **MCP server / graph-engine dist/** — rebuilt from source; stale dists were the v0.6.3 incident.
+- **opencode test suite** — three tests now mock the HTTP layer instead of assuming no server is running.
+
+### Changed
+- **Batch mode** — `--batch` also processes `.mq5`, `.mq4`, `.mqh`, `.py`, `.ts`, `.js`; new `--ext` flag for custom extensions.
+
+### Added
+- `OPENCODE_URL` environment variable; ADR-0034 (HTTP provider, supersedes ADR-0009).
+
+---
+
 ## [0.6.2] — 2026-08-17
 
 ### Fixed

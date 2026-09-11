@@ -39,21 +39,20 @@ llm-wiki-monorepo/
 │   ├── test_graph_insights.py
 │   └── test_cli.py
 │
-├── graph-engine/          ← TypeScript — wikilink + code graph
+├── graph-engine/          ← TypeScript — wikilink knowledge graph
 │   └── src/
-│       ├── build.ts       ← Produces graph-data.json + code-graph.json
-│       ├── insights.ts    ← Cross-graph surprising connections
+│       ├── build.ts       ← Produces graph-data.json
+│       ├── insights.ts    ← Surprising connections + knowledge gaps
 │       ├── relevance.ts
 │       └── louvain.ts
 │
-├── graph-bridge/          ← NEW npm package (@baissari/llm-wiki-graph-bridge)
+├── graph-bridge/          ← npm package (@baissari/llm-wiki-graph-bridge)
 │   └── src/
-│       ├── ast-parser.ts  ← Wraps @sentropic/graphify AST extraction
-│       ├── merger.ts      ← Merges wikilink + code graphs
+│       ├── merger.ts      ← Merges graph layers
 │       └── types.ts
 │
-├── mcp-server/            ← TypeScript — 14 tools, multi-wiki
-├── web-viewer/            ← TypeScript — search + graph panel + code overlay
+├── mcp-server/            ← TypeScript — 15 tools, multi-wiki
+├── web-viewer/            ← TypeScript — search + graph panel + derived overlay
 ├── extension/             ← Chrome — web clipper + auto-ingest
 ├── audit-shared/          ← TypeScript — audit schema
 ├── plugins/obsidian-audit/

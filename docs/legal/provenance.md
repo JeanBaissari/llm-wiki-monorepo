@@ -63,7 +63,6 @@
 | d3-selection | ^3.0.0 | ISC | https://github.com/d3/d3-selection |
 | d3-zoom | ^3.0.0 | ISC | https://github.com/d3/d3-zoom |
 | zod | ^3.23.8 | MIT | https://github.com/colinhacks/zod |
-| @sentropic/graphify | ^0.17.1 | MIT | https://github.com/sentropic/graphify |
 | esbuild | ^0.20.0 | MIT | https://github.com/evanw/esbuild |
 | typescript | ^5.4.0+ | Apache-2.0 | https://github.com/microsoft/TypeScript |
 

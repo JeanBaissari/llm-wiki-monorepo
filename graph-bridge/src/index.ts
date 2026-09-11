@@ -10,7 +10,7 @@
 //   } from "@baissari/llm-wiki-graph-bridge";
 //
 // v0.6.4: AST extraction (ast-parser.ts) was removed together with the
-// @sentropic/graphify dependency and the graph-engine code-analysis surface.
+// external AST dependency and the graph-engine code-analysis surface.
 // ============================================================
 
 // ── Types ───────────────────────────────────────────────────

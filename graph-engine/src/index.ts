@@ -181,9 +181,8 @@ async function main(): Promise<void> {
       }
 
       // ── Merged (unified wiki + code graph) ───────────────
-      // Removed in v0.6.4: code-analysis / graph-bridge merge requires
-      // @sentropic/graphify (239-package, ~606 MB closure) and had no tests.
-      // Use the wiki graph (`build`), `relevance`, and `insights` actions.
+      // Removed in v0.6.4: external code-analysis merge had no in-repo
+      // consumers or tests. Use `build`, `relevance`, and `insights`.
 
       // ── Export graph ─────────────────────────────────────
       // Removed in v0.6.4: HTML/SVG export depended on the code-graph merge.

@@ -33,6 +33,12 @@
 pip install baissarienterprises-llm-wiki
 ```
 
+> **No local models required.** LLM Wiki is agent-native: the intelligence comes
+> from the agent you already run (Codex, Hermes, Claude, OpenCode). The base
+> install is lexical/keyword-only and performs **no model downloads**. Optional
+> extras for local computation remain opt-in and are not part of the supported
+> default story.
+
 ## What's New in v0.6.2
 
 **Install.sh completeness.** `install.sh` now builds all packages in dependency order: graph-bridge → graph-engine → mcp-server → audit-shared → web-viewer → obsidian-audit. Previously graph-bridge was missing, causing graph-engine imports to fail.
@@ -51,7 +57,7 @@ pip install baissarienterprises-llm-wiki
 
 **Demo wiki.** `llm-wiki demo <dest>` materializes a committed, lint-clean "Redis Internals" playground (8 pages) from the installed package or repo, in one command (LWM_036).
 
-**Recommended extras + GLiNER local path.** `pip install -e ".[recommended]"` = `semantic` + `leiden` + `entity-resolution`; `[ner]` gains a documented torch-free ONNX model-cache path with a measured disk budget (LWM_037).
+**Optional local-compute extras (legacy, not required):** `[semantic]`, `[leiden]`, `[entity-resolution]`, and `[ner]` remain available for advanced local computation but are deliberately outside the supported default story — the base install and the agent-native `$0.00` path cover every core operation (LWM_037).
 
 **Web-viewer derived overlay + Sigma.js + exports.** The quarantined derived layer renders as an off-by-default dashed overlay (byte-identical when off), with a Sigma.js WebGL view and JSON Canvas / JSON-LD exports — web-viewer-only diff, no backend change (LWM_038).
 
@@ -244,7 +250,7 @@ llm-wiki serve ~/my-wiki
 
 | Package | Language | Tier | Purpose |
 |---------|----------|------|---------|
-| `skill/` | Python + Markdown | adapter | Agent skill (8 operations) + 20+ scripts + 13 reference docs |
+| `skill/` | Python + Markdown | adapter | Agent skill (10 operations) + 26 scripts + 12 reference docs |
 | `src/llm_wiki/` | Python | core | PyPI package — CLI, LLM providers, concurrency, search, graph insights |
 | `mcp-server/` | TypeScript | programmatic-access | MCP server — 15 tools, direct sidecar integration |
 | `graph-engine/` | TypeScript | analysis | Knowledge graph — relevance, Louvain communities, insights, verification |
@@ -254,7 +260,7 @@ llm-wiki serve ~/my-wiki
 | `extension/` | JavaScript | optional | Chrome web clipper with auto-ingest |
 | `audit-shared/` | TypeScript | core | Shared audit file format library |
 | `plugins/obsidian-audit/` | TypeScript | optional | Obsidian plugin — file feedback from vault |
-| `graph-bridge/` | TypeScript | adapter | AST extraction + graph merger bridge |
+| `graph-bridge/` | TypeScript | adapter | Graph merger bridge (no default consumer since v0.6.4) |
 | `packages/shared-types/` | TypeScript | core | Canonical GraphNode/GraphEdge type definitions |
 
 ## Templates (20 domains)

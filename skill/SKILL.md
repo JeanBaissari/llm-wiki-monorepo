@@ -53,7 +53,7 @@ The wiki is a living artifact with **ten operations** — `compile`, `ingest` (s
 │   ├── entities/      ← People, tools, papers, organizations
 │   ├── summaries/     ← Per-source summary pages
 │   ├── comparisons/   ← Side-by-side comparisons of entities, tools, or concepts
-│   └── graphs/        ← Graphify knowledge graph outputs (copied from .graphify/)
+│   └── graphs/        ← Knowledge graph outputs (graph-data.json, reports)
 └── outputs/
     └── queries/       ← Query answers (promote durable ones to wiki/)
 ```
@@ -132,15 +132,15 @@ The wiki is AI-written; it will be wrong sometimes. The raw sources are human-wr
 
 See `references/audit-guide.md` for the full file format and processing workflow.
 
-### 5. Graphify knowledge graph (optional)
+### 5. The graph layer is built from wikilinks
 
-For codebases with documentation, use graphify to build a structural knowledge graph. See `references/graphify-pipeline.md`. The graph lives at `.graphify/` in the repo and its outputs copy to `wiki/graphs/`. The EOW cron refreshes it conditionally (see `references/eow-cron-pipeline.md`). For large codebases (>1M words), fall back to building the graph from wikilinks — see `references/graph-construction-strategies.md`.
+The knowledge graph is derived from the wiki itself — `[[wikilinks]]`, entity mentions, and community structure — via `graph-engine` (Louvain communities, relevance, surprising connections, knowledge gaps). No external model, service, or local model is required: the graph is deterministic and offline. See `references/graph-construction-strategies.md` for graph construction at scale.
 
 ---
 
 ## The ten operations
 
-Every action on the wiki is one of these five. Each appends an entry to the current day's log file (`log/YYYYMMDD.md`).
+Every action on the wiki is one of these operations. Each appends an entry to the current day's log file (`log/YYYYMMDD.md`).
 
 ### 1. `compile`
 
@@ -346,39 +346,7 @@ For wiki deployments on headless servers where a full Obsidian GUI is unavailabl
 3. Set up a systemd service to keep it running — see the project docs for a reference unit file.
 4. Use the headless instance for continuous sync, automated lint runs triggered by git hooks, and CI/CD integration in the EOW cron pipeline.
 
-This pairs well with the web/ viewer for delivering rendered wiki content without requiring each team member to run Obsidian locally.
-
----
-
-## Graphify Integration
-
-[Graphify](https://github.com/nousresearch/graphify) builds a structural knowledge graph from codebase documentation. When integrated with the wiki, it enhances discoverability by producing:
-
-- **Entity/relation graphs** — extracted from code symbols, docstrings, and markdown headings
-- **Wikilink adjacency** — derived from `[[Page Name]]` references in wiki articles
-- **Graph outputs** — JSON adjacency lists, DOT/GraphViz files, and a rendered HTML graph view
-
-### When to use graphify
-
-- **Codebase wikis** — any wiki documenting a software project with source code benefits from AST-level structural extraction
-- **Large wikis (>200 pages)** — the graph provides a navigation layer beyond what wikilinks alone offer
-- **Multi-repo wikis** — graphify can cross-link entities across repositories
-
-### When to skip graphify
-
-- **Small wikis (<50 pages)** — wikilinks and Obsidian's built-in graph view are sufficient
-- **Pure knowledge wikis** — topics without a codebase (history, philosophy, etc.) gain little from AST extraction
-- **Very large codebases (>1M words)** — fall back to building the graph from wikilinks only; see `references/graph-construction-strategies.md`
-
-### Pipeline overview
-
-```
-raw/ sources ──► ingest ──► wiki/ pages ──► graphify ──► .graphify/ ──► wiki/graphs/
-                                                    │
-                                              (AST + wikilinks)
-```
-
-See `references/graphify-pipeline.md` for the full integration pipeline, including configuration, invocation, and output structure.
+This pairs well with the web-viewer for delivering rendered wiki content without requiring each team member to run Obsidian locally.
 
 ---
 
@@ -395,16 +363,15 @@ A weekly (end-of-week) cron job keeps the wiki healthy and the knowledge graph f
 
 1. **Discover** — enumerate repos under management that contain a `CLAUDE.md` + `wiki/` with recent activity
 2. **Assess health** — run `lint` to check for drift, stale pages, dead links, and orphan pages
-3. **Rebuild graphify graphs** — conditionally:
-   - If the wiki has a `.graphify/` config, run graphify in **AST-only mode** (never full semantic — the cron window is bounded; deep semantic passes run ad-hoc)
-   - Copy outputs to `wiki/graphs/`
-   - For wikis >1M words, use wikilink-only graph construction
+3. **Rebuild the knowledge graph** — conditionally:
+   - If `raw/` or `wiki/` changed since the last build, run `node graph-engine/dist/index.js --wiki <wiki> --action build` (wikilink/entity graph; no external model, no network)
+   - Mirror the outputs into `wiki/graphs/` when the wiki tracks them
 4. **Compile health report** — write a summary to `log/` for the week
-5. **Alert on failures** — if lint finds >5 new issues or graphify crashes, flag to the user at next session start
+5. **Alert on failures** — if lint finds >5 new issues or the graph build crashes, flag to the user at next session start
 
 ### Conditional graph rebuild
 
-The cron always checks whether the wiki's content has changed since the last graph build (diff `raw/` + `wiki/` against the stored `.graphify/.last_build` hash). If unchanged, skip the rebuild entirely to conserve resources.
+The cron only rebuilds when content changed: compare `raw/` + `wiki/` state against the previous build inputs (for example, a hash of the wiki file list stored alongside `graph-data.json`). If unchanged, skip the rebuild entirely.
 
 ---
 
@@ -554,8 +521,7 @@ Quick grep across history: `grep -rh "^\#\# \[" log/ | tail -20`.
 - `references/log-guide.md` — The `log/` folder convention
 - `references/audit-guide.md` — Audit file format, anchor strategy, processing workflow
 - `references/tooling-tips.md` — Obsidian setup, Web Clipper, qmd, plugin + web installation
-- `references/graphify-pipeline.md` — Full graphify + wiki integration pipeline
-- `references/graph-construction-strategies.md` — When to use full graphify vs wikilinks-only graph
+- `references/graph-construction-strategies.md` — Building the wikilink/entity graph at scale
 - `references/eow-cron-pipeline.md` — Weekly automated maintenance pattern
 - `references/migration-guide.md` — Migrating v1 wikis to v2 format
 - `references/ingest-guide.md` — Two-step chain-of-thought ingest prompt architecture

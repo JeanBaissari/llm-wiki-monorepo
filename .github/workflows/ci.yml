@@ -5,6 +5,11 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  # Model-download lanes ([ner]) run weekly/manual only — the default push/PR
+  # path performs no model downloads (owner policy, 2026-09).
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
 
 jobs:
   release-manifest:
@@ -108,6 +113,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
       - name: Check Python scripts syntax
         run: |
@@ -147,6 +153,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+      - name: Cache model caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/model2vec
+            ~/.cache/huggingface
+          key: ${{ runner.os }}-model-cache-${{ hashFiles('pyproject.toml') }}
       - name: Install test deps + platform-sensitive semantic deps
         run: |
           pip install -e ".[dev,test,semantic]"
@@ -252,11 +266,12 @@ jobs:
 
   # LWM_026: exercise the optional GLiNER backend in an isolated lane — the
   # typed-span success path (tests/test_extract.py::test_gliner_typed_spans_success_path)
-  # plus the LLM_WIKI_NER=gliner selection test — so the base install and other
-  # lanes stay free of the [ner] extra, while the real model download runs
-  # here. A model-download failure fails the lane visibly (hardening H-3).
+  # plus the LLM_WIKI_NER=gliner selection test. Runs weekly/manual only:
+  # the lane downloads a ~582 MiB checkpoint, and the default push/PR path
+  # must stay free of model downloads (owner policy, 2026-09).
   ner-verification:
-    name: GLiNER verification ([ner] extra)
+    name: GLiNER verification ([ner] extra, weekly/manual)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

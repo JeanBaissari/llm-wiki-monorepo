@@ -32,9 +32,9 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 The Hermes/Claude/Codex agent skill. Symlinked into `~/.hermes/skills/research/llm-wiki`.
 
 ### `skill/SKILL.md`
-Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit, research, insights. Includes graphify integration, EOW cron pipeline, template system, MCP server reference.
+Main skill file. 10 operations. Includes EOW cron pipeline, template system, MCP server reference.
 
-### `skill/references/` — 10 reference guides
+### `skill/references/` — 12 reference guides
 
 | File | Purpose |
 |------|---------|
@@ -44,8 +44,7 @@ Main skill file. 8 operations: compile, ingest, ingest-2step, query, lint, audit
 | `log-guide.md` | Log/ directory convention — one file per day, op format, grep patterns |
 | `tooling-tips.md` | Obsidian setup, Web Clipper, qmd search, plugin + web viewer installation |
 | `ingest-guide.md` | Two-step chain-of-thought ingest architecture — Stage 1 analysis + Stage 2 generation |
-| `graphify-pipeline.md` | Graphify knowledge graph integration — AST extraction, semantic extraction, output structure |
-| `graph-construction-strategies.md` | When to use full graphify vs wikilinks-only graph construction |
+| `graph-construction-strategies.md` | Building the wikilink/entity graph at scale with graph-engine (offline, no models) |
 | `eow-cron-pipeline.md` | Weekly automated maintenance — discover repos, assess health, conditional graph rebuild, lint, report |
 | `migration-guide.md` | Migrating v1 wikis (flat structure, log.md) to v2 format (log/ directory, wiki/ subdirectory) |
 

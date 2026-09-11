@@ -200,7 +200,7 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
 
 **Remaining / edge**
 1. **Cross-machine provisioning is still manual** — `llm-wiki setup` wires a wiki to the local clients, but a fresh `git clone` machine still needs `install.sh` (Node/npm for the TS surfaces) + per-client binaries. A container/devcontainer or a `setup --bootstrap` that also installs the repo is the natural next step.
-2. **Optional extras are discoverable but not automatic** — `pip install -e ".[recommended]"` now exists (semantic + leiden + entity-resolution), but users must still opt in; no auto-detection of hardware to suggest the right profile.
+2. **Optional extras are discoverable but not automatic** — `[semantic]`, `[leiden]`, `[entity-resolution]`, `[ner]` remain opt-in for advanced local computation; the supported default story is base install + external agent (no model downloads).
 3. **GLiNER local path is documented, not end-to-end ONNX** — LWM_037 delivered the torch-free runner + model-cache convention + measured budget, but the one-time ONNX export of the pinned model still requires a torch run (CI `ner-verification` covers the typed-span success path).
 4. **web-viewer Sigma view is not unit-rendered** — the WebGL path falls back to SVG on any failure; the layout/graph construction is tested, the GPU render itself is only exercised manually.
 5. **Contradiction extraction is lexical-first** — great on numeric/polarity/exclusive-category conflicts; subtle paraphrased contradictions need the opt-in `--assist llm` screening.

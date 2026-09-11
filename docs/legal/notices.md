@@ -24,7 +24,6 @@ The following dependencies are licensed under the MIT License. The MIT License r
 - **markdown-it-texmath** — Copyright © Stefan Gössner. MIT License.
 - **mermaid** — Copyright © Knut Sveidqvist. MIT License.
 - **zod** — Copyright © Colin McDonnell. MIT License.
-- **@sentropic/graphify** — MIT License.
 - **openai** — Copyright © OpenAI. MIT License.
 - **anthropic** — Copyright © Anthropic. MIT License.
 - **litellm** — Copyright © BerriAI. MIT License.

@@ -4,14 +4,13 @@
 //
 // Programmatic usage:
 //   import {
-//     buildCodeGraph,
 //     extractSemanticEdges,
 //     mergeGraphs,
 //     buildUnifiedGraphology,
 //   } from "@baissari/llm-wiki-graph-bridge";
 //
-// CLI usage (future):
-//   node dist/index.js --code /path/to/repo --wiki /path/to/wiki --action merge
+// v0.6.4: AST extraction (ast-parser.ts) was removed together with the
+// @sentropic/graphify dependency and the graph-engine code-analysis surface.
 // ============================================================
 
 // ── Types ───────────────────────────────────────────────────
@@ -25,14 +24,6 @@ export type {
   UnifiedEdge,
   UnifiedGraph,
 } from "./types.js";
-
-// ── AST parser ──────────────────────────────────────────────
-
-export { buildCodeGraph } from "./ast-parser.js";
-export type {
-  BuildCodeGraphOptions,
-  CodeGraphResult,
-} from "./ast-parser.js";
 
 // ── Semantic edges ─────────────────────────────────────────
 

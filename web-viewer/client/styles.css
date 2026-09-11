@@ -1083,8 +1083,7 @@ article h3:hover .header-anchor { opacity: 0.7; }
   border-radius: 1px;
 }
 
-/* Code graph toggle */
-#code-toggle-wrap,
+/* Derived layer toggle */
 #derived-toggle-wrap {
   display: inline-flex;
   align-items: center;
@@ -1092,7 +1091,6 @@ article h3:hover .header-anchor { opacity: 0.7; }
   cursor: pointer;
   user-select: none;
 }
-#code-toggle-wrap .toggle-track,
 #derived-toggle-wrap .toggle-track {
   width: 32px;
   height: 16px;
@@ -1101,7 +1099,6 @@ article h3:hover .header-anchor { opacity: 0.7; }
   position: relative;
   transition: background 200ms ease;
 }
-#code-toggle-wrap .toggle-thumb,
 #derived-toggle-wrap .toggle-thumb {
   width: 12px;
   height: 12px;
@@ -1112,13 +1109,9 @@ article h3:hover .header-anchor { opacity: 0.7; }
   left: 2px;
   transition: transform 200ms ease;
 }
-#code-toggle:checked + .toggle-track { background: #4caf50; }
 #derived-toggle:checked + .toggle-track { background: var(--ctp-mauve); }
-#code-toggle:checked + .toggle-track .toggle-thumb,
 #derived-toggle:checked + .toggle-track .toggle-thumb { transform: translateX(16px); }
-#code-toggle-wrap .toggle-text,
 #derived-toggle-wrap .toggle-text { font-size: 12px; opacity: 0.6; }
-#code-toggle-wrap input,
 #derived-toggle-wrap input { display: none; }
 
 /* Graph render-mode toggle: SVG | WebGL */

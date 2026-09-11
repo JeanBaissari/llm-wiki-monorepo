@@ -6,7 +6,7 @@ import { parseArgs } from "./config.js";
 import { handleTree } from "./routes/tree.js";
 import { handlePage, handleRaw } from "./routes/pages.js";
 import { handleAuditList, handleAuditCreate, handleAuditResolve } from "./routes/audit.js";
-import { handleGraph, handleGraphInsights, handleCodeGraph } from "./routes/graph.js";
+import { handleGraph, handleGraphInsights } from "./routes/graph.js";
 import { handleDerivedGraph } from "./routes/derived.js";
 import { handleExport } from "./routes/exports.js";
 import { handleSearch } from "./routes/search.js";
@@ -19,7 +19,6 @@ app.use(express.json({ limit: "2mb" }));
 // ── API ────────────────────────────────────────────────────────────────────
 app.get("/api/tree", handleTree(cfg));
 app.get("/api/graph", handleGraph(cfg));
-app.get("/api/graph/code", handleCodeGraph(cfg));
 app.get("/api/graph/derived", handleDerivedGraph(cfg));
 app.get("/api/graph/export", handleExport(cfg));
 app.get("/api/search", handleSearch(cfg));

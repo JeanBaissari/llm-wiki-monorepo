@@ -13,8 +13,6 @@
   },
   "dependencies": {
     "@baissari/llm-wiki-shared-types": "file:../../packages/shared-types",
-    "@baissari/llm-wiki-graph-bridge": "file:../graph-bridge",
-    "@sentropic/graphify": "^0.17.1",
     "graphology": "^0.26.0",
     "graphology-communities-louvain": "^2.0.2"
   },

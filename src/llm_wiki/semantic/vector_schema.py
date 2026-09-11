@@ -47,11 +47,6 @@ def unpack_vector(blob: bytes) -> "list[float]":
 
 # ── extension probing (never raises) ────────────────────────────────────────
 
-def can_load_extensions(conn: sqlite3.Connection) -> bool:
-    """True iff this Python's sqlite3 build exposes extension loading."""
-    return hasattr(conn, "enable_load_extension")
-
-
 def try_load_sqlite_vec(conn: sqlite3.Connection) -> bool:
     """Best-effort load of the sqlite-vec extension. Returns True on success.
 

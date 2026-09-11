@@ -31,14 +31,6 @@ from typing import Any, Optional, Type, TypeVar
 
 import tenacity
 
-RETRY_KWARGS: dict[str, Any] = dict(
-    wait=tenacity.wait_exponential(multiplier=1, min=1, max=30),
-    stop=tenacity.stop_after_attempt(3),
-    retry=tenacity.retry_if_exception_type(Exception),
-    before_sleep=tenacity.before_log(tenacity.after_log(None, None), None),
-    reraise=True,
-)
-
 def _retry_decorator():
     return tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=1, max=30),
@@ -322,16 +314,6 @@ def _print_prompts(system: str, user: str) -> None:
         f"{sep}\n  USER PROMPT:\n{sep}\n{user}",
         file=sys.stderr,
     )
-
-def read_response() -> Optional[str]:
-    rf = os.environ.get("LLM_WIKI_RESPONSE_FILE")
-    if not rf:
-        return None
-    try:
-        with open(rf, "r", encoding="utf-8") as f:
-            return f.read()
-    except (FileNotFoundError, IOError):
-        return None
 
 T = TypeVar("T")
 

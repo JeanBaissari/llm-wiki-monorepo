@@ -475,11 +475,6 @@ def _existing_summary_files(out_dir: Path) -> "dict[str, list[Path]]":
     return found
 
 
-def _existing_member_shas(out_dir: Path) -> "set[str]":
-    """Member-set SHAs of already-written community-summary pages (all levels)."""
-    return set(_existing_summary_files(out_dir))
-
-
 def _faithful_entities(candidates, member_ents_normalized) -> "list[str]":
     """Keep only key_entities whose normalized form is an actual member entity."""
     from llm_wiki.graph.resolve import normalize

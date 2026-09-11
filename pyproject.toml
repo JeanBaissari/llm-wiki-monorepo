@@ -40,8 +40,6 @@ dependencies = [
     "litellm>=1.90",
     "instructor>=1.15",
     "tenacity>=8.0",
-    "tiktoken>=0.7",
-    "python-dotenv>=1.0",
     "pydantic>=2.0",
     "portalocker>=2.8",
     # tuning.toml parsing: stdlib tomllib on 3.11+, official backport on 3.10

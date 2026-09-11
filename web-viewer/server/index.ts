@@ -2,7 +2,7 @@ import express from "express";
 import path from "node:path";
 import url from "node:url";
 import fs from "node:fs";
-import { parseArgs } from "./config.js";
+import { parseArgs, isLoopbackHost } from "./config.js";
 import { handleTree } from "./routes/tree.js";
 import { handlePage, handleRaw } from "./routes/pages.js";
 import { handleAuditList, handleAuditCreate, handleAuditResolve } from "./routes/audit.js";
@@ -53,6 +53,13 @@ app.get("/", (_req, res) => {
 
 // ── Start ───────────────────────────────────────────────────────────────────
 app.listen(cfg.port, cfg.host, () => {
+  if (!isLoopbackHost(cfg.host)) {
+    console.warn("");
+    console.warn("  WARNING: server is bound to a non-loopback host and has NO authentication.");
+    console.warn(`  Anyone who can reach http://${cfg.host}:${cfg.port} can read and modify the wiki.`);
+    console.warn("  Only expose this on a trusted network or behind an authenticating proxy.");
+    console.warn("");
+  }
   console.log(`llm-wiki web server listening on http://${cfg.host}:${cfg.port}`);
   console.log(`  wiki root: ${cfg.wikiRoot}`);
   console.log(`  author:    ${cfg.author}`);

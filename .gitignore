@@ -4,6 +4,11 @@ CLAUDE.md
 node_modules/
 npm-debug.log*
 
+# Environment / secrets — never commit credentials (keep the template)
+.env
+.env.*
+!.env.example
+
 # TypeScript build output
 dist/
 *.tsbuildinfo

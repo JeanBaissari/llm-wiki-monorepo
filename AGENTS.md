@@ -37,7 +37,6 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 | `audit-shared/` | TypeScript | core | Audit file format library | Audit schema changes |
 | `plugins/obsidian-audit/` | TypeScript | optional | Obsidian plugin | Vault integration |
 | `src/llm_wiki/` | Python | core | CLI, version, core Python library | CLI operations, version bumps |
-| `graph-bridge/` | TypeScript | adapter | Graph merger bridge (no default consumer since v0.6.4) | Code graph integration |
 | `packages/shared-types/` | TypeScript | core | Shared TypeScript types and schemas | Schema changes, cross-package types |
 
 

@@ -20,7 +20,6 @@
   "workspaces": [
     "mcp-server",
     "graph-engine",
-    "graph-bridge",
     "packages/shared-types",
     "web-viewer",
     "audit-shared",

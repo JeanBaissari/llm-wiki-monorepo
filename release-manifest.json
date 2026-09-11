@@ -78,12 +78,6 @@
         "role": "first-class"
       },
       {
-        "path": "graph-bridge",
-        "name": "@baissari/llm-wiki-graph-bridge",
-        "version": "0.2.5",
-        "role": "first-class"
-      },
-      {
         "path": "web-viewer",
         "name": "llm-wiki-web",
         "version": "0.1.0",

@@ -49,12 +49,9 @@ llm-wiki-monorepo/
 │       ├── relevance.ts
 │       └── louvain.ts
 │
-├── graph-bridge/          ← npm package (@baissari/llm-wiki-graph-bridge;
-│                             no default consumer since v0.6.4)
-│
 ├── mcp-server/            ← TypeScript — 15 tools, multi-wiki
 ├── web-viewer/            ← TypeScript — search + graph panel + derived overlay
-├── extension/             ← Chrome — web clipper (auto-ingest experimental)
+├── extension/             ← Chrome — web clipper
 ├── audit-shared/          ← TypeScript — audit schema
 ├── plugins/obsidian-audit/
 │
@@ -521,8 +518,7 @@ This is what the system looks like when every component is live, every bridge is
 
 08:30 — Researcher adds a new paper via browser extension:
         • Clicks extension → clips arXiv page
-        • Saves to raw/ → runs `llm-wiki ingest` (auto-ingest is experimental
-          and needs a local /api/ingest endpoint)
+        • Saves to raw/ → runs `llm-wiki ingest`
         • Link suggestions fire → connects to existing transformer theory
 
 09:00 — Interacts via Claude Desktop:

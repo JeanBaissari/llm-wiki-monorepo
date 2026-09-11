@@ -69,11 +69,6 @@ npm install
 
 # ── Step c: Build TypeScript packages ────────────────────────────────
 
-info "Building graph-bridge..."
-cd "$REPO_DIR/graph-bridge"
-npm install
-npx tsc
-
 info "Building graph-engine..."
 cd "$REPO_DIR/graph-engine"
 npx tsc

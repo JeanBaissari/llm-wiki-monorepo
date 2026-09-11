@@ -76,7 +76,6 @@ No `llm-wiki` CLI equivalent — the web viewer is a standalone TypeScript app.
 1. Open Chrome → `chrome://extensions`
 2. Enable "Developer mode"
 3. Click "Load unpacked" → select `extension/` directory
-4. Click the extension icon on any webpage → clips to markdown with frontmatter
-5. Optionally check "Auto-ingest after clip" (experimental): the clip POSTs to a local `/api/ingest` endpoint if one is running. The MCP server is stdio-only and provides no such endpoint, so without one the clip still saves for manual `llm-wiki ingest`.
+4. Click the extension icon on any webpage → clips to markdown with frontmatter and downloads it for placement in the wiki's `raw/` directory, then run `llm-wiki ingest`
 
 No `llm-wiki` CLI equivalent — the extension is a standalone Chrome extension.

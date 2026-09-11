@@ -42,11 +42,16 @@ Rules:
 | Op | When it appears | Example |
 |---|---|---|
 | `compile`  | Structural edits, splits, merges, index rebuild | `## [10:00] compile \| split Claude Code page into 7 sub-pages` |
-| `ingest`   | New source added to `raw/`, wiki updated | `## [09:15] ingest \| google-gemma-4-article` |
+| `ingest`   | New source added to `raw/`, wiki updated (single-pass) | `## [09:15] ingest \| google-gemma-4-article` |
+| `ingest-2step` | Two-step chain-of-thought ingest completed | `## [09:40] ingest-2step \| attention-is-all-you-need — 6 pages, 2 reviews` |
 | `query`    | Question answered, output file written | `## [11:20] query \| rag-vs-llm-wiki-tradeoffs` |
-| `promote`  | Output promoted to `wiki/concepts/` | `## [11:35] promote \| RAG vs LLM Wiki (from query)` |
+| `promote`  | Query output promoted to `wiki/concepts/` | `## [11:35] promote \| RAG vs LLM Wiki (from query)` |
 | `lint`     | Lint run with issues fixed | `## [15:05] lint \| 2 dead links found, 2 fixed` |
 | `audit`    | Feedback applied and moved to `audit/resolved/` | `## [14:30] audit \| resolved 20260409-143022-a1b2` |
+| `research` | Deep-research pipeline run (web search → ingest → synthesis) | `## [13:00] research \| attention mechanisms survey — 5 sources, 1 synthesis` |
+| `insights` | Graph insights pass (surprising connections, knowledge gaps) | `## [16:00] insights \| 2 connections, 1 gap` |
+| `ask`      | Grounded QA answer generated | `## [17:10] ask \| how does the event loop work?` |
+| `contradictions` | Contradiction detection or confidence apply/unapply | `## [17:25] contradictions \| detect — 3 candidate conflicts` |
 | `split`    | A single page split into a folder | `## [10:00] split \| Claude Code → claude-code/` |
 | `scaffold` | Initial wiki setup | `## [08:00] scaffold \| Initialized Topic knowledge base` |
 
@@ -68,14 +73,14 @@ grep -rl "Claude_Code" log/
 
 ## Migration from single-file `log.md`
 
-If you have an existing `log.md` (from the v1 skill), convert it:
+If you have an existing `log.md` (from the v1 skill), the migration is automated:
 
-1. Parse each `## [YYYY-MM-DD] op | description` header.
-2. Group entries by date.
-3. For each date `D`, create `log/D.md` with an H1 of the date and H2s for each op — convert `[YYYY-MM-DD]` to `[HH:MM]` (use `00:00` if no time recorded).
-4. Delete the old `log.md`.
+```bash
+python3 skill/scripts/migrate_log.py <wiki-root>
+# or: llm-wiki migrate-log <wiki-root>
+```
 
-This is a one-time manual operation; the skill doesn't automate it.
+The script parses each `## [YYYY-MM-DD] op | description` header, groups entries by date, creates `log/YYYYMMDD.md` files (converting `[YYYY-MM-DD]` to `[HH:MM]`, defaulting to `00:00` when no time was recorded), and deletes the old `log.md` on success.
 
 ## What not to put in the log
 

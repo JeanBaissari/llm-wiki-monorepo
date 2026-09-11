@@ -4,12 +4,16 @@
 
 ## Overview
 
-Every script in the monorepo emits structured JSON log events to stderr. This
-enables consistent parsing by CI pipelines, cron monitors, and multi-agent
-orchestrators.
+The logging module emits structured JSON log events to stderr, enabling
+consistent parsing by CI pipelines, cron monitors, and multi-agent
+orchestrators. It is opt-in: scripts import it where structured events add
+value — currently `llm-wiki health` (`ops/health.py`), `graph/extract.py`,
+and the ONNX NER path (`semantic/ner_onnx.py`). Not every script emits these
+events.
 
-**File**: `skill/scripts/wiki_logging.py` (named `wiki_logging.py` to avoid
-collision with Python's stdlib `logging` module).
+**File**: `skill/scripts/wiki_logging.py`, a thin wrapper that re-exports
+`llm_wiki.core.logging` (named `wiki_logging.py` to avoid collision with
+Python's stdlib `logging` module).
 
 ## Log Format
 
@@ -79,13 +83,18 @@ from wiki_logging import (
 
 ### CLI Integration
 
-All scripts accept standardized flags:
+Scripts that expose logging flags use this convention:
 
 ```
 --quiet      Set log level to ERROR (suppress INFO/WARN/DEBUG)
 --verbose    Set log level to DEBUG (show diagnostic details)
---log-json   Accepted for compatibility; JSON is always the output format
 ```
+
+Current users: `llm-wiki health` (`ops/health.py`) takes both flags;
+`validate_fixtures.py` takes `--quiet`; `scaffold.py` takes only `--verbose`
+(run auto-discovery after scaffold). There is no `--log-json` flag — JSON is
+always the stderr output format. Other commands use their own output
+conventions.
 
 Default behavior: `INFO` when stderr is a TTY, `WARN` when stderr is piped
 (CI/cron). When both `--quiet` and `--verbose` are passed, `--verbose` wins.

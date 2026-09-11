@@ -55,7 +55,7 @@ Output: Structured analysis covering:
 - Contradictions with existing wiki content (if any — requires checking index.md for related pages)
 - Key takeaways (what matters most for this domain)
 
-The analysis is NOT written to disk — it's passed directly to Stage 2 as context.
+The analysis is cached on disk at `raw/.cache/<sha256>.json` (keyed by the source content hash) and passed to Stage 2 as context. On re-ingest of an unchanged source, Stage 1 is skipped and the cached analysis is reused — see [Caching](#caching).
 
 ## Stage 2: Generation Prompt
 

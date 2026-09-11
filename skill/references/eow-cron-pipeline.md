@@ -14,26 +14,28 @@ find ~/projects -maxdepth 3 -type d -name 'wiki' 2>/dev/null
 For each repo with a wiki/ directory:
 - Check if `CLAUDE.md`, `index.md`, and `log/` directory exist
 - Count wiki pages: `find wiki/ -name '*.md' | wc -l`
-- Check graph freshness: `wiki/graphs/graph-data.json` mtime
+- Check graph freshness: `<wiki-root>/graph-data.json` mtime
 - Check recent log entries for context
 
-## Step 3: Graph-engine build (always)
+## Step 3: Graph-engine build (conditional)
+
+Rebuild only when `raw/` or `wiki/` changed since the last build (for example, keep a hash of the wiki file list alongside `graph-data.json` and compare). If nothing changed, skip to Step 3.5 and reuse the existing graph.
 
 ```bash
 LLM_WIKI_MONOREPO="$HOME/projects/llm-wiki-monorepo"
-cd <repo-wiki-root>
+cd <wiki-root>
 node "$LLM_WIKI_MONOREPO/graph-engine/dist/index.js" --wiki . --action build
 ```
 
-Outputs graph structure to stdout and optionally to `wiki/graphs/graph-data.json`.
+The engine writes `<wiki-root>/graph-data.json` and prints the graph structure to stdout. `graph-data.json` is derived state — gitignored, never committed.
 
-## Step 3.5: Graph-engine insights (always)
+## Step 3.5: Graph-engine insights (after a build, or against the existing graph)
 
 ```bash
 node "$LLM_WIKI_MONOREPO/graph-engine/dist/index.js" --wiki . --action insights
 ```
 
-Captures surprising connections and knowledge gaps. Include key findings in the health report.
+Reads `graph-data.json`, so it requires at least one prior build. Captures surprising connections and knowledge gaps. Include key findings in the health report.
 
 ## Step 4: Wiki lint (always)
 
@@ -74,8 +76,8 @@ One paragraph per repo. Cover:
 ## Pitfalls
 
 - The lint script exits with code 1 when issues are found — that's normal, not an error.
-- Don't commit `wiki/graphs/graph-data.json` — it's in `.gitignore`.
-- Graph-engine handles 1000+ pages. For very large wikis (>5000 pages), use `timeout 120`.
+- Don't commit `<wiki-root>/graph-data.json` — it's in `.gitignore`.
+- Cap long builds with `timeout 120` (recommended at >1,000 pages). For very large wikis (>5,000 pages), prefer the pure-Python `graph_insights.py` fallback or a nightly build instead of per-request rebuilds — same guidance as `graph-construction-strategies.md`.
 - The `graph_insights.py` script is a pure Python fallback — use graph-engine for production.
-- Always run insights after graph build — the insight analysis depends on fresh graph data.
+- Run insights after a fresh build — the insight analysis reads `graph-data.json`, so it depends on that file existing.
 - No external model or network call is involved: the graph is wikilink/entity-derived.

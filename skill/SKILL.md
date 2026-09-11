@@ -53,9 +53,11 @@ The wiki is a living artifact with **ten operations** — `compile`, `ingest` (s
 │   ├── entities/      ← People, tools, papers, organizations
 │   ├── summaries/     ← Per-source summary pages
 │   ├── comparisons/   ← Side-by-side comparisons of entities, tools, or concepts
-│   └── graphs/        ← Knowledge graph outputs (graph-data.json, reports)
-└── outputs/
-    └── queries/       ← Query answers (promote durable ones to wiki/)
+│   ├── graphs/        ← Domain-specific graph/report pages (optional)
+│   └── synthesis/     ← Deep-research synthesis pages
+├── outputs/
+│   └── queries/       ← Query answers (promote durable ones to wiki/)
+└── graph-data.json    ← Generated knowledge graph (graph-engine build; gitignored)
 ```
 
 `CLAUDE.md` is the **schema file** — the single most important configuration. It tells the LLM the wiki's scope, naming conventions, current article list, open questions, and research gaps. Read `references/schema-guide.md` for what to put in it. Read it at the start of every session.
@@ -326,27 +328,29 @@ Detect contradictory claims across pages and compute evidence-grounded confidenc
 | **`web-viewer/`** | Local Node.js server — preview the wiki with mermaid/math rendered; select → feedback → `audit/` |
 | `skill/scripts/scaffold.py` | Bootstrap a new wiki directory tree |
 | `skill/scripts/ingest.py` | Two-step chain-of-thought ingest (higher quality) |
-| `skill/scripts/lint_wiki.py` | Fifteen-pass health check (links, orphans, index, frontmatter, staleness, confidence, contradictions, drift, size, rotation, audit shape, log shape, template validation) |
+| `skill/scripts/lint_wiki.py` | Health check with 16 automated passes: dead wikilinks, orphan pages, missing index entries, frequently-linked missing pages, `log/` shape, `audit/` shape, open-audit target resolution, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation (>500 H2 entries), SHA256 source drift, pages affected by source drift, and git merge-conflict markers |
 | `skill/scripts/deep_research.py` | Web search + auto-ingest + synthesis for a research topic |
 | `skill/scripts/graph_insights.py` | Surprising connections and knowledge gap detection |
 | `skill/scripts/audit_review.py` | Group open/resolved audits by target file |
 | `skill/scripts/migrate_log.py` | Convert v1 log.md to v2 log/ directory |
-| **`mcp-server/`** | Standalone MCP server — 15 tools (status, files, read_file, reviews, search, ask, graph, graph_build, graph_insights, graph_search, lint, ingest, suggest_links, backup, discover_entities) working against any wiki directory |
+| **`mcp-server/`** | Standalone MCP server — 15 tools (`llm_wiki_status`, `llm_wiki_files`, `llm_wiki_read_file`, `llm_wiki_reviews`, `llm_wiki_search`, `llm_wiki_ask`, `llm_wiki_graph`, `llm_wiki_graph_build`, `llm_wiki_graph_insights`, `llm_wiki_graph_search`, `llm_wiki_lint`, `llm_wiki_ingest`, `llm_wiki_suggest_links`, `llm_wiki_backup`, `llm_wiki_discover_entities`) working against any wiki directory |
 | [qmd](https://github.com/tobi/qmd) | Optional local semantic search (useful at >100 pages) |
-| [Obsidian Headless](https://github.com/obsidian-headless/obsidian-headless) | Server-side Obsidian for headless deployments — render, lint, and sync wikis without a GUI |
 
 The Obsidian plugin and the web viewer both write audit files in the **same format** with **the same anchor algorithm**, so feedback filed from either place can be resolved by either place.
 
-### Obsidian Headless (server deployments)
+For a full command walkthrough (individual researcher, trading team, software team, agent pipelines), see `references/examples-and-workflows.md`.
 
-For wiki deployments on headless servers where a full Obsidian GUI is unavailable:
+### Local preview on a headless server
 
-1. Install [obsidian-headless](https://github.com/obsidian-headless/obsidian-headless) on the server.
-2. Configure it to point at the wiki root and serve on a local port.
-3. Set up a systemd service to keep it running — see the project docs for a reference unit file.
-4. Use the headless instance for continuous sync, automated lint runs triggered by git hooks, and CI/CD integration in the EOW cron pipeline.
+When a full Obsidian GUI is unavailable, use the bundled web viewer — no external project required:
 
-This pairs well with the web-viewer for delivering rendered wiki content without requiring each team member to run Obsidian locally.
+```bash
+cd web-viewer
+npm install && npm run build
+npm start -- --wiki <wiki-root>          # http://127.0.0.1:4175
+```
+
+It renders mermaid + KaTeX and files audit feedback. It defaults to loopback; `--host <addr>` binds elsewhere but has **no authentication** and prints a warning — only expose it on a trusted network. See `web-viewer/README.md`.
 
 ---
 
@@ -364,14 +368,16 @@ A weekly (end-of-week) cron job keeps the wiki healthy and the knowledge graph f
 1. **Discover** — enumerate repos under management that contain a `CLAUDE.md` + `wiki/` with recent activity
 2. **Assess health** — run `lint` to check for drift, stale pages, dead links, and orphan pages
 3. **Rebuild the knowledge graph** — conditionally:
-   - If `raw/` or `wiki/` changed since the last build, run `node graph-engine/dist/index.js --wiki <wiki> --action build` (wikilink/entity graph; no external model, no network)
-   - Mirror the outputs into `wiki/graphs/` when the wiki tracks them
+   - If `raw/` or `wiki/` changed since the last build, run `node graph-engine/dist/index.js --wiki <wiki-root> --action build` (wikilink/entity graph; no external model, no network)
+   - The engine writes `<wiki-root>/graph-data.json` — derived state, gitignored, never committed
 4. **Compile health report** — write a summary to `log/` for the week
 5. **Alert on failures** — if lint finds >5 new issues or the graph build crashes, flag to the user at next session start
 
 ### Conditional graph rebuild
 
 The cron only rebuilds when content changed: compare `raw/` + `wiki/` state against the previous build inputs (for example, a hash of the wiki file list stored alongside `graph-data.json`). If unchanged, skip the rebuild entirely.
+
+Structured log events, severity semantics, and health-check exit codes are documented in `references/observability.md`.
 
 ---
 
@@ -474,7 +480,7 @@ The LLM rebuilds `index.md` on every compile and touches it on every ingest. For
 - ...
 
 ## Entities
-- [[entities/Andrej Karpathy]] — AI researcher, author of the llm-wiki pattern
+- [[entities/Andrej Karpathy]] — AI researcher, author of the LLM Wiki pattern
 
 ## Summaries (chronological)
 - 2026-04-09 — [[summaries/llm-wiki-gist]] — Karpathy's original Gist
@@ -520,11 +526,14 @@ Quick grep across history: `grep -rh "^\#\# \[" log/ | tail -20`.
 - `references/article-guide.md` — How to write good wiki articles (length, wikilinks, mermaid, math, divide-and-conquer, provenance markers)
 - `references/log-guide.md` — The `log/` folder convention
 - `references/audit-guide.md` — Audit file format, anchor strategy, processing workflow
-- `references/tooling-tips.md` — Obsidian setup, Web Clipper, qmd, plugin + web installation
+- `references/ingest-guide.md` — Two-step chain-of-thought ingest prompt architecture
 - `references/graph-construction-strategies.md` — Building the wikilink/entity graph at scale
 - `references/eow-cron-pipeline.md` — Weekly automated maintenance pattern
+- `references/concurrency.md` — Locking, atomic writes, conflict detection and resolution
+- `references/observability.md` — Structured logging, severity levels, health-check output and exit codes
 - `references/migration-guide.md` — Migrating v1 wikis to v2 format
-- `references/ingest-guide.md` — Two-step chain-of-thought ingest prompt architecture
+- `references/tooling-tips.md` — Obsidian setup, Web Clipper, qmd, plugin + web installation
+- `references/examples-and-workflows.md` — End-to-end command examples and agent workflow patterns
 - `../src/llm_wiki/templates/` — 20 domain-specific project templates with PURPOSE.md + SCHEMA.md
 - `../mcp-server/` — Standalone MCP server for programmatic wiki access
 - `../graph-engine/` — Knowledge graph engine (relevance model, Louvain communities, insights)

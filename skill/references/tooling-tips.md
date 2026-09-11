@@ -68,7 +68,7 @@ Then open `http://127.0.0.1:4175`. Features:
 - Right sidebar: list of open audits for the current page.
 - Select any text → "💬 Add feedback" popover appears → submit → writes an audit file to `<wiki-root>/audit/`.
 
-The server binds to `127.0.0.1` only. No auth; intended for personal use on your own machine.
+The server binds to `127.0.0.1` (loopback) by default. Pass `--host <addr>` to bind elsewhere — there is no authentication, and a non-loopback bind prints a warning; only expose it on a trusted network or behind an authenticating proxy.
 
 ## Obsidian Web Clipper usage
 
@@ -83,13 +83,13 @@ For complex pages (paywalled, dynamic): copy-paste the main text manually, save 
 [qmd](https://github.com/tobi/qmd) is a local semantic search engine for Markdown files with BM25 + vector hybrid search. Useful when the wiki grows beyond ~100 pages and `wiki/index.md` scanning becomes slow.
 
 ```bash
-pip install qmd
+npm install -g @tobilu/qmd        # or: bun install -g @tobilu/qmd
 qmd collection add wiki/ --name my-wiki
 qmd embed
-qmd query "what are the tradeoffs of RAG vs wiki" --collection my-wiki
+qmd query "what are the tradeoffs of RAG vs wiki" -c my-wiki
 ```
 
-qmd also has an MCP server so LLMs can use it as a native tool.
+qmd also has an MCP server (`qmd mcp`) so LLMs can use it as a native tool.
 
 ## Marp — generating slide decks from wiki content
 

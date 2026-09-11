@@ -23,6 +23,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from llm_wiki.core.locking import WikiLock
+from llm_wiki.core.hashing import read_hash
 from llm_wiki.ingest.writer import write_wiki, update_index, read_file
 from llm_wiki.wiki.backup import cmd_verify
 
@@ -229,7 +230,7 @@ class TestConcurrencyStress:
             assert (wiki / "entities" / f"Page{i}.md").exists()
 
     def test_two_writers_same_page(self, tmp_path):
-        """2 concurrent writers to same page: one gets locked/conflict."""
+        """2 concurrent writers with one base hash: exactly one write wins."""
         wiki = tmp_path / "wiki"
         wiki.mkdir()
         page_dir = wiki / "entities"
@@ -237,10 +238,13 @@ class TestConcurrencyStress:
         page_path = page_dir / "SharedPage.md"
 
         initial = "---\ntitle: Shared Page\ntype: concept\n---\n\n# Version 0"
-        page_path.write_text(initial)
+        status, _ = write_wiki(str(wiki), "entities/SharedPage.md", initial)
+        assert status == "created"
+        on_disk = page_path.read_text()
+        assert read_hash(on_disk)
 
-        content_a = initial.replace("Version 0", "Version A")
-        content_b = initial.replace("Version 0", "Version B")
+        content_a = on_disk.replace("Version 0", "Version A")
+        content_b = on_disk.replace("Version 0", "Version B")
 
         result_queue = multiprocessing.Queue()
 
@@ -257,10 +261,19 @@ class TestConcurrencyStress:
         p_b.start()
         p_a.join(timeout=30)
         p_b.join(timeout=30)
+        assert p_a.exitcode == 0 and p_b.exitcode == 0
 
         results = []
         while not result_queue.empty():
             results.append(result_queue.get())
 
-        statuses = [r[0] for r in results]
-        assert any(s in ("created", "updated") for s in statuses), f"No success: {results}"
+        assert len(results) == 2, f"Expected 2 results, got: {results}"
+        statuses = sorted(r[0] for r in results)
+        assert statuses == ["conflict", "updated"], (
+            f"Expected exactly one winner + one conflict: {results}"
+        )
+
+        final = page_path.read_text()
+        assert ("Version A" in final) != ("Version B" in final), final
+        conflict_path = str(page_path).replace(".md", " (conflict).md")
+        assert os.path.exists(conflict_path)

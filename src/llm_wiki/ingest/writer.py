@@ -15,8 +15,7 @@ def read_file(path: str) -> Optional[str]:
 def write_file(path: str, content: str) -> bool:
     try:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f: f.write(content)
-        return True
+        return atomic_write(path, content)
     except IOError as e: print(f"  \u26a0  Error writing {path}: {e}", file=sys.stderr); return False
 
 def write_wiki(root: str, rpath: str, content: str, pages_dir: str = None,

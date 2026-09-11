@@ -40,8 +40,9 @@ SKIP_FILES = {
     # notices.md carries the project's own MIT text ("derived from this
     # software") — both are self-referential, not third-party provenance.
     # Changelogs are historical release prose that necessarily discusses
-    # provenance/porting ("derived from", "ported from").
-    "provenance_scan.py", "notices.md",
+    # provenance/porting ("derived from", "ported from"), and the Code of
+    # Conduct carries the Contributor Covenant's own "adapted from" attribution.
+    "provenance_scan.py", "notices.md", "CODE_OF_CONDUCT.md",
 }
 
 

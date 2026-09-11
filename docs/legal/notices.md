@@ -28,7 +28,6 @@ The following dependencies are licensed under the MIT License. The MIT License r
 - **anthropic** — Copyright © Anthropic. MIT License.
 - **litellm** — Copyright © BerriAI. MIT License.
 - **instructor** — Copyright © Jason Liu. MIT License.
-- **tiktoken** — Copyright © OpenAI. MIT License.
 - **pydantic** — Copyright © Pydantic Team. MIT License.
 - **esbuild** — Copyright © Evan Wallace. MIT License.
 - **pytest** — Copyright © pytest-dev. MIT License.
@@ -82,7 +81,6 @@ limitations under the License.
 
 ## BSD-3-Clause-Licensed Dependencies
 
-- **python-dotenv** — Copyright © Saurabh Kumar. BSD-3-Clause.
 - **portalocker** — Copyright © 2023, Rick van Hattem. BSD-3-Clause.
 - **networkx** — Copyright © NetworkX contributors. BSD-3-Clause.
 

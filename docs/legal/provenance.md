@@ -77,8 +77,6 @@
 | litellm | ≥1.90 | MIT | https://github.com/BerriAI/litellm |
 | instructor | ≥1.15 | MIT | https://github.com/jxnl/instructor |
 | tenacity | ≥8.0 | Apache-2.0 | https://github.com/jd/tenacity |
-| tiktoken | ≥0.7 | MIT | https://github.com/openai/tiktoken |
-| python-dotenv | ≥1.0 | BSD-3-Clause | https://github.com/theskumar/python-dotenv |
 | pydantic | ≥2.0 | MIT | https://github.com/pydantic/pydantic |
 | portalocker | ≥2.8 | BSD-3-Clause | https://github.com/WoLpH/portalocker |
 | pytest | ≥8.0 | MIT | https://github.com/pytest-dev/pytest |

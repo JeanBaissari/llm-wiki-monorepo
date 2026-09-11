@@ -455,8 +455,8 @@ llm-wiki setup ~/wikis/my-project
 llm-wiki setup ~/wikis/my-project --client opencode
 llm-wiki setup ~/wikis/my-project --dry-run
 
-# Prompt to install the recommended extras profile, then smoke test:
-llm-wiki setup ~/wikis/my-project --extras recommended --yes
+# Non-interactive (skip the optional-extras prompt), then smoke test:
+llm-wiki setup ~/wikis/my-project --extras none --yes
 
 # Reverse every registration:
 llm-wiki setup ~/wikis/my-project --uninstall

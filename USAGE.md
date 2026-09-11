@@ -45,7 +45,7 @@ This checks Python ≥3.10, installs the Python package (`pip install -e .`), np
 
 ```bash
 # a) Python package usable anywhere:
-pip install -e .          # or uv pip install -e ".[semantic,leiden,ner,entity-resolution]"
+pip install -e .          # base install; optional extras exist but are not required
 llm-wiki --version
 
 # b) MCP server binary (after npm build):

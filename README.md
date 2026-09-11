@@ -39,6 +39,18 @@ pip install baissarienterprises-llm-wiki
 > extras for local computation remain opt-in and are not part of the supported
 > default story.
 
+## What's New in v0.6.4 — "Lean & Certified"
+
+**Local-model surface removed.** The unused `@sentropic/graphify` hard dependency is gone (with its 239-package / ~606 MiB closure: `@ai-sdk/*`, Ollama provider, tree-sitters, DB drivers), along with the `--code-analysis`/`merged`/`export-graph` code paths and the web code-graph route (ADR-0035). The knowledge graph is fully offline and wikilink-derived. Optional Python extras remain opt-in and are no longer promoted as a recommended profile.
+
+**Provenance closed.** `graph-engine/src/relevance.ts` and `insights.ts` were independently reimplemented as clean-room MIT code with behavior parity verified against the previous implementation; the provenance ledger now reflects this.
+
+**Packaging fixed.** `install.sh` now installs the Python package (the `llm-wiki` console script actually exists afterwards), and wheels ship all 20 domain templates plus `py.typed`. `scaffold` resolves package-internal templates first, so pip-installed wikis are no longer silently generic.
+
+**Integrity hardened.** Lock acquisition is race-free (`O_EXCL` + owner token + rename-based stale break), page writes are atomic, backups are temp+rename with sha256 verification and staged restore, malformed `tuning.toml` yields a clean config error, hybrid search honors `--set bm25.*`, and no-provider `ask` fails with an actionable message instead of a silent null.
+
+**Release gates are real.** The version manifest is green, `docs_truth_check` scans the live docs, the certifier's gates exit nonzero on failure, the zero-test guard covers all workspaces, a slow-tests lane runs, coverage is floored at 70%, and publishing is gated on certification.
+
 ## What's New in v0.6.2
 
 **Install.sh completeness.** `install.sh` now builds all packages in dependency order: graph-bridge → graph-engine → mcp-server → audit-shared → web-viewer → obsidian-audit. Previously graph-bridge was missing, causing graph-engine imports to fail.
@@ -295,7 +307,7 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 - **Python 3.10+** — for all skill scripts and PyPI package
 - **Node.js 18+** — for MCP server, graph engine, web viewer
 - **npm** — for TypeScript package management
-- **pip dependencies** — openai, anthropic, litellm, instructor, tenacity, tiktoken, python-dotenv, pydantic, portalocker (auto-installed via `pip install`)
+- **pip dependencies** — openai, anthropic, litellm, instructor, tenacity, pydantic, portalocker, tomli (Python 3.10 only) (auto-installed via `pip install`)
 
 ## Credits
 
@@ -307,8 +319,8 @@ Additional design patterns and API methodology were informed by [nashsu/llm_wiki
 
 ### Code Derivations
 
-- **`graph-engine/src/relevance.ts`** — 4-signal relevance model with configurable weights, source indexing, and type-safe interfaces. Substantially rewritten in v0.3.3. See [docs/legal/provenance.md](./docs/legal/provenance.md).
-- **`graph-engine/src/insights.ts`** — Surprising connection detection and knowledge gap discovery with extensible signal registry. Substantially rewritten in v0.3.3. See [docs/legal/provenance.md](./docs/legal/provenance.md).
+- **`graph-engine/src/relevance.ts`** — 4-signal relevance model with configurable weights, source indexing, and type-safe interfaces. Independently reimplemented as clean-room MIT code in v0.6.4. See [docs/legal/provenance.md](./docs/legal/provenance.md).
+- **`graph-engine/src/insights.ts`** — Surprising connection detection and knowledge gap discovery with extensible signal registry. Independently reimplemented as clean-room MIT code in v0.6.4. See [docs/legal/provenance.md](./docs/legal/provenance.md).
 - **`graph-engine/src/louvain.ts`** — Implements the Louvain community detection algorithm (Blondel et al. 2008) via the MIT-licensed `graphology-communities-louvain` library.
 
 ### Related Projects
@@ -318,7 +330,7 @@ Additional design patterns and API methodology were informed by [nashsu/llm_wiki
 
 ### Upstream License Notice
 
-This project was inspired by concepts from GPL-3.0-licensed upstream projects. Code previously derived from `nashsu/llm_wiki` has been substantially rewritten and expanded in v0.3.3 with configurable weights, extensible signal registries, and performance optimizations. See [docs/legal/provenance.md](./docs/legal/provenance.md) for full provenance ledger.
+This project was inspired by concepts from GPL-3.0-licensed upstream projects. Code previously derived from `nashsu/llm_wiki` was independently reimplemented as clean-room MIT code in v0.6.4 (`graph-engine/src/relevance.ts`, `graph-engine/src/insights.ts`) with behavior parity verified against the prior implementation. See [docs/legal/provenance.md](./docs/legal/provenance.md) for the full provenance ledger.
 
 ## License
 

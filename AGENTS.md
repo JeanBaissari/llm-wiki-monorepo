@@ -288,7 +288,5 @@ Local-model machinery is out of the default story by owner decision (2026-09): n
 | litellm | ≥1.90 | Multi-provider proxy — fallback routing, cost tracking |
 | instructor | ≥1.15 | Pydantic-guided structured output — typed LLM responses |
 | tenacity | ≥8.0 | Retry decorators — exponential backoff with jitter |
-| tiktoken | ≥0.7 | Fast BPE tokenizer — token counting for OpenAI models |
-| python-dotenv | ≥1.0 | .env file loading — API key management |
 | pydantic | ≥2.0 | Data validation — used by instructor, also for config models |
 | portalocker | ≥2.8 | Cross-platform advisory file locking — concurrency control |

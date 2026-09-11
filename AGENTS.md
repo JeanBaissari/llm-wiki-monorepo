@@ -249,7 +249,8 @@ The EOW cron job loads this skill automatically. Changes to `skill/SKILL.md` or 
 
 Per-wiki auth/visibility is the **filesystem + git permissions** — there is no
 per-wiki auth layer, and none is planned. The MCP server is stdio-local (no
-network listeners); the web preview (`llm-wiki serve`) is opt-in local-only.
+network listeners); `llm-wiki serve` launches that stdio server, and the web
+preview (`web-viewer` npm server) is opt-in local-only.
 Never commit `.env` or secrets into a wiki repo. See
 [`docs/operations/security-and-boundaries.md`](docs/operations/security-and-boundaries.md).
 

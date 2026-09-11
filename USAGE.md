@@ -91,7 +91,7 @@ The skill's SKILL.md is loaded automatically by the EOW cron job; changes propag
 
 ## 4. The full command inventory
 
-**CLI (27 commands):** `scaffold` · `ingest` (2-step CoT, SHA256 cache) · `lint` (15 checks) · `discover` (auto-layout, `--json`) · `insights` (surprising connections + knowledge gaps) · `link-suggest` (lexical + semantic `--apply`, entity-aware) · `entities resolve|list|unmerge` (reversible ER, `--backend splink`) · `derive-edges` (quarantined similarity/co-occurrence, NMI-gated `--include-derived`) · `summarize-communities` (Leiden hierarchy, `--dry-run`, `--levels`) · `backup` (snapshot/restore/verify) · `deep-research` (multi-source pipeline) · `audit` (list/group human feedback) · `benchmark` · `migrate-log` · `ops` · `tuning` (config surface, `--set`, `--emit`) · `index` (FTS5) · `search` (hybrid default, `--keyword`, `--set`) · `embed` · `eval` · `health` · `serve` (local preview: mermaid, KaTeX, feedback) · `claims redteam` (claim-health scoring) · **`setup`** (one-command client wiring, v0.6.0) · **`demo`** (materialize the demo wiki) · **`ask`** (grounded QA over summaries + pages) · **`contradictions`** (detect/apply confidence + conflicts)
+**CLI (27 commands):** `scaffold` · `ingest` (2-step CoT, SHA256 cache) · `lint` (15 checks) · `discover` (auto-layout, `--json`) · `insights` (surprising connections + knowledge gaps) · `link-suggest` (lexical + semantic `--apply`, entity-aware) · `entities resolve|list|unmerge` (reversible ER, `--backend splink`) · `derive-edges` (quarantined similarity/co-occurrence, NMI-gated `--include-derived`) · `summarize-communities` (Leiden hierarchy, `--dry-run`, `--levels`) · `backup` (snapshot/restore/verify) · `deep-research` (multi-source pipeline) · `audit` (list/group human feedback) · `benchmark` · `migrate-log` · `ops` · `tuning` (config surface, `--set`, `--emit`) · `index` (FTS5) · `search` (hybrid default, `--keyword`, `--set`) · `embed` · `eval` · `health` · `serve` (stdio MCP launcher: `--build`, `--projects`) · `claims redteam` (claim-health scoring) · **`setup`** (one-command client wiring, v0.6.0) · **`demo`** (materialize the demo wiki) · **`ask`** (grounded QA over summaries + pages) · **`contradictions`** (detect/apply confidence + conflicts)
 
 **MCP tools (15):** `llm_wiki_status` · `llm_wiki_files` · `llm_wiki_read_file` · `llm_wiki_reviews` · `llm_wiki_search` (hybrid default) · **`llm_wiki_ask`** (grounded QA) · `llm_wiki_graph` · `llm_wiki_graph_build` · `llm_wiki_graph_insights` · `llm_wiki_graph_search` · `llm_wiki_lint` · `llm_wiki_ingest` · `llm_wiki_suggest_links` · `llm_wiki_backup` · `llm_wiki_discover_entities`
 
@@ -170,7 +170,7 @@ If a user already runs a "Karpathy llm-wiki" setup (scaffold + ingest + lint via
     ```
 14. **Serve the wiki locally with feedback forms**
     ```bash
-    llm-wiki serve ~/wikis/redis   # mermaid + KaTeX rendering, audit feedback
+    cd web-viewer && npm start -- --wiki ~/wikis/redis   # mermaid + KaTeX rendering, audit feedback
     ```
 15. **MCP-driven session**: ask Claude to "read the wiki's stance on Lua scripting" — it calls `llm_wiki_search`, then `llm_wiki_read_file`, then `llm_wiki_graph_insights` — all through the MCP tools, no shell.
 

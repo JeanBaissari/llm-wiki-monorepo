@@ -2,6 +2,7 @@
   "name": "llm-wiki-monorepo",
   "version": "0.6.4",
   "private": true,
+  "license": "MIT",
   "description": "Knowledge base operating system \u2014 AI agents compile raw sources into persistent, cross-linked Markdown wikis",
   "keywords": [
     "wiki",

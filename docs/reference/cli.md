@@ -578,9 +578,9 @@ llm-wiki health ~/my-wiki --quiet
 
 ---
 
-## 26. Web Preview (`llm-wiki serve`)
+## 26. MCP Server Launcher (`llm-wiki serve`)
 
-Start the opt-in, local-only web preview for human browsing (mermaid, KaTeX, audit feedback). Local-only by default — see the [security boundary](../operations/security-and-boundaries.md) before exposing it. For programmatic MCP access, launch `npx llm-wiki-mcp --wiki <root>` instead.
+Start (or relay) the MCP server over stdio for a wiki directory. This is a convenience launcher around `mcp-server/dist/main.js`; MCP clients normally launch `npx llm-wiki-mcp --wiki <root>` directly (see `llm-wiki setup`). The optional web preview (mermaid, KaTeX, audit feedback) is the separate `web-viewer` server: `cd web-viewer && npm start -- --wiki <root>`.
 
 ```bash
 llm-wiki serve ~/my-wiki

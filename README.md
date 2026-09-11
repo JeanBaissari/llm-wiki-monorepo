@@ -125,13 +125,13 @@ Loads the ten-operation skill for Claude/Hermes sessions — agent-native, no AP
 
 Schedule maintenance like ingest, lint, or backup. `portalocker` advisory locks make concurrent agent runs safe — multiple agents or CI jobs can operate on the same wiki without corrupting pages. See the [concurrency reference](skill/references/concurrency.md) and the [quickstart](docs/getting-started/quickstart.md).
 
-### 5. Web preview (local browsing)
+### 5. MCP server launcher (stdio)
 
 ```bash
 llm-wiki serve ~/my-wiki
 ```
 
-Opt-in local preview server for human browsing (mermaid, KaTeX, audit feedback). Local-only by default — see the [security boundary](docs/operations/security-and-boundaries.md) before exposing it. See the [CLI reference](docs/reference/cli.md).
+Relay the MCP server over stdio (with `--build` to compile it on demand and `--projects` for multi-wiki mode). MCP clients normally launch `npx llm-wiki-mcp --wiki <root>` directly — see section 2 above. The optional **web preview** (mermaid, KaTeX, audit feedback) is the separate `web-viewer` server: `cd web-viewer && npm start -- --wiki ~/my-wiki`. It is local-only by default — see the [security boundary](docs/operations/security-and-boundaries.md).
 
 ---
 
@@ -221,7 +221,7 @@ llm-wiki claims health ~/my-wiki
 npx llm-wiki-mcp --wiki ~/my-wiki
 
 # Or run the opt-in local web preview (mermaid, KaTeX, audit feedback)
-llm-wiki serve ~/my-wiki
+cd web-viewer && npm start -- --wiki ~/my-wiki
 ```
 
 ## Architecture

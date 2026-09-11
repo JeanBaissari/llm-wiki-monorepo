@@ -2,10 +2,12 @@
 
 ## Current Version
 
-The llm-wiki-monorepo Python package is at **0.6.2** (PyPI: `baissarienterprises-llm-wiki`).
+The llm-wiki-monorepo Python package is at **0.6.4** (PyPI: `baissarienterprises-llm-wiki`).
 
 | Milestone | Description |
 |-----------|-------------|
+| v0.6.4    | Release integrity — graphify/code-analysis surface removed (ADR-0035), clean-room MIT relevance/insights, install.sh installs the Python package, wheels ship the 20 templates, race-free locking + verifiable backups, truthful release gates |
+| v0.6.3    | opencode HTTP API provider, batch-mode file extensions (`--ext`), MCP/graph-engine dist rebuilds |
 | v0.6.2    | Documentation accuracy — install.sh builds graph-bridge/web-viewer/obsidian-audit, .hermes/ gitignore, scaffold.py dict-format extra-dirs.json handling |
 | v0.6.0    | Epistemic & Surface — `setup` (one-command client wiring), `demo` wiki, `ask` (grounded QA), `contradictions` + evidence confidence, web-viewer derived overlay + Sigma.js + JSON Canvas/JSON-LD exports, recommended-extras profile, gold-set curation loop |
 | v0.5.0    | Graph Precision — entity resolution, Leiden, typed/derived edges, community summaries, tuning config, hybrid search default |
@@ -18,7 +20,7 @@ The llm-wiki-monorepo Python package is at **0.6.2** (PyPI: `baissarienterprises
 
 ## Version Scheme
 
-This repo follows **Semantic Versioning** (`MAJOR.MINOR.PATCH`). The version is declared in `package.json` at the repository root.
+This repo follows **Semantic Versioning** (`MAJOR.MINOR.PATCH`). The canonical version source is `pyproject.toml` (`project.version`); `package.json`/`package-lock.json`, `llm_wiki.__version__`, and `release-manifest.json` mirror it. This is recorded machine-readably in `release-manifest.json` as `release.canonical_version_source`.
 
 Given a version number `MAJOR.MINOR.PATCH`, increment the:
 
@@ -87,7 +89,7 @@ Pre-release versions have lower precedence than a normal version. `3.1.0-rc.1` s
 
 1. **Ensure CI passes** — All checks on the target commit must be green (lint, typecheck, integration tests).
 2. **Update CHANGELOG.md** — If a CHANGELOG exists, add the new version entry. If one does not exist, create it with entries for Breaking Changes, New Features, and Bug Fixes.
-3. **Update version** — Bump the version in `package.json` at the repository root.
+3. **Update version** — Bump `pyproject.toml` (`project.version`), then sync the mirrors: `src/llm_wiki/__init__.py`, `package.json`/`package-lock.json`, and `release-manifest.json` (`python3 scripts/release_manifest.py` verifies them).
 4. **Commit** — Commit with message format: `Release v<version>` (e.g., `Release v3.1.0`).
 5. **Tag in git**:
 

@@ -17,27 +17,38 @@ def load_pyproject_version() -> str:
     return data["project"]["version"]
 
 
+def _relative(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return path.name
+
+
 def check_runtime_version(expected: str) -> tuple[bool, str]:
     init_py = REPO_ROOT / "src" / "llm_wiki" / "__init__.py"
+    rel = _relative(init_py)
     if not init_py.exists():
-        return False, f"Missing {init_py}"
+        return False, f"Missing {rel}"
     text = init_py.read_text()
     m = re.search(r'__version__\s*=\s*"([^"]+)"', text)
     if not m:
-        return False, f"__version__ not found in {init_py}"
+        return False, f"__version__ not found in {rel}"
     actual = m.group(1)
     if actual != expected:
-        return False, f"{init_py}: expected {expected}, got {actual}"
+        return False, f"{rel}: expected {expected}, got {actual}"
     return True, actual
 
 
 def check_npm_version(expected: str) -> tuple[bool, str]:
     pkg_json = REPO_ROOT / "package.json"
+    rel = _relative(pkg_json)
     if not pkg_json.exists():
-        return False, f"Missing {pkg_json}"
+        return False, f"Missing {rel}"
     data = json.loads(pkg_json.read_text())
     actual = data.get("version", "")
-    return (actual == expected, actual)
+    if actual != expected:
+        return False, f"{rel}: expected {expected}, got {actual}"
+    return True, actual
 
 
 def check_changelog(expected: str) -> tuple[bool, str]:
@@ -49,16 +60,6 @@ def check_changelog(expected: str) -> tuple[bool, str]:
     if re.search(pattern, text, re.MULTILINE):
         return True, f"Entry [{expected}] found"
     return False, f"No entry for [{expected}] in docs/release/changelog.md"
-
-
-def check_llm_wiki_version(expected: str) -> tuple[bool, str]:
-    cli_path = REPO_ROOT / "src" / "llm_wiki" / "cli.py"
-    if not cli_path.exists():
-        return False, f"Missing {cli_path}"
-    text = cli_path.read_text()
-    if "version" in text.lower():
-        return True, "CLI has --version flag (checked by import test)"
-    return True, "CLI exists (version check deferred to import test)"
 
 
 def check_console_script_imports() -> tuple[bool, list[str]]:
@@ -150,8 +151,8 @@ def main() -> int:
 
     print(json.dumps(report, indent=2))
 
-    if "--json-only" in sys.argv:
-        return 0
+    # Exit status is identical for --json and --json-only: the flag only
+    # controls console verbosity elsewhere; this script always emits JSON.
     return 0 if all_pass else 1
 
 

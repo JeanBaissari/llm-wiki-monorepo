@@ -62,8 +62,38 @@ jobs:
           name: dist
           path: dist/
 
+  # Release gate: no PyPI publish unless the full certification suite passes
+  # on this exact commit (manifest + docs truth + pytest + TS gates + eval gates).
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Install Python test dependencies
+        run: pip install -e ".[dev,test]"
+
+      - name: Run release certification
+        run: python3 scripts/release_certify.py
+
+      - name: Upload certification report
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-certification-report
+          path: reports/release-certification.json
+
   publish:
-    needs: build
+    needs: [build, certify]
     runs-on: ubuntu-latest
     environment:
       name: pypi

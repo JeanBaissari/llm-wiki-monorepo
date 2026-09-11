@@ -34,7 +34,7 @@ skill/scripts/        ← Thin CLI wrappers — delegate to src/llm_wiki/
 skill/SKILL.md        ← Agent skill definition — loaded by Hermes/Claude/Codex
 templates/            ← 20 domain templates (PURPOSE.md + SCHEMA.md + extra-dirs.json)
 tests/                ← pytest suite — 16 test files + conftest.py fixtures
-mcp-server/           ← TypeScript — MCP server (stdio, 14 tools)
+mcp-server/           ← TypeScript — MCP server (stdio, 15 tools)
 graph-engine/         ← TypeScript — knowledge graph (relevance, Louvain, insights)
 web-viewer/           ← TypeScript — local preview server
 extension/            ← JavaScript — Chrome web clipper

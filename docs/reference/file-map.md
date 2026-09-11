@@ -18,7 +18,7 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 | `AGENTS.md` | Architecture and conventions for AI agents |
 | `docs/architecture/overview.md` | Why this system exists, core principles, success criteria |
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
-| `install.sh` | One-command install — detects deps, builds, creates wrappers |
+| `install.sh` | One-command install — detects deps, pip-installs the package, builds TypeScript, creates optional wrappers |
 | `package.json` | NPM workspace root — scripts for build/test/run |
 | `.gitignore` | Git ignore rules |
 | `.github/workflows/ci.yml` | GitHub Actions CI — syntax checks, builds, integration tests, eval gates, release certify |
@@ -47,10 +47,13 @@ Main skill file. 10 operations. Includes EOW cron pipeline, template system, MCP
 | `graph-construction-strategies.md` | Building the wikilink/entity graph at scale with graph-engine (offline, no models) |
 | `eow-cron-pipeline.md` | Weekly automated maintenance — discover repos, assess health, conditional graph rebuild, lint, report |
 | `migration-guide.md` | Migrating v1 wikis (flat structure, log.md) to v2 format (log/ directory, wiki/ subdirectory) |
+| `concurrency.md` | Per-page advisory locking, atomic writes, content-hash conflict files, multi-machine git workflow |
+| `observability.md` | Structured logging, severity semantics, health checks, CLI conventions |
+| `examples-and-workflows.md` | End-to-end CLI, agent, MCP, and cron walkthroughs with example configs |
 
 ### `skill/scripts/` — 26 Python scripts
 
-All scripts are thin wrappers that delegate to `src/llm_wiki/` modules.
+Most scripts are CLI entry points that delegate to `src/llm_wiki/` modules; `sidecar.py`, `validate_fixtures.py`, and `regenerate_fixtures.py` are standalone (serving the MCP server and CI fixture tooling).
 
 | File | Lines | Purpose |
 |------|-------|---------|
@@ -67,7 +70,7 @@ All scripts are thin wrappers that delegate to `src/llm_wiki/` modules.
 | `migrate_log.py` | 117 | Convert v1 log.md to v2 log/ directory format |
 | `health_check.py` | — | Thin wrapper — delegates to `llm_wiki.ops.health` |
 | `index_wiki.py` | — | Thin wrapper — delegates to `llm_wiki.search` (FTS5 index build/rebuild) |
-| `serve.py` | — | Thin wrapper — delegates to `llm_wiki.ops.serve` (MCP server entry) |
+| `serve.py` | — | Thin wrapper — delegates to `llm_wiki.ops.serve` (server launcher) |
 | `sidecar.py` | — | Python sidecar used by the MCP server (long-lived process; `ask` RPC, v0.6.0) |
 | `setup.py` | — | Thin wrapper — `llm-wiki setup` one-command client wiring (LWM_035) |
 | `demo.py` | — | Thin wrapper — `llm-wiki demo` materialize the committed playground (LWM_036) |
@@ -156,7 +159,7 @@ TypeScript. 15 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wi
 |------|---------|
 | `package.json` | Dependencies: `@modelcontextprotocol/sdk` |
 | `tsconfig.json` | TypeScript config — ES2022, strict mode |
-| `src/main.ts` | Main server — 15 tool handlers, JSON-RPC via stdio |
+| `src/main.ts` | Server bootstrap — stdio JSON-RPC, delegates tool calls to the registry |
 | `src/registry.ts` | Tool registry — 15 TOOL_DEFINITIONS with schemas and handler mappings |
 | `src/types.ts` | Shared types: WikiProject, FileNode, SearchResult, ReviewItem, GraphNode, LintIssue |
 | `src/wiki-fs.ts` | Filesystem adapter — list, read, write, find, fileExists, ensureDir |
@@ -167,7 +170,7 @@ TypeScript. 15 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wi
 | `src/storage.ts` | TTL-based cache layer — raw/.cache/<key>.json with expiry |
 | `src/cleanup.ts` | Soft cascade cleanup — strip source refs on deletion, report orphans |
 | `src/discover.ts` | Sidecar bridge to core.layout — delegates via PythonSidecar, typed fallback |
-| `src/tools/` | 15 tool handler modules — one file per MCP tool (incl. `ask.ts` for `llm_wiki_ask`, LWM_033) |
+| `src/tools/` | 12 tool handler modules — grouped handlers for the 15 MCP tools (incl. `ask.ts` for `llm_wiki_ask`, LWM_033) |
 | `src/adapters/` | Adapter layer — sidecar.ts (PythonSidecar), fts5.ts, graph-engine.ts |
 | `src/projects/` | Multi-project support — workspace scanning and project management |
 | `src/security/` | Security middleware — path traversal prevention, input validation |
@@ -261,7 +264,7 @@ Express + markdown-it + KaTeX + mermaid. Search bar + graph insights panel.
 
 ## `extension/` — Browser Extension
 
-Chrome Manifest V3 web clipper. Uses Readability.js + Turndown.js. Optional auto-ingest after clip.
+Chrome Manifest V3 web clipper. Uses Readability.js + Turndown.js. Auto-ingest after clip is experimental: it POSTs to a local `/api/ingest` HTTP endpoint, while the MCP server is stdio-only — without such an endpoint the clip falls back to save-for-manual-ingest.
 
 | File | Purpose |
 |------|---------|

@@ -39,7 +39,7 @@ class TestMcpTranscripts:
     """Verify MCP tool list transcript matches current registry."""
 
     def test_tools_list_transcript(self, tmp_path):
-        """tools/list returns exactly 14 tools matching the transcript."""
+        """tools/list returns exactly 15 tools matching the transcript."""
         wiki_root = str(tmp_path / "wiki")
         os.makedirs(wiki_root, exist_ok=True)
 
@@ -55,7 +55,7 @@ class TestMcpTranscripts:
             process.wait(timeout=3)
 
     def test_14_tool_names_present(self):
-        """Verify all 14 tool names are in the registry transcript."""
+        """Verify all 15 tool names are in the registry transcript."""
         transcript_path = FIXTURES_DIR / "tools_list.json"
         assert transcript_path.exists(), "MCP transcript fixture missing"
 

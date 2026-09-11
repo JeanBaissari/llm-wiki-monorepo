@@ -114,3 +114,20 @@ def test_embed_noop_without_embedder(tmp_path):
     # no-op contract only when unavailable.
     if not stats["available"]:
         assert stats["embedded"] == 0 and stats["total"] == 0
+
+
+class EmptyBurstEmbedder(FakeEmbedder):
+    """Extra installed, but the model is unavailable at runtime (offline/cache)."""
+
+    def embed(self, texts):
+        return []
+
+
+def test_embed_degrades_when_model_unavailable_at_runtime(tmp_path):
+    """A runtime model failure must degrade to a no-op, not crash (CI: macOS
+    semantic lane with HF_HUB_OFFLINE=1 raised IndexError from embed()[0])."""
+    root = _make_wiki(tmp_path, {"a.md": "one", "b.md": "two"})
+    stats = embed_wiki(root, embedder=EmptyBurstEmbedder())
+    assert stats["available"] is False
+    assert stats["degraded"] is True
+    assert stats["embedded"] == 0 and stats["total"] == 0

@@ -29,7 +29,11 @@ PROVENANCE_PATTERNS = {
 }
 
 SOURCE_EXTENSIONS = {".ts", ".py", ".js", ".json", ".md", ".toml"}
-SKIP_DIRS = {".git", "node_modules", "dist", ".venv", "__pycache__", ".pytest_cache", "_internal"}
+SKIP_DIRS = {".git", "node_modules", "dist", "build", ".venv", "__pycache__", ".pytest_cache", "_internal",
+             # wiki/ is project knowledge content, not source code — ordinary
+             # prose ("derived from", "based on") is not a provenance marker
+             # (audit D13/CI false positive). .audit/ is agent working state.
+             "wiki", ".audit"}
 SKIP_FILES = {
     "package-lock.json", "uv.lock", "provenance.md", "CHANGELOG.md",
     # The scanner's own docstring enumerates the patterns it searches for, and

@@ -106,7 +106,18 @@ def embed_wiki(
             if vs.vector_sha256(conn, rel) == file_hash:
                 stats["skipped"] += 1
                 continue
-            vec = embedder.embed([_page_text(f)])[0]
+            vecs = embedder.embed([_page_text(f)])
+            if not vecs:
+                # The model can become unavailable at runtime (offline runner,
+                # missing/corrupt cache) even though the extra is installed —
+                # degrade to a clean no-op instead of crashing (LWM_013 #3).
+                # Uncommitted writes roll back when the connection closes.
+                stats["available"] = False
+                stats["degraded"] = True
+                stats["embedded"] = 0
+                stats["total"] = 0
+                return stats
+            vec = vecs[0]
             vs.store_vector(
                 conn, rel, file_hash, vec, time.strftime("%Y-%m-%dT%H:%M:%S")
             )
@@ -153,12 +164,19 @@ def main() -> int:
     stats = embed_wiki(root, rebuild=args.rebuild)
 
     if not stats["available"]:
-        print(
-            "Semantic extra not installed; skipping embedding "
-            "(keyword search unaffected).\n"
-            "  Install with: pip install 'baissarienterprises-llm-wiki[semantic]'",
-            file=sys.stderr,
-        )
+        if stats.get("degraded"):
+            print(
+                "Semantic embedder unavailable (model missing or download "
+                "failed); skipping embedding (keyword search unaffected).",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "Semantic extra not installed; skipping embedding "
+                "(keyword search unaffected).\n"
+                "  Install with: pip install 'baissarienterprises-llm-wiki[semantic]'",
+                file=sys.stderr,
+            )
         if args.json:
             print(json.dumps(stats, indent=2))
         return 0

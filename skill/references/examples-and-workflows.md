@@ -458,7 +458,7 @@ This is what the system looks like when every component is live, every bridge is
                   │   Researcher's Laptop        │
                   │                              │
                   │  ┌─ pip installed Python ──┐ │
-                  │  │  llm-wiki CLI (11 cmd) │ │
+                  │  │  llm-wiki CLI (27 cmd) │ │
                   │  │  discover, scaffold,    │ │
                   │  │  ingest, lint, backup,  │ │
                   │  │  insights, link-suggest,│ │
@@ -466,7 +466,7 @@ This is what the system looks like when every component is live, every bridge is
                   │  └────────────────────────┘ │
                   │                              │
                   │  ┌─ npm installed ─────────┐ │
-                  │  │  MCP Server (14 tools)  │ │
+                  │  │  MCP Server (15 tools)  │ │
                   │  │  Graph Engine (merged)  │ │
                   │  │  Web Viewer (search +   │ │
                   │  │    graph + code overlay) │ │

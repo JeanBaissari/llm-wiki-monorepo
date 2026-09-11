@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "release": {
-    "version": "0.6.1",
+    "version": "0.6.4",
     "canonical_version_source": "pyproject.toml:project.version"
   },
   "python": {
@@ -62,7 +62,7 @@
       {
         "path": ".",
         "name": "llm-wiki-monorepo",
-        "version": "0.6.1",
+        "version": "0.6.4",
         "role": "root-workspace"
       },
       {
@@ -90,6 +90,12 @@
         "role": "first-class"
       },
       {
+        "path": "packages/shared-types",
+        "name": "@baissari/llm-wiki-shared-types",
+        "version": "0.1.0",
+        "role": "first-class"
+      },
+      {
         "path": "audit-shared",
         "name": "audit-shared",
         "version": "0.1.0",
@@ -101,18 +107,15 @@
         "version": "0.1.0",
         "role": "optional",
         "tier": "optional"
-      },
-      {
-        "path": "extension",
-        "name": "llm-wiki-clipper",
-        "version": "0.2.0",
-        "role": "optional",
-        "tier": "optional"
       }
     ]
   },
+  "skill_scripts": {
+    "source": "skill/scripts",
+    "expected_count": 26
+  },
   "mcp": {
-    "tool_registry": "mcp-server/src/index.ts",
+    "tool_registry": "mcp-server/src/registry.ts",
     "expected_tool_count": 15,
     "expected_tool_names": [
       "llm_wiki_status",
@@ -120,6 +123,7 @@
       "llm_wiki_read_file",
       "llm_wiki_reviews",
       "llm_wiki_search",
+      "llm_wiki_ask",
       "llm_wiki_graph",
       "llm_wiki_graph_build",
       "llm_wiki_graph_insights",
@@ -128,8 +132,7 @@
       "llm_wiki_ingest",
       "llm_wiki_suggest_links",
       "llm_wiki_backup",
-      "llm_wiki_discover_entities",
-      "llm_wiki_ask"
+      "llm_wiki_discover_entities"
     ]
   },
   "templates": {
@@ -159,7 +162,7 @@
     ]
   },
   "changelog": {
-    "required_entry": "0.6.1",
+    "required_entry": "0.6.4",
     "file": "docs/release/changelog.md"
   },
   "docs": {

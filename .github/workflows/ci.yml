@@ -100,7 +100,7 @@ jobs:
         run: npm run test:ts
 
       - name: Zero-test guard
-        run: python3 scripts/zero_test_guard.py --test-command "npm test" --packages graph-engine mcp-server audit-shared --allow-zero audit-shared
+        run: python3 scripts/zero_test_guard.py --test-command "npm test" --packages graph-engine mcp-server audit-shared
 
   python:
     strategy:
@@ -127,14 +127,39 @@ jobs:
       - name: Check fixture freshness
         run: python3 -m pytest tests/test_fixtures_fresh.py -q
 
+      # Floor is set a few points below the locally measured 73% (3.12,
+      # `pytest tests/ -q --cov=src/llm_wiki`) — a real regression alarm that
+      # still leaves headroom for interpreter-to-interpreter variance.
       - name: Run pytest with coverage
-        run: python3 -m pytest tests/ -v --cov=src/llm_wiki --cov-report=term --cov-report=xml
+        run: python3 -m pytest tests/ -v --cov=src/llm_wiki --cov-report=term --cov-report=xml --cov-fail-under=70
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage-python-${{ matrix.python-version }}
           path: coverage.xml
+
+  # LWM_023: the opt-in absolute-latency / large-scale benchmarks are marked
+  # ``slow`` (excluded from the default pytest lane via addopts). Run the 10
+  # of them in a dedicated lane so benchmark regressions stay visible.
+  slow-tests:
+    name: Slow benchmarks (-m slow)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python test dependencies
+        run: pip install -e ".[dev,test]"
+
+      - name: Run slow-marked tests
+        env:
+          PYTHONPATH: src
+        run: python3 -m pytest tests/ -q -m slow
 
   # LWM_023: exercise the semantic layer's platform-sensitive paths (sqlite-vec
   # loadable extension + numpy KNN + hybrid fusion) on more than one OS. macOS is

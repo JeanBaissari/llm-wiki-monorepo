@@ -24,6 +24,7 @@
 | nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | MIT (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/insights.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
 | nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `X` — Doc reference | `CONTRIBUTING.md`, `docs/contributing.md`, `README.md` | `docs_only_credit` — Historical provenance disclosure ("code previously derived from nashsu/llm_wiki has been substantially rewritten in v0.3.3"). Documentation mentions only; no code copied. |
 | mixmark-io/turndown | https://github.com/mixmark-io/turndown | MIT | `C` — Vendored with attribution | `extension/Turndown.js` | `vendored_with_attribution` — Vendored turndown bundle; `collapseWhitespace` adapted from `collapse-whitespace` (MIT) and one helper adapted from https://gist.github.com/1129031 (public domain). Attribution retained in-file. |
+| mozilla/readability | https://github.com/mozilla/readability | Apache-2.0 | `C` — Vendored with attribution | `extension/Readability.js` | `vendored_with_attribution` — Readability.js vendored into the Chrome extension for article extraction. Apache-2.0 header retained in-file; the exact upstream version is unknown (the vendored file carries no version marker). |
 
 ### Algorithm — Inspired Implementation
 
@@ -54,10 +55,11 @@
 | js-yaml | ^4.1.0 | MIT | https://github.com/nodeca/js-yaml |
 | katex | ^0.16.10 | MIT | https://github.com/KaTeX/KaTeX |
 | markdown-it | ^14.1.0 | MIT | https://github.com/markdown-it/markdown-it |
-| markdown-it-anchor | ^9.0.1 | MIT | https://github.com/valeriangalliat/markdown-it-anchor |
+| markdown-it-anchor | ^9.0.1 | Unlicense | https://github.com/valeriangalliat/markdown-it-anchor |
 | markdown-it-attrs | ^4.2.0 | MIT | https://github.com/arve0/markdown-it-attrs |
 | markdown-it-texmath | ^1.0.0 | MIT | https://github.com/goessner/markdown-it-texmath |
 | mermaid | ^10.9.0 | MIT | https://github.com/mermaid-js/mermaid |
+| sigma | ^3.0.0 | MIT | https://github.com/jacomyal/sigma.js |
 | d3-drag | ^3.0.0 | ISC | https://github.com/d3/d3-drag |
 | d3-force | ^3.0.0 | ISC | https://github.com/d3/d3-force |
 | d3-selection | ^3.0.0 | ISC | https://github.com/d3/d3-selection |

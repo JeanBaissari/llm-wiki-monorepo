@@ -11,6 +11,7 @@ import {
   type Severity,
 } from "audit-shared";
 import type { ServerConfig } from "../config.js";
+import { resolveInsideRoot } from "../paths.js";
 
 const VALID_SEVERITIES: readonly Severity[] = ["info", "suggest", "warn", "error"];
 
@@ -89,7 +90,11 @@ export function handleAuditCreate(cfg: ServerConfig) {
       }
 
       // Make sure the target file exists inside the wiki root.
-      const targetFull = path.join(cfg.wikiRoot, target);
+      const targetFull = resolveInsideRoot(cfg.wikiRoot, target);
+      if (!targetFull) {
+        res.status(400).json({ error: "target escapes wiki root", target });
+        return;
+      }
       if (!fs.existsSync(targetFull) || !fs.statSync(targetFull).isFile()) {
         res.status(404).json({ error: "target file not found", target });
         return;

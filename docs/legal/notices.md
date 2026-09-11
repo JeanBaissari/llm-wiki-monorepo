@@ -19,10 +19,10 @@ The following dependencies are licensed under the MIT License. The MIT License r
 - **js-yaml** — Copyright © nodeca. MIT License.
 - **katex** — Copyright © Khan Academy. MIT License.
 - **markdown-it** — Copyright © Vitaly Puzrin. MIT License.
-- **markdown-it-anchor** — Copyright © Val (valeriangalliat). MIT License.
 - **markdown-it-attrs** — Copyright © Arve Seljebo. MIT License.
 - **markdown-it-texmath** — Copyright © Stefan Gössner. MIT License.
 - **mermaid** — Copyright © Knut Sveidqvist. MIT License.
+- **sigma** — Copyright © Alexis Jacomy and contributors. MIT License.
 - **zod** — Copyright © Colin McDonnell. MIT License.
 - **openai** — Copyright © OpenAI. MIT License.
 - **anthropic** — Copyright © Anthropic. MIT License.
@@ -134,6 +134,21 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
+
+## Unlicense (Public Domain)
+
+- **markdown-it-anchor** — Copyright © Val (valeriangalliat). Released under the Unlicense (public domain dedication).
+
+## EPL-2.0-Licensed Dependencies
+
+- **elkjs** — Copyright © Ulf Rüegg and contributors. Eclipse Public License 2.0 (EPL-2.0). Transitive dependency of `mermaid` (ELK graph layout); consumed unmodified as an npm package, not forked or modified. EPL-2.0 is a weak-copyleft license; the unmodified-binary distribution obligation is satisfied by this notice and the upstream source at https://www.eclipse.org/legal/epl-2.0/.
+
+## Dual-Licensed Dependencies (License Elections)
+
+Where a dependency offers a choice of licenses, this project elects the most permissive option:
+
+- **dompurify** — Copyright © Dr.-Ing. Mario Heiderich, Cure53. Dual-licensed `(MPL-2.0 OR Apache-2.0)`; this project elects **Apache-2.0**. Transitive dependency of `mermaid` (HTML sanitization), consumed unmodified.
+- **jszip** — Dual-licensed `(MIT OR GPL-3.0-or-later)`; this project elects **MIT**. jszip was a transitive dependency of the code-analysis surface removed in v0.6.4 (ADR-0035) and is not part of the current dependency closure; the election is recorded here should it be reintroduced.
 
 ## GPL-3.0 Upstream References
 

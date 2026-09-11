@@ -33,7 +33,7 @@ This guide walks through migrating an existing wiki from the **v1 format** (the 
 Run the migration script to split a single `log.md` into the `log/` folder:
 
 ```bash
-python3 scripts/migrate_log.py <wiki-root>
+python3 skill/scripts/migrate_log.py <wiki-root>
 ```
 
 This parses `log.md`, groups entries by date, creates `log/YYYYMMDD.md` files, and removes the old `log.md`.
@@ -86,7 +86,7 @@ mkdir -p <wiki-root>/outputs/queries
 ### 6. Run the linter
 
 ```bash
-python3 scripts/lint_wiki.py <wiki-root>
+python3 skill/scripts/lint_wiki.py <wiki-root>
 ```
 
 This identifies:
@@ -149,7 +149,7 @@ This will:
 After `compile` succeeds, run a final lint:
 
 ```bash
-python3 scripts/lint_wiki.py <wiki-root>
+python3 skill/scripts/lint_wiki.py <wiki-root>
 ```
 
 When lint passes cleanly, the migration is complete. The wiki is now ready for normal operations (`ingest`, `query`, `audit`, etc.) using the v2 skill.

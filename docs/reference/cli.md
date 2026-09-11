@@ -510,3 +510,108 @@ llm-wiki contradictions ~/wikis/redis apply           # write contradictions/con
 llm-wiki contradictions ~/wikis/redis unapply         # reverse (round-trip safe)
 llm-wiki contradictions ~/wikis/redis detect --assist llm   # opt-in LLM screening
 ```
+
+---
+
+## 21. Scaffold a Wiki (`llm-wiki scaffold`)
+
+Bootstrap a new wiki directory tree from a domain template (`research` by default; 20 templates total). `--force` overwrites an existing target; `--list-templates` prints the available names.
+
+```bash
+llm-wiki scaffold ~/my-wiki "My Topic" --template codebase
+llm-wiki scaffold --list-templates
+```
+
+**Flags:** `--template NAME` (`-t`), `--list-templates` (`-l`), `--force` (`-f`), `--page-dirs LIST`, `--no-raw`, `--no-log`, `--no-audit`, `--no-outputs`, `--verbose`. Direct script: `python3 skill/scripts/scaffold.py`.
+
+---
+
+## 22. Search Index (`llm-wiki index`)
+
+Build and maintain the disk-backed SQLite FTS5 search index. Incremental by default; `--rebuild` drops and recreates it; `--json` prints indexing stats.
+
+```bash
+llm-wiki index ~/my-wiki
+llm-wiki index ~/my-wiki --rebuild --json
+```
+
+Direct script: `python3 skill/scripts/index_wiki.py`.
+
+---
+
+## 23. Embeddings (`llm-wiki embed`)
+
+Batch-embed wiki pages into the vector store for hybrid search. Requires the optional `[semantic]` extra — without it the command is a safe no-op (the base install stays lexical-only).
+
+```bash
+llm-wiki embed ~/my-wiki
+llm-wiki embed ~/my-wiki --rebuild --json
+```
+
+**Flags:** `--rebuild` (re-embed every page), `--json`.
+
+---
+
+## 24. Eval Harness (`llm-wiki eval`)
+
+Score the lexical link-suggester against a committed gold set, with `gate`/`tune`/`all` splits, precision@k/recall@k, and a JSON report that can update the committed baseline.
+
+```bash
+llm-wiki eval ~/my-wiki --split gate
+llm-wiki eval ~/my-wiki --split all --k 10 --json
+```
+
+**Flags:** `--goldset PATH`, `--split {gate,tune,all}` (default `gate`), `--k N` (default 5), `--json`, `--baseline-out PATH`.
+
+---
+
+## 25. Health Check (`llm-wiki health`)
+
+Subsystem health report for a wiki (index, sidecar state, layout, and related components).
+
+```bash
+llm-wiki health ~/my-wiki
+llm-wiki health ~/my-wiki --quiet
+```
+
+**Flags:** `--quiet`, `--verbose`. Direct script: `python3 skill/scripts/health_check.py`.
+
+---
+
+## 26. Web Preview (`llm-wiki serve`)
+
+Start the opt-in, local-only web preview for human browsing (mermaid, KaTeX, audit feedback). Local-only by default — see the [security boundary](../operations/security-and-boundaries.md) before exposing it. For programmatic MCP access, launch `npx llm-wiki-mcp --wiki <root>` instead.
+
+```bash
+llm-wiki serve ~/my-wiki
+llm-wiki serve ~/my-wiki --build   # build the TypeScript server first when dist/ is missing
+```
+
+**Flags:** `--projects NAMES` (multi-wiki mode), `--build`. Direct script: `python3 skill/scripts/serve.py`.
+
+---
+
+## 27. Operation Manifests (`llm-wiki ops`)
+
+List completed (or failed) operation manifests recorded under `<wiki>/.llm-wiki/operations/{completed,failed}/`.
+
+```bash
+llm-wiki ops list ~/my-wiki
+llm-wiki ops list ~/my-wiki --status completed --limit 10 --json
+```
+
+**Flags (`ops list`):** `--limit N`, `--status {completed,failed,all}`, `--json`.
+
+---
+
+## 28. Claim Sidecar (`llm-wiki claims`)
+
+Claim/event/contradiction sidecar management: `health` prints a claim-health report, `diff` compares claims between two wiki snapshots, and `redteam` scores claim quality.
+
+```bash
+llm-wiki claims health ~/my-wiki
+llm-wiki claims diff ~/my-wiki /tmp/snapshot
+llm-wiki claims redteam ~/my-wiki --json
+```
+
+**Flags (`redteam`):** `--json`, `--set section.key=value` (tuning override, e.g. `claims.penaltyStale=4`).

@@ -30,10 +30,11 @@ src/llm_wiki/         ← Python package — CLI, LLM providers, concurrency, se
   ├── wiki/           ← Scaffold, backup
   ├── research/       ← Deep research pipeline
   └── contracts/      ← Schema validation
-skill/scripts/        ← Thin CLI wrappers — delegate to src/llm_wiki/
+skill/scripts/        ← Python CLI entry points — most delegate to src/llm_wiki/,
+                        a few (sidecar.py, validate_fixtures.py, regenerate_fixtures.py) are standalone
 skill/SKILL.md        ← Agent skill definition — loaded by Hermes/Claude/Codex
 templates/            ← 20 domain templates (PURPOSE.md + SCHEMA.md + extra-dirs.json)
-tests/                ← pytest suite — 16 test files + conftest.py fixtures
+tests/                ← pytest suite — 67 test files + conftest.py fixtures
 mcp-server/           ← TypeScript — MCP server (stdio, 15 tools)
 graph-engine/         ← TypeScript — knowledge graph (relevance, Louvain, insights)
 web-viewer/           ← TypeScript — local preview server

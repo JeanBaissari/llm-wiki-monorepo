@@ -217,7 +217,7 @@ For each issue, propose a fix, confirm with the user, then apply. Log: `## [HH:M
 Process human feedback from `audit/`.
 
 **Steps**:
-1. Run `python3 scripts/audit_review.py <wiki-root> --open` to get a grouped list.
+1. Run `python3 skill/scripts/audit_review.py <wiki-root> --open` to get a grouped list.
 2. For each open audit, read the file. Use the `anchor_before` / `anchor_text` / `anchor_after` window to locate the exact range in the target file (line numbers may have drifted).
 3. Decide the action:
    - **Accept**: apply the correction to the target file.
@@ -323,14 +323,14 @@ Detect contradictory claims across pages and compute evidence-grounded confidenc
 |------|---------|
 | [Obsidian](https://obsidian.md) | IDE for browsing the wiki; graph view shows connections |
 | **`plugins/obsidian-audit/`** | Obsidian plugin — select text → add feedback → writes to `audit/` |
-| **`web/`** | Local Node.js server — preview the wiki with mermaid/math rendered; select → feedback → `audit/` |
-| `scripts/scaffold.py` | Bootstrap a new wiki directory tree |
-| `scripts/ingest.py` | Two-step chain-of-thought ingest (higher quality) |
-| `scripts/lint_wiki.py` | Fifteen-pass health check (links, orphans, index, frontmatter, staleness, confidence, contradictions, drift, size, rotation, audit shape, log shape, template validation) |
-| `scripts/deep_research.py` | Web search + auto-ingest + synthesis for a research topic |
-| `scripts/graph_insights.py` | Surprising connections and knowledge gap detection |
-| `scripts/audit_review.py` | Group open/resolved audits by target file |
-| `scripts/migrate_log.py` | Convert v1 log.md to v2 log/ directory |
+| **`web-viewer/`** | Local Node.js server — preview the wiki with mermaid/math rendered; select → feedback → `audit/` |
+| `skill/scripts/scaffold.py` | Bootstrap a new wiki directory tree |
+| `skill/scripts/ingest.py` | Two-step chain-of-thought ingest (higher quality) |
+| `skill/scripts/lint_wiki.py` | Fifteen-pass health check (links, orphans, index, frontmatter, staleness, confidence, contradictions, drift, size, rotation, audit shape, log shape, template validation) |
+| `skill/scripts/deep_research.py` | Web search + auto-ingest + synthesis for a research topic |
+| `skill/scripts/graph_insights.py` | Surprising connections and knowledge gap detection |
+| `skill/scripts/audit_review.py` | Group open/resolved audits by target file |
+| `skill/scripts/migrate_log.py` | Convert v1 log.md to v2 log/ directory |
 | **`mcp-server/`** | Standalone MCP server — 15 tools (status, files, read_file, reviews, search, ask, graph, graph_build, graph_insights, graph_search, lint, ingest, suggest_links, backup, discover_entities) working against any wiki directory |
 | [qmd](https://github.com/tobi/qmd) | Optional local semantic search (useful at >100 pages) |
 | [Obsidian Headless](https://github.com/obsidian-headless/obsidian-headless) | Server-side Obsidian for headless deployments — render, lint, and sync wikis without a GUI |
@@ -427,7 +427,7 @@ The monorepo ships with 20 domain-specific project templates. Each template prov
 
 **Using templates:**
 ```bash
-python3 scripts/scaffold.py ~/my-wiki "My Topic" --template codebase
+python3 skill/scripts/scaffold.py ~/my-wiki "My Topic" --template codebase
 ```
 
 Templates live at `templates/<name>/` in the monorepo. Create new templates by copying an existing one and customizing.
@@ -437,7 +437,7 @@ Templates live at `templates/<name>/` in the monorepo. Create new templates by c
 ## Starting a new wiki
 
 ```bash
-python3 scripts/scaffold.py <wiki-root> "<Topic Title>" [--template <name>]
+python3 skill/scripts/scaffold.py <wiki-root> "<Topic Title>" [--template <name>]
 ```
 
 Without `--template`, uses the default `research` template. With `--template`, copies the domain-specific PURPOSE.md and SCHEMA.md (as CLAUDE.md), creates the template's extra directories, and sets up the wiki with domain-appropriate conventions.

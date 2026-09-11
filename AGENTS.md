@@ -48,6 +48,9 @@ The wiki directory is the shared state. Every component reads/writes the same ma
 bash install.sh
 
 # Or step-by-step:
+# Shared types (graph-engine + mcp-server import this — build it first)
+cd packages/shared-types && npm install && npm run build
+
 # Graph engine
 cd graph-engine && npm install && npx tsc
 
@@ -124,7 +127,7 @@ Run `llm-wiki --help` for full command list and flags. Run `llm-wiki <command> -
 
 | File | Why it matters |
 |------|---------------|
-| `skill/SKILL.md` | The agent skill — defines all 8 operations. Loaded by Hermes/Claude/Codex. |
+| `skill/SKILL.md` | The agent skill — defines all ten operations. Loaded by Hermes/Claude/Codex. |
 | `skill/scripts/scaffold.py` | Creates new wikis. `--template` flag picks domain template. |
 | `skill/scripts/ingest.py` | Two-step CoT ingest. Stage 1 analysis → Stage 2 generation. |
 | `skill/scripts/discover.py` | Auto-discovers wiki structure (pages, sources, logs, audits) — single source of truth for all tools. |

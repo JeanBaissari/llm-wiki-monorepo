@@ -107,7 +107,7 @@ npx llm-wiki-mcp --wiki ~/my-wiki
 claude mcp add llm-wiki -- npx llm-wiki-mcp --wiki ~/my-wiki
 ```
 
-Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) via 15 stdio tools. Register it with `claude mcp add`, the opencode `.mcp.json` form, or `llm-wiki setup` (one-command wiring, v0.6.0). Requires a built mcp-server: `cd mcp-server && npm run build` (or `bash install.sh`). See the [MCP tools reference](docs/reference/mcp-tools.md).
+Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) via 15 stdio tools. Register it with `claude mcp add`, the opencode `opencode.json` `mcp` form, or `llm-wiki setup` (one-command wiring, v0.6.0). Requires a built mcp-server: `cd mcp-server && npm run build` (or `bash install.sh`). See the [MCP tools reference](docs/reference/mcp-tools.md).
 
 ### 3. Hermes skill (in-conversation agent workflow)
 
@@ -115,7 +115,7 @@ Programmatic wiki access for any MCP client (Claude, Codex, Cursor, opencode) vi
 ln -sf /path/to/llm-wiki-monorepo/skill ~/.hermes/skills/research/llm-wiki
 ```
 
-Loads the 8-operation skill for Claude/Hermes sessions — agent-native, no API keys needed. See [skill/SKILL.md](skill/SKILL.md).
+Loads the ten-operation skill for Claude/Hermes sessions — agent-native, no API keys needed. See [skill/SKILL.md](skill/SKILL.md).
 
 ### 4. Cron / automation
 
@@ -172,11 +172,11 @@ Opt-in local preview server for human browsing (mermaid, KaTeX, audit feedback).
 
 - **Deep Research** — web search → fetch → ingest → synthesize. Multi-source compilation into structured wiki pages.
 
-- **Chrome Web Clipper** — one-click web page capture with Readability + Turndown, auto-triggering ingest after clip.
+- **Chrome Web Clipper** — one-click web page capture with Readability + Turndown. Auto-ingest after clip is experimental and only works against a locally running HTTP endpoint (the MCP server itself is stdio-only); otherwise save + `llm-wiki ingest` manually.
 
 - **Claim & Epistemic Tracking** — optional sidecar model: claims, epistemic events (created/reinforced/challenged/weakened/superseded/resolved), and contradiction records with JSONL storage. Health reports and diffs between wiki states.
 
-- **Modular Architecture** — 28 flat modules reorganized into 10 domain packages: `core/` (primitives), `quality/{claims,lint,audit}/`, `ingest/` (pipeline), `providers/` (LLM adapters), `graph/` (louvain, insights, suggestions), `search/` (FTS5), `ops/` (health, serve, benchmark), `wiki/` (scaffold, backup), `research/` (deep-research), `contracts/` (schema validation). MCP server split from 1,287-line monolith into 20 focused files.
+- **Modular Architecture** — the package ships 14 subpackages under `src/llm_wiki/`: `core/` (primitives), `quality/{claims,lint,audit}/`, `ingest/` (pipeline), `providers/` (LLM adapters), `graph/` (louvain, insights, suggestions, entities, ask), `search/` (FTS5), `semantic/` (optional embeddings), `eval/` (gold-set gates), `setup/` (client wiring), `ops/` (health, serve, benchmark), `wiki/` (scaffold, backup, demo), `research/` (deep-research), `contracts/` (schema validation), and `templates/` (wheel template data). The MCP server is split from a 1,287-line monolith into 32 focused TypeScript files.
 
 - **CI/CD Pipeline** — pytest + vitest matrix across Python 3.10–3.12 and Node 18–22, coverage reporting, trusted OIDC publishing to PyPI on tag push.
 
@@ -186,7 +186,9 @@ Opt-in local preview server for human browsing (mermaid, KaTeX, audit feedback).
 # Install from PyPI
 pip install baissarienterprises-llm-wiki
 
-# Or install from source
+# Or install the full repo from source — pip-installs the Python package
+# (installing the `llm-wiki` console script), builds the TypeScript
+# surfaces, and validates the CLI.
 git clone https://github.com/JeanBaissari/llm-wiki-monorepo.git
 cd llm-wiki-monorepo
 bash install.sh
@@ -200,11 +202,8 @@ llm-wiki ingest ~/my-wiki raw/articles/my-source.md
 # Use agent-native provider (no API keys — inside Hermes/Claude Code/Codex)
 llm-wiki ingest ~/my-wiki raw/articles/my-source.md --llm opencode
 
-# Check quality
+# Check quality (15 automated checks; --json for machine output)
 llm-wiki lint ~/my-wiki
-
-# Clean up old conflicts automatically
-llm-wiki lint ~/my-wiki --clean-conflicts
 
 # Build search index
 llm-wiki index ~/my-wiki
@@ -218,7 +217,10 @@ llm-wiki health ~/my-wiki
 # Claim tracking (optional sidecar)
 llm-wiki claims health ~/my-wiki
 
-# Start MCP server (15 tools via stdio)
+# Start the MCP server (15 tools via stdio)
+npx llm-wiki-mcp --wiki ~/my-wiki
+
+# Or run the opt-in local web preview (mermaid, KaTeX, audit feedback)
 llm-wiki serve ~/my-wiki
 ```
 
@@ -242,7 +244,7 @@ llm-wiki serve ~/my-wiki
       ├── Graph Engine (Node.js)          → relevance model, Louvain, insights
       ├── shared-types (TS)               → canonical GraphNode/GraphEdge types
       ├── Web Viewer + Obsidian Plugin    → human browsing + feedback
-      ├── Browser Extension               → web clipping + auto-ingest
+      ├── Browser Extension               → web clipping (auto-ingest experimental)
       └── templates/                      → 20 domain schemas
  ```
 
@@ -257,7 +259,7 @@ llm-wiki serve ~/my-wiki
 | `templates/` | Markdown + JSON | core | 20 domain-specific project templates |
 | `tests/` | Python + TypeScript | core | pytest (ingest, lint, concurrency, search, opencode) + vitest (graph, mcp) |
 | `web-viewer/` | TypeScript | optional | Preview server with search + graph insights panel |
-| `extension/` | JavaScript | optional | Chrome web clipper with auto-ingest |
+| `extension/` | JavaScript | optional | Chrome web clipper (auto-ingest experimental) |
 | `audit-shared/` | TypeScript | core | Shared audit file format library |
 | `plugins/obsidian-audit/` | TypeScript | optional | Obsidian plugin — file feedback from vault |
 | `graph-bridge/` | TypeScript | adapter | Graph merger bridge (no default consumer since v0.6.4) |
@@ -286,7 +288,7 @@ Every template provides: `PURPOSE.md` (scope + goals), `SCHEMA.md` → `CLAUDE.m
 | `docs/release/versioning.md` | Semantic versioning policy and release process |
 | `docs/architecture/overview.md` | Why this system exists — design philosophy and goals |
 | `docs/adr/` | Architecture Decision Records — ADRs 0001–0028 + index + decision register |
-| `skill/references/` | 13 detailed reference guides including concurrency, observability, and ingest |
+| `skill/references/` | 12 detailed reference guides including concurrency, observability, and ingest |
 
 ## Requirements
 

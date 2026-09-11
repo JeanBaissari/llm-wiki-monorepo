@@ -94,9 +94,9 @@ This algorithm lives in `audit-shared/src/anchor.ts` and is the single source of
 
 ## Processing workflow (the `audit` op)
 
-See `SKILL.md` → "The eight operations" → `audit` for the canonical version. In short:
+See `SKILL.md` → "The ten operations" → `audit` for the canonical version. In short:
 
-1. `python3 scripts/audit_review.py <wiki-root> --open` → get a grouped list.
+1. `python3 skill/scripts/audit_review.py <wiki-root> --open` → get a grouped list.
 2. For each open audit:
    - Read the file, use the anchor to locate the range in the target.
    - Decide: accept / partial / reject / defer.
@@ -128,9 +128,9 @@ For `rejected` audits: explain **why** — most often "out of scope per CLAUDE.m
 
 ## Tooling
 
-- **`scripts/lint_wiki.py`** validates audit file shape and that every `target` file exists.
-- **`scripts/audit_review.py`** lists and groups audits.
+- **`skill/scripts/lint_wiki.py`** validates audit file shape and that every `target` file exists.
+- **`skill/scripts/audit_review.py`** lists and groups audits.
 - **`plugins/obsidian-audit/`** writes audit files from inside Obsidian on selection.
-- **`web/`** writes audit files from the local web viewer on selection.
+- **`web-viewer/`** writes audit files from the local web viewer on selection.
 - **`audit-shared/`** — TypeScript library implementing the schema, anchor algorithm, id generator, and YAML (de)serialization used by the plugin and the web server.
 

@@ -69,6 +69,20 @@ ALIASES = {
 }
 
 
+def print_usage(stream=None) -> None:
+    """Print the top-level usage + command list to ``stream``."""
+    stream = stream if stream is not None else sys.stderr
+    print("Usage: llm-wiki <command> [args...]\n", file=stream)
+    print("Available commands:", file=stream)
+    for name in sorted(COMMANDS):
+        aliases = [a for a, t in ALIASES.items() if t == name]
+        alias_str = f"  ({', '.join(aliases)})" if aliases else ""
+        print(f"  {name:15s}{alias_str}", file=stream)
+    print(file=stream)
+    print("Flags:  llm-wiki --version   Show version", file=stream)
+    print("        llm-wiki --help      Show this help", file=stream)
+
+
 def main() -> int:
     # Windows consoles default to the ANSI codepage (cp1252 etc.), which cannot
     # encode the ✓/⚠ markers used across the CLI — scaffold crashed with
@@ -82,15 +96,12 @@ def main() -> int:
             break
 
     if len(sys.argv) < 2:
-        print("Usage: llm-wiki <command> [args...]\n", file=sys.stderr)
-        print("Available commands:", file=sys.stderr)
-        for name in sorted(COMMANDS):
-            aliases = [a for a, t in ALIASES.items() if t == name]
-            alias_str = f"  ({', '.join(aliases)})" if aliases else ""
-            print(f"  {name:15s}{alias_str}", file=sys.stderr)
-        print(file=sys.stderr)
-        print("Flags:  llm-wiki --version   Show version", file=sys.stderr)
-        return 1
+        print_usage(sys.stderr)
+        return 2
+
+    if sys.argv[1] in ("-h", "--help"):
+        print_usage(sys.stdout)
+        return 0
 
     if sys.argv[1] in ("--version", "-V"):
         from llm_wiki import __version__
@@ -101,7 +112,7 @@ def main() -> int:
     module_path = COMMANDS.get(cmd) or COMMANDS.get(ALIASES.get(cmd))
     if not module_path:
         print(f"Unknown command: {cmd}", file=sys.stderr)
-        print(f"Run 'llm-wiki' to see available commands.", file=sys.stderr)
+        print("Run 'llm-wiki --help' to see available commands.", file=sys.stderr)
         return 1
 
     module = import_module(module_path)

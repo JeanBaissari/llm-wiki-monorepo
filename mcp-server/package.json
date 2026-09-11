@@ -2,7 +2,7 @@
   "name": "mcp-server",
   "version": "1.0.0",
   "private": true,
-  "description": "Standalone MCP server for LLM Wiki — 14 tools working directly against a wiki directory",
+  "description": "Standalone MCP server for LLM Wiki — 15 tools working directly against a wiki directory",
   "main": "dist/main.js",
   "type": "module",
   "bin": {

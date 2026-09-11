@@ -1,6 +1,6 @@
 # LLM Wiki — Examples & Workflows
 
-Comprehensive reference covering everything from basic CLI usage to advanced agent-driven pipelines. Updated for current state (v0.3.4).
+Comprehensive reference covering everything from basic CLI usage to advanced agent-driven pipelines. Updated for the current state (v0.6.x; 27 CLI commands, 15 MCP tools).
 
 ---
 
@@ -13,31 +13,34 @@ llm-wiki-monorepo/
 │
 ├── src/llm_wiki/          ← CANONICAL Python package (pip install)
 │   ├── __init__.py
-│   ├── cli.py             ← Unified CLI dispatcher
-│   ├── scaffold.py
-│   ├── ingest.py
-│   ├── lint_wiki.py       ← 15 passes
-│   ├── discover.py        ← Single source of truth for paths
-│   ├── graph_insights.py
-│   ├── link_suggest.py
-│   ├── backup.py
-│   ├── benchmark.py
-│   ├── deep_research.py
-│   ├── audit_review.py
-│   ├── migrate_log.py
+│   ├── cli.py             ← Unified CLI dispatcher (27 commands)
+│   ├── core/              ← Primitives: layout, locking, atomic, hashing, config, tuning
+│   ├── quality/           ← lint (15 checks), claims, audit
+│   ├── ingest/            ← Pipeline: blocks, writer, cache
+│   ├── providers/         ← LLM adapters (openai, anthropic, opencode)
+│   ├── graph/             ← louvain, insights, suggestions, entities, ask
+│   ├── search/            ← FTS5 index + hybrid query
+│   ├── semantic/          ← Optional embeddings (no-op without [semantic])
+│   ├── eval/              ← Gold-set gates and harness
+│   ├── setup/             ← Client wiring (llm-wiki setup)
+│   ├── ops/               ← health, serve, benchmark, migrate, ops list
+│   ├── wiki/              ← scaffold, backup, demo
+│   ├── research/          ← deep-research pipeline
+│   ├── contracts/         ← Schema validation
 │   └── templates/         ← 20 templates shipped in wheel
 │
-├── skill/scripts/         ← DEPRECATED — thin wrappers with warning
+├── skill/scripts/         ← Python CLI entry points — actively supported
+│                             (most delegate to src/llm_wiki/)
 │
-├── tests/                 ← unittest suite (all operational scripts)
+├── tests/                 ← pytest suite (67 test files + fixtures)
 │   ├── test_scaffold.py
 │   ├── test_discover.py
 │   ├── test_lint.py
-│   ├── test_backup.py
+│   ├── test_backup_integrity.py
 │   ├── test_ingest.py
 │   ├── test_link_suggest.py
-│   ├── test_graph_insights.py
-│   └── test_cli.py
+│   ├── test_insights_consolidation.py
+│   └── test_cli_snapshots.py
 │
 ├── graph-engine/          ← TypeScript — wikilink knowledge graph
 │   └── src/
@@ -46,25 +49,22 @@ llm-wiki-monorepo/
 │       ├── relevance.ts
 │       └── louvain.ts
 │
-├── graph-bridge/          ← npm package (@baissari/llm-wiki-graph-bridge)
-│   └── src/
-│       ├── merger.ts      ← Merges graph layers
-│       └── types.ts
+├── graph-bridge/          ← npm package (@baissari/llm-wiki-graph-bridge;
+│                             no default consumer since v0.6.4)
 │
 ├── mcp-server/            ← TypeScript — 15 tools, multi-wiki
 ├── web-viewer/            ← TypeScript — search + graph panel + derived overlay
-├── extension/             ← Chrome — web clipper + auto-ingest
+├── extension/             ← Chrome — web clipper (auto-ingest experimental)
 ├── audit-shared/          ← TypeScript — audit schema
 ├── plugins/obsidian-audit/
 │
 ├── docs/
 │   ├── adr/               ← Architecture Decision Records
-│   ├── examples/          ← Walkthrough galleries
-│   └── api/               ← Python package API reference
+│   └── operations/        ← Operations notes and runbooks
 │
-├── CLAUDE.md → AGENTS.md  ← Symlink for agent compatibility
+├── AGENTS.md              ← Agent instructions (repository root)
 ├── CONTRIBUTING.md
-├── changelog.md
+├── docs/release/changelog.md
 ├── docs/release/versioning.md
 │
 ├── pyproject.toml          ← PyPI: baissarienterprises-llm-wiki
@@ -77,7 +77,7 @@ llm-wiki-monorepo/
 
 ---
 
-## 2. Current State (v0.3.4) Quick Reference
+## 2. Current State (v0.6.x) Quick Reference
 
 ### Install
 
@@ -85,25 +85,41 @@ llm-wiki-monorepo/
 pip install baissarienterprises-llm-wiki
 
 # Verify
-llm-wiki --version          # → 0.1.1
-llm-wiki --help             # → 11 available commands
+llm-wiki --version          # → current release (see release-manifest.json)
+llm-wiki --help             # → usage + all 27 commands
 ```
 
-### All Commands
+### All Commands (27)
 
 | Command | Purpose |
 |---------|---------|
 | `llm-wiki scaffold <root> <title>` | Create a new wiki from 20 templates |
-| `llm-wiki lint <root>` | 15-pass health check |
+| `llm-wiki lint <root>` | 15-check health check |
 | `llm-wiki ingest <root> <source>` | Two-stage agent loop ingest |
 | `llm-wiki discover <root>` | Auto-detect wiki structure |
 | `llm-wiki insights <root>` | Graph analysis (surprising connections, gaps) |
 | `llm-wiki link-suggest <root>` | Missing wikilink suggestions |
+| `llm-wiki entities resolve\|list\|unmerge` | Reversible entity resolution |
+| `llm-wiki derive-edges <root>` | Quarantined derived-edge layer (NMI-gated) |
+| `llm-wiki summarize-communities <root>` | Hierarchical community summaries |
 | `llm-wiki backup <root>` | Snapshot, restore, verify, prune |
 | `llm-wiki deep-research <root> <topic>` | Web search → fetch → ingest → synthesize |
 | `llm-wiki audit <root>` | List open/resolved reviews |
 | `llm-wiki benchmark <csv>` | Performance benchmarks (10–5000 pages) |
 | `llm-wiki migrate-log <root>` | Convert v1 log.md → v2 log/ |
+| `llm-wiki ops list <root>` | List completed/failed operation manifests |
+| `llm-wiki tuning <root>` | Inspect/resolve the precision-tuning config |
+| `llm-wiki index <root>` | Build/rebuild the FTS5 search index |
+| `llm-wiki search <root> <query>` | Hybrid (default) / keyword search |
+| `llm-wiki embed <root>` | Batch-embed pages (`[semantic]` extra; no-op without) |
+| `llm-wiki eval <root>` | Score link-suggester against a gold set |
+| `llm-wiki health <root>` | Subsystem health check |
+| `llm-wiki serve <root>` | Opt-in local web preview |
+| `llm-wiki claims health\|diff\|redteam` | Claim sidecar management |
+| `llm-wiki setup <root>` | One-command MCP client wiring |
+| `llm-wiki demo <dest>` | Materialize the committed demo wiki |
+| `llm-wiki ask <root> "<question>"` | Grounded QA over summaries + pages |
+| `llm-wiki contradictions <root>` | Contradiction detection + evidence confidence |
 
 ---
 
@@ -308,7 +324,7 @@ node mcp-server/dist/main.js --wiki ~/projects/baissari-vbt-lab
 
 **Multi-wiki mode:** Serve all wikis from a directory. Each tool call includes a `project` parameter.
 
-**Available tools (8):**
+**Available tools (15):**
 
 | Tool | Description | Example |
 |------|-------------|---------|
@@ -316,10 +332,17 @@ node mcp-server/dist/main.js --wiki ~/projects/baissari-vbt-lab
 | `llm_wiki_files` | File tree listing | `{ "project": "quant-lab", "scope": "wiki" }` |
 | `llm_wiki_read_file` | Read any file (120KB limit) | `{ "project": "quant-lab", "path": "wiki/concepts/xau_swinger.md" }` |
 | `llm_wiki_reviews` | List review items | `{ "project": "quant-lab", "status": "open" }` |
-| `llm_wiki_search` | BM25 full-text search | `{ "project": "quant-lab", "query": "drawdown protection" }` |
-| `llm_wiki_graph` | Build/insights/search | `{ "project": "quant-lab", "action": "insights" }` |
+| `llm_wiki_search` | Hybrid search (BM25 + semantic KNN via RRF; `mode: "keyword"` to force lexical) | `{ "project": "quant-lab", "query": "drawdown protection" }` |
+| `llm_wiki_ask` | Grounded QA with citations (deterministic `no_llm` passages mode) | `{ "project": "quant-lab", "question": "how does failover work?" }` |
+| `llm_wiki_graph` | Backward-compatible graph wrapper | `{ "project": "quant-lab", "action": "insights" }` |
+| `llm_wiki_graph_build` | Build the knowledge graph | `{ "project": "quant-lab" }` |
+| `llm_wiki_graph_insights` | Surprising connections + knowledge gaps | `{ "project": "quant-lab" }` |
+| `llm_wiki_graph_search` | Search graph nodes | `{ "project": "quant-lab", "query": "risk" }` |
 | `llm_wiki_lint` | Run lint checks | `{ "project": "quant-lab" }` |
 | `llm_wiki_ingest` | Trigger ingest on a source | `{ "project": "quant-lab", "source": "raw/articles/new-paper.md" }` |
+| `llm_wiki_suggest_links` | Missing wikilink suggestions with confidence | `{ "project": "quant-lab", "limit": 10 }` |
+| `llm_wiki_backup` | Timestamped snapshot with integrity verification | `{ "project": "quant-lab" }` |
+| `llm_wiki_discover_entities` | List the entity registry | `{ "project": "quant-lab", "type": "tool" }` |
 
 **Example agent prompt with MCP:**
 
@@ -355,15 +378,15 @@ codex mcp add llm-wiki -- \
 
 ### 4.3 OpenCode
 
-In your OpenCode JSON config:
+In your `opencode.json` (opencode uses the `mcp` key with `type: "local"`):
 
 ```json
 {
-  "mcpServers": {
+  "mcp": {
     "llm-wiki": {
-      "command": "node",
-      "args": ["/path/to/mcp-server/dist/main.js", "--projects", "/path/to/wikis"],
-      "env": {}
+      "type": "local",
+      "command": ["node", "/path/to/mcp-server/dist/main.js", "--projects", "/path/to/wikis"],
+      "enabled": true
     }
   }
 }
@@ -381,7 +404,7 @@ The `skill/` directory is a Hermes-compatible skill. Symlink it:
 ln -sf /path/to/llm-wiki-monorepo/skill ~/.hermes/skills/research/llm-wiki
 ```
 
-The skill defines 8 operations: `compile`, `ingest`, `ingest-2step`, `query`, `lint`, `audit`, `research`, `insights`.
+The skill defines ten operations: `compile`, `ingest`, `ingest-2step`, `query`, `lint`, `audit`, `research`, `insights`, `ask`, `contradictions`.
 
 When the Hermes cron loads this skill, it runs the EOW pipeline automatically:
 
@@ -390,7 +413,7 @@ Cron triggers → skill loaded → discover repos → for each repo:
   1. Assess health (page count, graph age, recent log entries)
   2. Build graph (or conditional rebuild if stale)
   3. Run insights (surprising connections + knowledge gaps)
-  4. Run lint (15 passes)
+  4. Run lint (15 checks)
   5. Compile health report
   6. Append to log/
 ```
@@ -469,12 +492,12 @@ This is what the system looks like when every component is live, every bridge is
                   │  │  MCP Server (15 tools)  │ │
                   │  │  Graph Engine (merged)  │ │
                   │  │  Web Viewer (search +   │ │
-                  │  │    graph + code overlay) │ │
+                  │  │    graph + derived view) │ │
                   │  └────────────────────────┘ │
                   │                              │
                   │  ┌─ Browser ───────────────┐ │
                   │  │  Extension (web clipper │ │
-                  │  │  + auto-ingest)         │ │
+                  │  │  + experimental ingest) │ │
                   │  │  Web Viewer (tab:       │ │
                   │  │  Pages/Search/Graph)    │ │
                   │  └────────────────────────┘ │
@@ -498,7 +521,8 @@ This is what the system looks like when every component is live, every bridge is
 
 08:30 — Researcher adds a new paper via browser extension:
         • Clicks extension → clips arXiv page
-        • Auto-ingest triggers → new concepts detected
+        • Saves to raw/ → runs `llm-wiki ingest` (auto-ingest is experimental
+          and needs a local /api/ingest endpoint)
         • Link suggestions fire → connects to existing transformer theory
 
 09:00 — Interacts via Claude Desktop:
@@ -567,11 +591,10 @@ All operations are linear or sub-linear (verified by `llm-wiki benchmark`).
 │   └── synthesis/             ← Deep research syntheses
 ├── outputs/                   ← Query answers
 │   └── queries/
-├── graph-data.json            ← Wikilink graph (generated)
-└── code-graph.json            ← Code structure graph (generated, when applicable)
+└── graph-data.json            ← Wikilink graph (generated)
 ```
 
-### Template Directories (19)
+### Template Directories (20)
 
 ```
 algorithmic-trading  (strategies/, backtests/, indicators/, risk/, modules/)

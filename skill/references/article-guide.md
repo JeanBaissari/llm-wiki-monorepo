@@ -10,7 +10,7 @@ Guidelines for writing high-quality wiki articles. Read before compiling a new c
 | Folder-split `index.md` | 150–400 words | Definition + map of sub-pages |
 | Sub-page under a folder-split | 400–1200 words | Covers one aspect |
 | Entity page | 200–500 words | Factual, link-heavy |
-| Summary page | 150–400 words | Takeaways, not a rewrite |
+| Summary page | 200–400 words | Takeaways, not a rewrite |
 
 Avoid padding. A 400-word article that's dense beats an 800-word article with filler.
 

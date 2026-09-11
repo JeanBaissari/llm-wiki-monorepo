@@ -51,12 +51,12 @@ Commands (bind to hotkeys if you like):
 
 The plugin uses the shared `audit-shared` library, so files it writes are byte-identical in shape to files the web viewer writes.
 
-## Web viewer — `web/`
+## Web viewer — `web-viewer/`
 
 Local Node.js server that renders the wiki with mermaid, KaTeX, and wikilinks, and lets you file feedback from your browser.
 
 ```bash
-cd web
+cd web-viewer
 npm install
 npm run build
 npm start -- --wiki "/path/to/wiki-root" --port 4175

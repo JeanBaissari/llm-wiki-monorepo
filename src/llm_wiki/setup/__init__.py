@@ -237,7 +237,7 @@ def _register_for(
     cwd: Path,
     dry: bool,
     *,
-    explicit: str,
+    explicit: str | None = None,
 ) -> None:
     for client in clients_to_run:
         if client == "claude":

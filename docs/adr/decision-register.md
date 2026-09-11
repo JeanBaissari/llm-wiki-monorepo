@@ -15,7 +15,7 @@ All Architecture Decision Records, ordered by number. Status: **accepted** (fina
 | 0009 | 2026-07-04 | Agent-Native Provider for Zero-API-Key Ingest | accepted | LWM_009 | Pluggable agent-native LLM providers; zero-API-key ingest path. |
 | 0010 | 2026-07-04 | MCP Server Architecture — stdio + Python Sidecar | accepted | LWM_010 | MCP server runs over stdio, delegating Python ops to a sidecar. |
 | 0011 | 2026-07-04 | Inverted Entity Index for O(1) Link Suggestions | accepted | LWM_011 | Dual-map inverted index makes link-suggestion queries O(1). |
-| 0012 | 2026-07-04 | Community Verification Suite — NMI/ARI Cross-Validation | amended | LWM_012 | Automated NMI/ARI suite cross-validates Python vs TS community engines (amended by ADR-0017: exact parity NMI/ARI == 1.0; also extended by ADR-0025 for Leiden). |
+| 0012 | 2026-07-04 | Community Verification Suite — NMI/ARI Cross-Validation | amended | LWM_012 | Automated NMI/ARI suite cross-validates Python vs TS community engines (amended by ADR-0017: parity gate NMI/ARI ≥ 0.95 on structured topologies; also extended by ADR-0025 for Leiden). |
 | 0013 | 2026-07-04 | Modular Package Layout by Domain | accepted | v0.3.0 | Repo organized into domain packages. Supersedes the 2026-07-04 "Acceptance Criteria" companion ADR (acceptance checklists merged into ADR-0013, duplicate file deleted 2026-08-09). |
 | 0014 | 2026-07-31 | Fixture Lane Scope — Core vs Optional Classification | accepted | LWM_012 | Core-tier fixture lanes implemented; optional components get standalone verification. |
 | 0015 | — | Semantic-Layer Boundary + Optional `[semantic]` Extra + Fallback Contract | reserved | LWM_013 | Reserved in the v0.4.0 registry; not yet authored (no code citations). |

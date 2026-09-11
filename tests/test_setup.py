@@ -96,6 +96,35 @@ class TestScaffold:
         assert code == 2
 
 
+class TestAutoDetect:
+    def test_auto_detect_registers_detected_client(self, isolated, tmp_path, capsys):
+        """client=auto with a detectable client must reach _register_for (S1):
+        previously TypeError — the auto path was never exercised in tests."""
+        home, cwd = isolated["home"], isolated["cwd"]
+        root = tmp_path / "wiki"
+        (cwd / "opencode.json").write_text(json.dumps({}), encoding="utf-8")
+        code = run(_setup_args(root, title="Demo", client="auto"), home=home, cwd=cwd)
+        assert code == 0
+        out = capsys.readouterr().out
+        assert "Detected client(s): opencode" in out
+        data = json.loads((cwd / "opencode.json").read_text(encoding="utf-8"))
+        assert data["mcp"]["llm-wiki"]["enabled"] is True
+
+    def test_auto_detect_multiple_clients(self, isolated, tmp_path, capsys):
+        """Every detected client is registered through the auto path."""
+        home, cwd = isolated["home"], isolated["cwd"]
+        root = tmp_path / "wiki"
+        (cwd / "opencode.json").write_text(json.dumps({}), encoding="utf-8")
+        (home / ".codex").mkdir()
+        (home / ".codex" / "config.toml").write_text("", encoding="utf-8")
+        code = run(_setup_args(root, title="Demo", client="auto"), home=home, cwd=cwd)
+        assert code == 0
+        out = capsys.readouterr().out
+        assert "opencode" in out and "codex" in out
+        assert "[mcp_servers.llm-wiki]" in (
+            home / ".codex" / "config.toml").read_text(encoding="utf-8")
+
+
 class TestClaude:
     def test_writes_mcp_json_idempotent_no_clobber(self, isolated, tmp_path):
         home, cwd = isolated["home"], isolated["cwd"]

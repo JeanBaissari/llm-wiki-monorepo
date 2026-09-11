@@ -323,3 +323,29 @@ def test_offline_provider_via_response_file(tmp_path, monkeypatch):
     l0_text = "\n".join(p.read_text(encoding="utf-8") for p in l0)
     assert '"A1"' in l0_text  # A1 is a member of community A
     assert "TOTALLY-NOT-A-MEMBER" not in l0_text  # nothing hallucinated
+
+
+def test_no_provider_fails_closed_when_calls_needed(tmp_path, monkeypatch, capsys):
+    """No provider + a needed call → actionable exit 2 (never silent failed=N/0).
+
+    Dry-run needs no provider (plan only), and cached runs that make no calls
+    are likewise untouched.
+    """
+    import sys
+
+    root, _wiki = _make_two_community_wiki(tmp_path)
+    for key in ("HERMES_SESSION_ID", "CLAUDE_CODE_SESSION", "CODEX_SESSION",
+                "LLM_WIKI_AGENT_MODE", "LLM_WIKI_RESPONSE_FILE",
+                "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY",
+                "TOGETHER_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
+
+    monkeypatch.setattr(sys, "argv",
+                        ["llm-wiki summarize-communities", str(root)])
+    assert summarize.main() == 2
+    assert "no LLM provider available" in capsys.readouterr().err
+
+    # --dry-run is plan-only: zero calls, zero provider requirement.
+    monkeypatch.setattr(sys, "argv",
+                        ["llm-wiki summarize-communities", str(root), "--dry-run"])
+    assert summarize.main() == 0

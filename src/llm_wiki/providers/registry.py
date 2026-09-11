@@ -49,9 +49,14 @@ DEFAULT_MODELS: dict[str, str] = {
 def _require_key(env_var: str, provider: str) -> str:
     key = os.environ.get(env_var)
     if not key:
-        raise RuntimeError(
-            f"{env_var} not set. Export it to use provider='{provider}' "
-            f"or set LLM_WIKI_RESPONSE_FILE for offline mode."
+        # Typed provider error (never a bare RuntimeError traceback): callers
+        # can fail closed with an actionable message instead of crashing.
+        from llm_wiki.providers import ProviderNotAvailableError
+
+        raise ProviderNotAvailableError(
+            f"{env_var} not set. Export it to use provider='{provider}', "
+            f"or pass provider='default' for auto-detection, or set "
+            f"LLM_WIKI_RESPONSE_FILE for offline mode."
         )
     return key
 
@@ -321,7 +326,7 @@ def call_llm_structured(
     system: str,
     user: str,
     response_model: Type[T],
-    provider: str = "openai",
+    provider: str = "default",
     model: Optional[str] = None,
     total_timeout: Optional[int] = None,
     **kwargs: Any,

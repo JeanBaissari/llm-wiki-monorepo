@@ -27,11 +27,11 @@ src/llm_wiki/         ← Python package — CLI, LLM providers, concurrency, se
   ├── ops/            ← Health, serve, benchmark, migrate
   ├── wiki/           ← Scaffold, backup
   ├── research/       ← Deep research pipeline
-  └── contracts/      ← Schema validation
+  ├── contracts/      ← Schema validation
+  └── templates/      ← 20 domain templates (PURPOSE.md + SCHEMA.md + extra-dirs.json)
 skill/scripts/        ← Python CLI entry points — most delegate to src/llm_wiki/,
                         a few (sidecar.py, validate_fixtures.py, regenerate_fixtures.py) are standalone
 skill/SKILL.md        ← Agent skill definition — loaded by Hermes/Claude/Codex
-templates/            ← 20 domain templates (PURPOSE.md + SCHEMA.md + extra-dirs.json)
 tests/                ← pytest suite — 67 test files + conftest.py fixtures
 mcp-server/           ← TypeScript — MCP server (stdio, 15 tools)
 graph-engine/         ← TypeScript — knowledge graph (relevance, Louvain, insights)
@@ -75,7 +75,7 @@ python3 -c "import py_compile; py_compile.compile('skill/scripts/<name>.py', dor
 
 1. Copy an existing template:
    ```bash
-   cp -r templates/codebase templates/<name>
+   cp -r src/llm_wiki/templates/codebase src/llm_wiki/templates/<name>
    ```
 2. Edit three files inside:
    - `PURPOSE.md` — why this wiki type exists, what it's for

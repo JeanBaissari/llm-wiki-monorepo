@@ -41,12 +41,10 @@ DEFAULT_TEMPLATE = "research"
 
 
 def _templates_candidates() -> tuple[Path, ...]:
-    """Template search path: package-internal first, then repo-root (dev)."""
+    """Template search path: the package-internal tree (single source of truth)."""
     return (
         # src/llm_wiki/templates — installed wheel or PYTHONPATH=src checkout
         Path(__file__).resolve().parent.parent / "templates",
-        # repo-root templates/ — editable/dev checkout
-        Path(__file__).resolve().parents[3] / "templates",
     )
 
 
@@ -68,7 +66,7 @@ def _require_templates_dir() -> Path:
             print(f"  - {candidate}", file=sys.stderr)
         print(
             "Reinstall the package (pip install -e .) or run "
-            "`python3 skill/scripts/scaffold.py --list-templates` from the repo checkout.",
+            "`python3 skill/scripts/scaffold.py --list-templates` with PYTHONPATH=src.",
             file=sys.stderr,
         )
         sys.exit(1)

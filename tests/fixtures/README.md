@@ -27,12 +27,12 @@ hasn't changed since fixtures were last regenerated.
 ## Schema Version
 
 The schema version is the first 8 characters of SHA256 of
-`templates/_shared/base-schema.md`. Any change to wiki conventions
+`src/llm_wiki/templates/_shared/base-schema.md`. Any change to wiki conventions
 (that file) changes the version hash.
 
 ```
 $ python3 skill/scripts/validate_fixtures.py --schema-version
-8857edf6
+6ffd0dac
 ```
 
 Each fixture wiki has a `.schema_version` file containing this hash.
@@ -40,7 +40,7 @@ Each fixture wiki has a `.schema_version` file containing this hash.
 ## When to Regenerate
 
 Run regeneration after:
-- Modifying `templates/_shared/base-schema.md`
+- Modifying `src/llm_wiki/templates/_shared/base-schema.md`
 - Adding/changing required frontmatter fields
 - Updating `lint_wiki.py` with new passes
 - Modifying seed files in `tests/fixtures/seeds/`

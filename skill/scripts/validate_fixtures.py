@@ -35,7 +35,7 @@ SCRIPTS_DIR = REPO_ROOT / "skill" / "scripts"
 FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures"
 WIKIS_DIR = FIXTURES_DIR / "wikis"
 SEEDS_DIR = FIXTURES_DIR / "seeds"
-TEMPLATES_SHARED = REPO_ROOT / "templates" / "_shared" / "base-schema.md"
+TEMPLATES_SHARED = REPO_ROOT / "src" / "llm_wiki" / "templates" / "_shared" / "base-schema.md"
 
 # ── Constants ──────────────────────────────────────────────────────────
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
@@ -346,7 +346,7 @@ def validate_fixtures(quiet: bool = False) -> int:
         print("✗ tests/fixtures/wikis/ not found", file=sys.stderr)
         return 2
     if not TEMPLATES_SHARED.exists():
-        print("✗ templates/_shared/base-schema.md not found", file=sys.stderr)
+        print("✗ src/llm_wiki/templates/_shared/base-schema.md not found", file=sys.stderr)
         return 2
 
     current_version = compute_schema_version()

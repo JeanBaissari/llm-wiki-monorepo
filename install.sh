@@ -96,7 +96,18 @@ cd "$REPO_DIR/plugins/obsidian-audit"
 npm install
 npm run build
 
-# ── Step d: Verify Python scripts syntax ─────────────────────────────
+# ── Step d: Install Python package (editable) ────────────────────────
+
+info "Installing Python package (editable)..."
+cd "$REPO_DIR"
+if ! python3 -m pip --version &>/dev/null; then
+    error "pip not found. Install pip (https://pip.pypa.io/en/stable/installation/) and try again."
+    exit 1
+fi
+python3 -m pip install -e "$REPO_DIR"
+info "Python package installed — 'llm-wiki' console script available"
+
+# ── Step e: Verify Python scripts syntax ─────────────────────────────
 
 info "Verifying Python script syntax..."
 cd "$REPO_DIR"
@@ -105,7 +116,7 @@ for f in skill/scripts/*.py; do
 done
 info "All Python scripts pass syntax check"
 
-# ── Step e: Hermes skill symlink ─────────────────────────────────────
+# ── Step f: Hermes skill symlink ─────────────────────────────────────
 
 echo ""
 warn "Optional: Hermes skill symlink"
@@ -116,10 +127,10 @@ if [[ "$response" =~ ^[Yy]$ ]]; then
     echo -e "  ${GREEN}✓${NC} Hermes skill linked"
 fi
 
-# ── Step f: Local bin wrappers ───────────────────────────────────────
+# ── Step g: Local bin wrappers ───────────────────────────────────────
 
 echo ""
-warn "Optional: local bin wrappers"
+warn "Optional: local bin wrappers (pip already installs the canonical llm-wiki-* console scripts)"
 read -r -p "  Add scripts to ~/.local/bin for PATH access? [y/N] " response
 if [[ "$response" =~ ^[Yy]$ ]]; then
     mkdir -p "$HOME/.local/bin"
@@ -159,15 +170,17 @@ EOF
     fi
 fi
 
-# ── Step g: Success summary ──────────────────────────────────────────
+# ── Step h: Success summary ──────────────────────────────────────────
 
 echo ""
 echo -e "${GREEN}✅ LLM Wiki Monorepo installed successfully!${NC}"
 echo "   Repo:    $REPO_DIR"
 echo "   Python:  $PY_VERSION"
 echo "   Node:    $NODE_VERSION"
+echo "   CLI:     llm-wiki (installed editable via pip)"
 echo ""
 echo "   Quick start:"
+echo "     llm-wiki --version                                  # verify the CLI is installed"
 echo "     llm-wiki setup ~/my-wiki --title \"My Project\"      # scaffold + wire MCP clients"
 echo "     llm-wiki demo ~/wikis/redis-playground              # materialize the demo wiki"
 echo "     python3 skill/scripts/lint_wiki.py ~/my-wiki"

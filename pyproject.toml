@@ -113,8 +113,14 @@ addopts = "-m 'not slow'"
 # by setuptools>=62.3; the build requires >=64 (see [build-system]). Dotfiles
 # are not matched by the recursive glob, so the hidden fixture markers are
 # listed explicitly (audit/.gitkeep keeps the audit/ dir present in the wheel).
+#
+# ADR-0004: the 20 domain templates are package-internal too, so
+# `llm-wiki scaffold --template <name>` works from an installed wheel.
+# src/llm_wiki/templates/ is an exact copy of the repo-root templates/ tree.
 llm_wiki = [
     "py.typed",
+    "templates/**",
+    "templates/algorithmic-trading-mql4/.gitignore",
     "wiki/demo_wiki/**",
     "wiki/demo_wiki/.schema_version",
     "wiki/demo_wiki/audit/.gitkeep",

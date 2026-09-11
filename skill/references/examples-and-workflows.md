@@ -15,7 +15,7 @@ llm-wiki-monorepo/
 │   ├── __init__.py
 │   ├── cli.py             ← Unified CLI dispatcher (27 commands)
 │   ├── core/              ← Primitives: layout, locking, atomic, hashing, config, tuning, logging
-│   ├── quality/           ← lint (16 checks), claims, contradictions, audit
+│   ├── quality/           ← lint (15 checks), claims, contradictions, audit
 │   ├── ingest/            ← Pipeline: blocks, writer, cache
 │   ├── providers/         ← Provider registry + opencode adapter (registry.py, opencode.py)
 │   ├── graph/             ← louvain, insights, suggestions, entities, ask
@@ -91,7 +91,7 @@ llm-wiki --help             # → usage + all 27 commands
 | Command | Purpose |
 |---------|---------|
 | `llm-wiki scaffold <root> <title>` | Create a new wiki from 20 templates |
-| `llm-wiki lint <root>` | 16-check health check |
+| `llm-wiki lint <root>` | 15-check health check |
 | `llm-wiki ingest <root> <source>` | Two-stage agent loop ingest |
 | `llm-wiki discover <root>` | Auto-detect wiki structure |
 | `llm-wiki insights <root>` | Graph analysis (surprising connections, gaps) |
@@ -410,7 +410,7 @@ Cron triggers → skill loaded → discover repos → for each repo:
   1. Assess health (page count, graph age, recent log entries)
   2. Build graph (or conditional rebuild if stale)
   3. Run insights (surprising connections + knowledge gaps)
-  4. Run lint (16 checks)
+  4. Run lint (15 checks)
   5. Compile health report
   6. Append to log/
 ```

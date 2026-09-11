@@ -62,6 +62,30 @@ def check_changelog(expected: str) -> tuple[bool, str]:
     return False, f"No entry for [{expected}] in docs/release/changelog.md"
 
 
+def check_npm_workspace_versions(manifest: dict) -> tuple[bool, str]:
+    """Every npm workspace entry in the manifest must match its package.json.
+
+    Guards the release-manifest npm table (including the root workspace) against
+    drifting behind a version bump — the v0.6.5 bump left the root entry at
+    0.6.4 because only the release.version field was updated.
+    """
+    mismatches = []
+    for entry in manifest.get("npm", {}).get("packages", []):
+        pkg_json = REPO_ROOT / entry.get("path", "") / "package.json"
+        rel = _relative(pkg_json)
+        if not pkg_json.exists():
+            mismatches.append(f"{rel}: missing")
+            continue
+        actual = json.loads(pkg_json.read_text()).get("version", "")
+        expected = entry.get("version", "")
+        if actual != expected:
+            mismatches.append(f"{rel}: manifest {expected}, package.json {actual}")
+    if mismatches:
+        return False, "; ".join(mismatches)
+    count = len(manifest.get("npm", {}).get("packages", []))
+    return True, f"{count} workspaces match"
+
+
 def check_console_script_imports() -> tuple[bool, list[str]]:
     with open(REPO_ROOT / "pyproject.toml", "rb") as f:
         data = tomllib.load(f)
@@ -136,6 +160,14 @@ def main() -> int:
         "expected": "all importable",
         "actual": "ok" if scripts_ok else "; ".join(script_failures),
         "status": "PASS" if scripts_ok else "FAIL",
+    })
+
+    npm_ws_ok, npm_ws_msg = check_npm_workspace_versions(manifest)
+    checks.append({
+        "check": "npm workspace versions",
+        "expected": "manifest matches package.json",
+        "actual": npm_ws_msg,
+        "status": "PASS" if npm_ws_ok else "FAIL",
     })
 
     all_pass = all(c["status"] == "PASS" for c in checks)

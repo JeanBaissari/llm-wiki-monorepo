@@ -328,7 +328,7 @@ Detect contradictory claims across pages and compute evidence-grounded confidenc
 | **`web-viewer/`** | Local Node.js server — preview the wiki with mermaid/math rendered; select → feedback → `audit/` |
 | `skill/scripts/scaffold.py` | Bootstrap a new wiki directory tree |
 | `skill/scripts/ingest.py` | Two-step chain-of-thought ingest (higher quality) |
-| `skill/scripts/lint_wiki.py` | Health check with 16 automated passes: dead wikilinks, orphan pages, missing index entries, frequently-linked missing pages, `log/` shape, `audit/` shape, open-audit target resolution, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation (>500 H2 entries), SHA256 source drift, pages affected by source drift, and git merge-conflict markers |
+| `skill/scripts/lint_wiki.py` | Health check with 15 automated checks: dead wikilinks, orphan pages, missing index entries, frequently-linked missing pages, `log/` shape, `audit/` shape, open-audit target resolution, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation (>500 H2 entries), SHA256 source drift, and git merge-conflict markers |
 | `skill/scripts/deep_research.py` | Web search + auto-ingest + synthesis for a research topic |
 | `skill/scripts/graph_insights.py` | Surprising connections and knowledge gap detection |
 | `skill/scripts/audit_review.py` | Group open/resolved audits by target file |

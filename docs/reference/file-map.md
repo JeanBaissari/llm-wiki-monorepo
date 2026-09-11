@@ -1,4 +1,4 @@
-# docs/reference/file-map.md — Complete File Map
+# File Map — llm-wiki-monorepo
 
 Every file in the llm-wiki-monorepo, organized by package with descriptions.
 
@@ -9,9 +9,10 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 | `README.md` | Project overview, quick start, architecture |
 | `USAGE.md` | User-facing surface inventory and workflows |
 | `LICENSE` | MIT license text |
-| `CONTRIBUTING.md` | Symlink to `docs/contributing.md` (contributor guide) |
+| `CONTRIBUTING.md` | Pointer to `docs/contributing.md` (contributor guide) |
 | `CHANGELOG.md` | Pointer to `docs/release/changelog.md` (canonical changelog) |
-| `SECURITY.md` | Security policy (added in the docs subsystem pass) |
+| `CODE_OF_CONDUCT.md` | Contributor Covenant v2.1 |
+| `SECURITY.md` | Security policy — supported versions, private reporting, trust boundaries |
 | `pyproject.toml` | Python package metadata — version, dependencies, extras, console scripts |
 | `release-manifest.json` | Machine-readable release contract (version, CLI/MCP/template/script counts) |
 | `docs/getting-started/quickstart.md` | Installation and first wiki — quick start guide |
@@ -127,6 +128,7 @@ PyPI package — CLI dispatch (`cli.py`), 27 commands via `COMMANDS`, domain-org
 Workspace package (`@baissari/llm-wiki-shared-types`) with the canonical graph/wiki types imported by `graph-engine` and `mcp-server`. It has no runtime dependencies and is built first in the workspace.
 
 | File | Purpose |
+| `README.md` | Package overview — canonical types, build-first contract, tests |
 |------|---------|
 | `src/index.ts` | Shared interfaces — `GraphNode`, `GraphEdge`, `CommunityInfo`, `GraphData`, `WikiProject`, `FileNode`, `SearchResult`, `ReviewItem`, `LintIssue`, `HealthStatus` |
 | `src/index.test.ts` | Type/schema round-trip tests (vitest) |
@@ -176,6 +178,7 @@ pytest. Run from the repo root with `PYTHONPATH=src`.
 TypeScript. 15 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wiki (`--projects`) mode.
 
 | File | Purpose |
+| `README.md` | Server overview — 15 tools, `--wiki`/`--projects`, sidecar, build/test commands |
 |------|---------|
 | `package.json` | Dependencies: `@modelcontextprotocol/sdk`, `@baissari/llm-wiki-shared-types` (workspace), `graph-engine` (workspace), `sql.js`; optional `better-sqlite3` |
 | `tsconfig.json` | TypeScript config — ES2022, strict mode |
@@ -202,6 +205,7 @@ TypeScript. 15 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wi
 TypeScript. Relevance model, Louvain communities, graph insights.
 
 | File | Purpose |
+| `README.md` | Engine overview — actions, `graph-data.json` contract, tuning, tests |
 |------|---------|
 | `package.json` | Dependencies: `graphology`, `graphology-communities-louvain` |
 | `tsconfig.json` | TypeScript config — ES2022, strict mode |
@@ -261,6 +265,7 @@ Each template directory contains:
 Express + markdown-it + KaTeX + mermaid. Search bar + graph insights panel.
 
 | File | Purpose |
+| `README.md` | Viewer overview — start command, `--port`/`--host`, auth warning, tests |
 |------|---------|
 | `package.json` | Dependencies and build scripts (incl. sigma + graphology, LWM_038) |
 | `server/index.ts` | Express server entry point |
@@ -287,6 +292,7 @@ Express + markdown-it + KaTeX + mermaid. Search bar + graph insights panel.
 Chrome Manifest V3 web clipper. Uses Readability.js + Turndown.js to download clean markdown for manual placement in the wiki's `raw/` directory followed by `llm-wiki ingest`.
 
 | File | Purpose |
+| `README.md` | Install (load unpacked), clip→download flow, auto-ingest removal note |
 |------|---------|
 | `manifest.json` | Extension manifest |
 | `popup.html` | Popup UI |
@@ -301,6 +307,7 @@ Chrome Manifest V3 web clipper. Uses Readability.js + Turndown.js to download cl
 TypeScript library for audit file format. Used by web-viewer and obsidian-audit plugin.
 
 | File | Purpose |
+| `README.md` | Audit schema/anchor/id contract and consumers |
 |------|---------|
 | `src/schema.ts` | Audit entry Zod schema |
 | `src/anchor.ts` | Text-based anchor algorithm |
@@ -314,6 +321,7 @@ TypeScript library for audit file format. Used by web-viewer and obsidian-audit 
 Select text → file feedback → writes to audit/. Shares audit-shared with web-viewer.
 
 | File | Purpose |
+| `README.md` | Build/link instructions and vault install steps |
 |------|---------|
 | `src/main.ts` | Plugin entry — commands, settings |
 | `src/settings.ts` | Plugin settings tab |

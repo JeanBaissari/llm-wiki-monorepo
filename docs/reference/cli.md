@@ -70,7 +70,7 @@ python3 skill/scripts/lint_wiki.py ~/my-wiki
 python3 skill/scripts/lint_wiki.py ~/my-wiki --json
 ```
 
-**15 automated checks:** dead wikilinks, orphan pages, missing index entries, unlinked concepts, log/ shape, audit/ shape, audit targets, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation, SHA256 source drift, stale wiki pages from source drift.
+**15 automated checks:** dead wikilinks, orphan pages, missing index entries, unlinked concepts, log/ shape, audit/ shape, audit targets, frontmatter validation, stale pages (>90 days), confidence signals, contradiction signals, page size (>200 lines), log rotation, SHA256 source drift, and git merge-conflict markers.
 
 ---
 

@@ -35,10 +35,12 @@ SKIP_DIRS = {".git", "node_modules", "dist", "build", ".venv", "__pycache__", ".
              # (audit D13/CI false positive). .audit/ is agent working state.
              "wiki", ".audit"}
 SKIP_FILES = {
-    "package-lock.json", "uv.lock", "provenance.md", "CHANGELOG.md",
+    "package-lock.json", "uv.lock", "provenance.md", "CHANGELOG.md", "changelog.md",
     # The scanner's own docstring enumerates the patterns it searches for, and
     # notices.md carries the project's own MIT text ("derived from this
     # software") — both are self-referential, not third-party provenance.
+    # Changelogs are historical release prose that necessarily discusses
+    # provenance/porting ("derived from", "ported from").
     "provenance_scan.py", "notices.md",
 }
 

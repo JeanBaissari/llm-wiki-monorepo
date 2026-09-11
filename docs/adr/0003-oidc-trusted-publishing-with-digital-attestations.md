@@ -1,4 +1,4 @@
-# ADR 003: OIDC Trusted Publishing with Digital Attestations
+# ADR 0003: OIDC Trusted Publishing with Digital Attestations
 
 - **Status:** accepted
 - **Date:** 2026-07-04

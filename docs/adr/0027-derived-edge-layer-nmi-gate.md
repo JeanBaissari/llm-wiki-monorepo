@@ -17,7 +17,7 @@
 
 ## Delivered State (defe7e0)
 
-The generator and the quarantined layer are fully implemented (`llm-wiki derive-edges`, default-exclusion by construction). **The gate is currently modularity-only** (`should_include_derived` compares `with_derived_modularity ≥ baseline_modularity` on the wikilink graph). **Remediation batch B7 upgrades the gate to NMI + modularity** (NMI ≥ 1 − tol AND modularity ≥ baseline, per the ADR-0012 NMI/ARI machinery + LWM_022 harness) and **wires `--include-derived`** for consumers. This ADR records the full NMI+modularity gate as the intended contract; the code matches it by tag time.
+The generator and the quarantined layer are fully implemented (`llm-wiki derive-edges`, default-exclusion by construction). **The gate as originally shipped was modularity-only** (`should_include_derived` compared `with_derived_modularity ≥ baseline_modularity` on the wikilink graph). **Remediation batch B7 upgraded the gate to NMI + modularity (delivered)** — NMI ≥ 1 − tol AND modularity ≥ baseline, per the ADR-0012 NMI/ARI machinery + LWM_022 harness — and **wired `--include-derived`** fail-closed into the `insights` / `summarize-communities` consumers. This ADR records the full NMI+modularity gate as the shipped contract.
 
 ## Consequences
 

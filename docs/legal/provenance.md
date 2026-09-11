@@ -1,6 +1,6 @@
 # Third-Party Provenance Ledger
 
-> **Release Blocker**: All items with class `P` (ported), `C` (copied), or `U` (unknown) must have an approved disposition before public release. See the [release blocker policy](CONTRIBUTING.md#release-blocker-gpl-provenance-review).
+> **Release Blocker**: All items with class `P` (ported), `C` (copied), or `U` (unknown) must have an approved disposition before public release. See the [release blocker policy](../contributing.md#release-blocker-gpl-provenance-review).
 
 ## Provenance Classes
 
@@ -20,8 +20,8 @@
 
 | Source | URL | License | Class | Local File | Disposition |
 |--------|-----|---------|-------|------------|-------------|
-| nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | MIT (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/relevance.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
-| nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | MIT (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/insights.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
+| nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | GPL-3.0 (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/relevance.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
+| nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | GPL-3.0 (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/insights.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
 | nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `X` — Doc reference | `CONTRIBUTING.md`, `docs/contributing.md`, `README.md` | `docs_only_credit` — Historical provenance disclosure ("code previously derived from nashsu/llm_wiki has been substantially rewritten in v0.3.3"). Documentation mentions only; no code copied. |
 | mixmark-io/turndown | https://github.com/mixmark-io/turndown | MIT | `C` — Vendored with attribution | `extension/Turndown.js` | `vendored_with_attribution` — Vendored turndown bundle; `collapseWhitespace` adapted from `collapse-whitespace` (MIT) and one helper adapted from https://gist.github.com/1129031 (public domain). Attribution retained in-file. |
 | mozilla/readability | https://github.com/mozilla/readability | Apache-2.0 | `C` — Vendored with attribution | `extension/Readability.js` | `vendored_with_attribution` — Readability.js vendored into the Chrome extension for article extraction. Apache-2.0 header retained in-file; the exact upstream version is unknown (the vendored file carries no version marker). |
@@ -79,10 +79,19 @@
 | tenacity | ≥8.0 | Apache-2.0 | https://github.com/jd/tenacity |
 | pydantic | ≥2.0 | MIT | https://github.com/pydantic/pydantic |
 | portalocker | ≥2.8 | BSD-3-Clause | https://github.com/WoLpH/portalocker |
+| tomli | ≥2.0 (Python < 3.11 only) | MIT | https://github.com/hukkin/tomli |
 | pytest | ≥8.0 | MIT | https://github.com/pytest-dev/pytest |
 | pytest-cov | ≥5.0 | MIT | https://github.com/pytest-dev/pytest-cov |
 | vcrpy | ≥6.0 | MIT | https://github.com/kevin1024/vcrpy |
 | networkx | ≥3.0 | BSD-3-Clause | https://github.com/networkx/networkx |
+| model2vec (`[semantic]`) | ≥0.3 | MIT | https://github.com/MinishLab/model2vec |
+| numpy (`[semantic]`) | ≥1.24 | BSD-3-Clause | https://github.com/numpy/numpy |
+| sqlite-vec (`[semantic]`) | ≥0.1.1 | MIT (dual MIT OR Apache-2.0; MIT elected) | https://github.com/asg017/sqlite-vec |
+| deepeval (`[eval]`) | ≥1.0 | Apache-2.0 | https://github.com/confident-ai/deepeval |
+| splink (`[entity-resolution]`) | ≥4.0 | MIT | https://github.com/moj-analytical-services/splink |
+| graspologic (`[leiden]`) | ≥3.4 | MIT | https://github.com/microsoft/graspologic |
+| gliner (`[ner]`) | ≥0.2.13 | Apache-2.0 | https://github.com/urchade/GLiNER |
+| onnxruntime (`[ner]`) | ≥1.17 | MIT | https://github.com/microsoft/onnxruntime |
 
 ## Disposition Summary
 

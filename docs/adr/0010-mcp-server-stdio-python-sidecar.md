@@ -1,4 +1,4 @@
-# ADR 010: MCP Server Architecture — stdio + Python Sidecar
+# ADR 0010: MCP Server Architecture — stdio + Python Sidecar
 
 - **Status:** accepted
 - **Date:** 2026-07-04

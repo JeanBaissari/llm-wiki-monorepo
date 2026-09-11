@@ -10,8 +10,8 @@
 
 ## The config surface
 
-Six sections, **22 scalar constants + the 5×5 type-affinity matrix + 5 insights
-signal scores** (52 settable keys in total):
+Six sections, **23 scalar constants + the 5×5 type-affinity matrix + 5 insights
+signal scores** (53 settable keys in total):
 
 | Section | Keys (defaults) | Gate metric tuned against |
 |---|---|---|
@@ -19,7 +19,7 @@ signal scores** (52 settable keys in total):
 | `relevance.typeAffinityMatrix` (5×5) | `entity/concept/source/query/synthesis` × same; see matrix below | link precision@k |
 | `insights` (7) | `surpriseThreshold` 3, `sparseCohesionThreshold` 0.15, `sparseMinNodes` 3, `bridgeCommunityMin` 3, `peripheralMaxDegree` 2, `peripheralHubRatio` 0.5, `isolatedMaxDegree` 1 | insights signal quality (curated review) + gap precision |
 | `insights.signalScores` (5) | `crossCommunity` 3, `crossTypeStrong` 2, `crossTypeWeak` 1, `peripheralToHub` 2, `lowWeight` 1 | insights signal quality |
-| `community` (2) | `resolution` 1.0, `seed` 42 | community NMI/modularity vs wikilink baseline |
+| `community` (3) | `resolution` 1.0, `seed` 42, `engine` `louvain`\|`leiden` (default `louvain`) | community NMI/modularity vs wikilink baseline |
 | `retrieval` (2) | `rrfK` 60, `simFloor` 0.30 | retrieval precision@k / recall; gibberish→empty |
 | `bm25` (2) | `k1` 1.5, `b` 0.75 | keyword retrieval precision@k / recall |
 | `claims` (5) | `penaltyStale` 2, `penaltyOpen` 10, `penaltyLowConf` 5, `penaltyContested` 3, `failBelow` 70 | claim-health exit-code stability |
@@ -28,19 +28,44 @@ signal scores** (52 settable keys in total):
 
 ```toml
 [relevance.typeAffinityMatrix.entity]
-concept = 1.2; entity = 0.8; source = 1.0; synthesis = 1.0; query = 0.8
+concept = 1.2
+entity = 0.8
+source = 1.0
+synthesis = 1.0
+query = 0.8
+
 [relevance.typeAffinityMatrix.concept]
-entity = 1.2; concept = 0.8; source = 1.0; synthesis = 1.2; query = 1.0
+entity = 1.2
+concept = 0.8
+source = 1.0
+synthesis = 1.2
+query = 1.0
+
 [relevance.typeAffinityMatrix.source]
-entity = 1.0; concept = 1.0; source = 0.5; query = 0.8; synthesis = 1.0
+entity = 1.0
+concept = 1.0
+source = 0.5
+query = 0.8
+synthesis = 1.0
+
 [relevance.typeAffinityMatrix.query]
-concept = 1.0; entity = 0.8; synthesis = 1.0; source = 0.8; query = 0.5
+concept = 1.0
+entity = 0.8
+synthesis = 1.0
+source = 0.8
+query = 0.5
+
 [relevance.typeAffinityMatrix.synthesis]
-concept = 1.2; entity = 1.0; source = 1.0; query = 1.0; synthesis = 0.8
+concept = 1.2
+entity = 1.0
+source = 1.0
+query = 1.0
+synthesis = 0.8
 ```
 
 Lookup is `affinity[source.type][target.type]`; a pair absent from the matrix
-falls back to `0.5` (TS `?? 0.5`). The scalar `relevance.typeAffinity` weight
+falls back to `0.5` (the named `UNKNOWN_PAIR_AFFINITY` constant in
+`graph-engine/src/relevance.ts`). The scalar `relevance.typeAffinity` weight
 multiplies the looked-up cell, exactly as `relevance.ts` does today. Setting one
 cell **merges** over the defaults — untouched cells keep their values.
 
@@ -174,7 +199,7 @@ node graph-engine/dist/index.js --wiki ~/wikis/my-project --action build --tunin
 ## Guarding tests
 
 - `tests/test_tuning_config.py::test_all_constants_configurable` — every one of
-  the 52 keys reachable via CLI + visible in the emit boundary; consumer
+  the 53 keys reachable via CLI + visible in the emit boundary; consumer
   wiring tests for Louvain/insights/claims/BM25.
 - `tests/test_tuning_config_defaults.py` — golden snapshot
   (`tests/eval/baseline/tuning_defaults.json`): the default profile is

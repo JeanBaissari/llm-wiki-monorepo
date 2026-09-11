@@ -17,7 +17,7 @@ node mcp-server/dist/main.js --projects ~/wikis
 LLM_WIKI_PATH=~/my-wiki node mcp-server/dist/main.js
 ```
 
-No `llm-wiki` CLI equivalent — the MCP server is a TypeScript package accessed via stdio.
+The server is a TypeScript package accessed over stdio. `llm-wiki serve` is the stdio launcher shipped with the Python CLI (`src/llm_wiki/ops/serve.py`); MCP clients normally launch `npx llm-wiki-mcp --wiki <root>` directly (see `llm-wiki setup`).
 
 **15 MCP Tools** (source of truth: `mcp-server/src/registry.ts`):
 

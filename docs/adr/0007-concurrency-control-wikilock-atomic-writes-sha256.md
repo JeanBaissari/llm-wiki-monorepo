@@ -1,4 +1,4 @@
-# ADR 007: Concurrency Control — WikiLock + Atomic Writes + SHA256 Conflict Detection
+# ADR 0007: Concurrency Control — WikiLock + Atomic Writes + SHA256 Conflict Detection
 
 - **Status:** accepted
 - **Date:** 2026-07-04

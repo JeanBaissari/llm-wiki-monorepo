@@ -7,6 +7,13 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 | File | Purpose |
 |------|---------|
 | `README.md` | Project overview, quick start, architecture |
+| `USAGE.md` | User-facing surface inventory and workflows |
+| `LICENSE` | MIT license text |
+| `CONTRIBUTING.md` | Symlink to `docs/contributing.md` (contributor guide) |
+| `CHANGELOG.md` | Pointer to `docs/release/changelog.md` (canonical changelog) |
+| `SECURITY.md` | Security policy (added in the docs subsystem pass) |
+| `pyproject.toml` | Python package metadata — version, dependencies, extras, console scripts |
+| `release-manifest.json` | Machine-readable release contract (version, CLI/MCP/template/script counts) |
 | `docs/getting-started/quickstart.md` | Installation and first wiki — quick start guide |
 | `docs/reference/cli.md` | Full CLI command reference with examples |
 | `docs/reference/mcp-tools.md` | MCP server, web viewer, browser extension reference |
@@ -23,7 +30,7 @@ Every file in the llm-wiki-monorepo, organized by package with descriptions.
 | `.gitignore` | Git ignore rules |
 | `.github/workflows/ci.yml` | GitHub Actions CI — syntax checks, builds, integration tests, eval gates, release certify |
 | `tests/eval/gold/GOLD_SET.md` | Search-eval gold-set provenance and regeneration rules (LWM_032) |
-| `docs/adr/index.md` + `docs/adr/decision-register.md` | ADR index and decision register — every ADR 0001–0028 plus deliberate gaps |
+| `docs/adr/index.md` + `docs/adr/decision-register.md` | ADR index and decision register — ADRs 0001–0035 (deliberate gaps: reserved 0015/0023) |
 
 ---
 
@@ -53,33 +60,33 @@ Main skill file. 10 operations. Includes EOW cron pipeline, template system, MCP
 
 ### `skill/scripts/` — 26 Python scripts
 
-Most scripts are CLI entry points that delegate to `src/llm_wiki/` modules; `sidecar.py`, `validate_fixtures.py`, and `regenerate_fixtures.py` are standalone (serving the MCP server and CI fixture tooling).
+Most scripts are thin CLI entry points (typically ~14 lines) that delegate to `src/llm_wiki/` modules; only `sidecar.py` (the long-lived MCP sidecar), `regenerate_fixtures.py`, and `validate_fixtures.py` carry substantive logic.
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `scaffold.py` | 330 | Bootstrap new wiki — `--template` picks from 20 domain templates, `--force` overwrites |
-| `ingest.py` | 233 | Thin wrapper — delegates to `llm_wiki.ingest.pipeline` |
-| `lint_wiki.py` | 557 | Thin wrapper — delegates to `llm_wiki.quality.lint` |
-| `deep_research.py` | 209 | Agent-driven research — web search, source fetch, auto-ingest, synthesis page |
-| `discover.py` | 350 | Thin wrapper — delegates to `llm_wiki.core.layout` |
-| `graph_insights.py` | 240 | Pure Python wikilink graph analysis — community detection, surprising connections, knowledge gaps |
-| `link_suggest.py` | 351 | Suggest missing wikilinks — entity extraction, 4-signal scoring, `--apply` auto-add |
-| `backup.py` | 411 | Snapshot, restore, integrity verification, prune — `--auto` one-command safe state |
-| `benchmark.py` | ~280 | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages, CSV output |
-| `audit_review.py` | 147 | Group open/resolved audit files by target for processing |
-| `migrate_log.py` | 117 | Convert v1 log.md to v2 log/ directory format |
-| `health_check.py` | — | Thin wrapper — delegates to `llm_wiki.ops.health` |
-| `index_wiki.py` | — | Thin wrapper — delegates to `llm_wiki.search` (FTS5 index build/rebuild) |
-| `serve.py` | — | Thin wrapper — delegates to `llm_wiki.ops.serve` (server launcher) |
-| `sidecar.py` | — | Python sidecar used by the MCP server (long-lived process; `ask` RPC, v0.6.0) |
-| `setup.py` | — | Thin wrapper — `llm-wiki setup` one-command client wiring (LWM_035) |
-| `demo.py` | — | Thin wrapper — `llm-wiki demo` materialize the committed playground (LWM_036) |
-| `ask.py` | — | Thin wrapper — grounded QA over summaries + pages (LWM_033) |
-| `contradictions.py` | — | Thin wrapper — contradiction detection + evidence confidence (LWM_034) |
-| `atomic_write.py`, `content_hash.py`, `lock_wiki.py`, `wiki_logging.py` | — | Shared primitives delegated to `core/` |
-| `louvain.py` | — | Thin wrapper — delegates to `llm_wiki.graph.louvain` |
-| `regenerate_fixtures.py` / `validate_fixtures.py` | — | Fixture regeneration / validation used by CI |
-| `providers/` | — | LLM provider wrapper scripts |
+| File | Purpose |
+|------|---------|
+| `scaffold.py` | Bootstrap new wiki — `--template` picks from 20 domain templates, `--force` overwrites |
+| `ingest.py` | Two-step CoT ingest — delegates to `llm_wiki.ingest.pipeline` |
+| `lint_wiki.py` | 15 automated wiki checks — delegates to `llm_wiki.quality.lint` |
+| `deep_research.py` | Agent-driven research — web search, source fetch, auto-ingest, synthesis page |
+| `discover.py` | Layout auto-detection — delegates to `llm_wiki.core.layout` |
+| `graph_insights.py` | Pure Python wikilink graph analysis — community detection, surprising connections, knowledge gaps |
+| `link_suggest.py` | Suggest missing wikilinks — entity extraction, 4-signal scoring, `--apply` auto-add |
+| `backup.py` | Snapshot, restore, integrity verification, prune — `--auto` one-command safe state |
+| `benchmark.py` | Performance benchmarks — synthetic wikis at 10/100/500/1000/5000 pages, CSV output |
+| `audit_review.py` | Group open/resolved audit files by target for processing |
+| `migrate_log.py` | Convert v1 log.md to v2 log/ directory format |
+| `health_check.py` | Subsystem health check — delegates to `llm_wiki.ops.health` |
+| `index_wiki.py` | FTS5 index build/rebuild — delegates to `llm_wiki.search` |
+| `serve.py` | stdio MCP server launcher — delegates to `llm_wiki.ops.serve` |
+| `sidecar.py` | Python sidecar used by the MCP server (long-lived process; `ask` RPC, v0.6.0) |
+| `setup.py` | `llm-wiki setup` one-command client wiring (LWM_035) |
+| `demo.py` | `llm-wiki demo` materialize the committed playground (LWM_036) |
+| `ask.py` | Grounded QA over summaries + pages (LWM_033) |
+| `contradictions.py` | Contradiction detection + evidence confidence (LWM_034) |
+| `louvain.py` | Louvain communities — delegates to `llm_wiki.graph.louvain` |
+| `atomic_write.py`, `content_hash.py`, `lock_wiki.py`, `wiki_logging.py` | Shared primitives delegated to `core/` |
+| `regenerate_fixtures.py` / `validate_fixtures.py` | Fixture regeneration / validation used by CI |
+| `providers/` | LLM provider wrapper scripts (subdirectory) |
 
 ---
 
@@ -104,7 +111,7 @@ PyPI package — CLI dispatch (`cli.py`), 27 commands via `COMMANDS`, domain-org
 | `quality/contradictions.py` | `llm-wiki contradictions` — typed claim extractor + suggest-only detector + evidence-grounded confidence (author-overridable `confidence_source`), unit normalization (LWM_034/ADR-0030) |
 | `quality/claims/` | Claims subsystem reused by contradictions — `Claim`/`Contradiction` models + `.llm-wiki/claims/` JSONL sidecar (`ClaimsManager`, idempotent batch writers) |
 | `semantic/ner_onnx.py` | Torch-free GLiNER ONNX runner — onnxruntime-direct decode, `LLM_WIKI_GLINER_MODEL` cache, never imports gliner/torch (LWM_037/ADR-0032) |
-| `core/config.py` | Canonical `TuningConfig` — all 22 constants + type-affinity matrix + signal scores (LWM_031/ADR-0028) |
+| `core/config.py` | Canonical `TuningConfig` — all 23 constants + type-affinity matrix + signal scores (LWM_031/ADR-0028; `community.engine` added in BKD-003) |
 | `core/tuning.py` | `llm-wiki tuning` CLI — resolve/precedence/`--set`/`--emit` to graph-engine JSON |
 | `eval/er_metrics.py` | Pairwise merge precision/recall/F1 (ER-F1 gate, LWM_025) |
 | `eval/cluster_metrics.py` | Community NMI/modularity metrics (Leiden verification, LWM_027) |
@@ -112,6 +119,19 @@ PyPI package — CLI dispatch (`cli.py`), 27 commands via `COMMANDS`, domain-org
 | `eval/ask_baseline.py` | Ask-eval harness — ask goldset splits, citation precision@k baseline + fail-on-drop (LWM_033) |
 | `eval/contradiction_baseline.py` | Contradiction + confidence gold-wiki builder and gates (LWM_034) |
 | `eval/goldset.py` / `baseline.py` / `metrics.py` / `harness.py` / `cli.py` | Eval harness core — gold-set load/splits, committed baselines, `llm-wiki eval` CLI |
+
+---
+
+## `packages/shared-types/` — Shared TypeScript Types
+
+Workspace package (`@baissari/llm-wiki-shared-types`) with the canonical graph/wiki types imported by `graph-engine` and `mcp-server`. It has no runtime dependencies and is built first in the workspace.
+
+| File | Purpose |
+|------|---------|
+| `src/index.ts` | Shared interfaces — `GraphNode`, `GraphEdge`, `CommunityInfo`, `GraphData`, `WikiProject`, `FileNode`, `SearchResult`, `ReviewItem`, `LintIssue`, `HealthStatus` |
+| `src/index.test.ts` | Type/schema round-trip tests (vitest) |
+| `package.json` | `type: module`, `main`/`types` pointing at `dist/`, build + typecheck + test scripts |
+| `tsconfig.json` | TypeScript config — ES2022, strict mode |
 
 ---
 
@@ -141,7 +161,7 @@ pytest. Run from the repo root with `PYTHONPATH=src`.
 | `tests/test_communities_internally_connected.py` | Connectivity over `tests/fixtures/graphs/*.json` — Louvain + Leiden |
 | `tests/test_derived_edges.py` | Derived-layer persistence, default exclusion, wikilink dupes, gate (LWM_029) |
 | `tests/test_community_summaries.py` | Summaries — dry-run, idempotence, hierarchy, faithfulness, orphan cleanup (LWM_030) |
-| `tests/test_tuning_config.py` + `test_tuning_config_defaults.py` | All 22 constants + matrix + signal scores configurable; defaults golden snapshot (LWM_031) |
+| `tests/test_tuning_config.py` + `test_tuning_config_defaults.py` | All 23 constants + matrix + signal scores configurable; defaults golden snapshot (LWM_031) |
 | `tests/test_search_hybrid.py` / `test_search_eval_gate.py` / `test_search_baseline_reproducible.py` | Hybrid default, RRF, keyword escape hatch, gibberish→empty, gate fail-closed, baseline reproducibility (LWM_032) |
 | `tests/test_eval_regression.py` | Committed-baseline regression — lexical, derived-edge gate, summary faithfulness |
 | `tests/test_edge_schema.py` | Additive edge fields inert on the Python default path; partition stable (LWM_028) |
@@ -157,7 +177,7 @@ TypeScript. 15 MCP tools via stdio transport. Single-wiki (`--wiki`) or multi-wi
 
 | File | Purpose |
 |------|---------|
-| `package.json` | Dependencies: `@modelcontextprotocol/sdk` |
+| `package.json` | Dependencies: `@modelcontextprotocol/sdk`, `@baissari/llm-wiki-shared-types` (workspace), `graph-engine` (workspace), `sql.js`; optional `better-sqlite3` |
 | `tsconfig.json` | TypeScript config — ES2022, strict mode |
 | `src/main.ts` | Server bootstrap — stdio JSON-RPC, delegates tool calls to the registry |
 | `src/registry.ts` | Tool registry — 15 TOOL_DEFINITIONS with schemas and handler mappings |
@@ -300,11 +320,3 @@ Select text → file feedback → writes to audit/. Shares audit-shared with web
 | `src/writer.ts` | Audit file writer |
 | `src/feedback-modal.ts` | Feedback input modal |
 | `manifest.json` | Obsidian plugin manifest |
-
----
-
-## `rust-backend/` — Document Parsing (Coming Soon)
-
-Multi-format document parsing (PDF, DOCX, EPUB) — planned for future implementation.
-
-*(Directory removed — was an empty stub.)*

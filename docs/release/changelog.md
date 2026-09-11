@@ -127,7 +127,7 @@ Post-v0.6.0 repo-state alignment — no code change to the shipped surface; the 
 The v0.6.0 minor closes the USAGE.md §7/§8 UX + epistemic backlog. Everything is
 additive and opt-in — defaults stay byte-identical, the base install stays
 lexical-only, `graph-data.json` shape is unchanged, and every new capability is
-eval-gated. 25 CLI commands / 15 MCP tools.
+eval-gated. 27 CLI commands / 15 MCP tools.
 
 - **One-command setup** (LWM_035): `llm-wiki setup <root> [--title]` scaffolds or
   validates a wiki and registers the MCP server with the detected client(s) —

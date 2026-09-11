@@ -2,6 +2,19 @@
 
 Full command reference for all `llm-wiki` CLI operations. For getting started, see [`docs/getting-started/quickstart.md`](../getting-started/quickstart.md). For MCP server and tool details, see [`docs/reference/mcp-tools.md`](mcp-tools.md).
 
+## Quick Index — 27 Commands by Lifecycle
+
+All 27 commands, grouped by where they sit in a wiki's lifecycle. Section numbers below are stable (they predate this grouping); each link jumps to the command's reference section.
+
+| Lifecycle stage | Commands |
+|-----------------|----------|
+| **Set up** | [scaffold](#21-scaffold-a-wiki-llm-wiki-scaffold) · [setup](#17-one-command-setup-llm-wiki-setup) · [demo](#18-demo-wiki-llm-wiki-demo) · [migrate-log](#14-migrate-old-wikis) |
+| **Ingest & research** | [ingest](#1-ingest-sources) · [deep-research](#9-deep-research) |
+| **Organize & link** | [entities](#6-entity-resolution) · [link-suggest](#5-link-suggestions) · [derive-edges](#7-derived-edges-quarantined-layer) · [summarize-communities](#8-community-summaries-opt-in-generated) · [tuning](#16-tuning-constants-llm-wiki-tuning) |
+| **Search & ask** | [search](#3-search-hybrid-by-default) · [index](#22-search-index-llm-wiki-index) · [embed](#23-embeddings-llm-wiki-embed) · [ask](#19-ask-this-wiki-llm-wiki-ask) |
+| **Verify & maintain** | [lint](#2-lint-the-wiki) · [insights](#4-graph-insights) · [contradictions](#20-contradictions-llm-wiki-contradictions) · [claims](#28-claim-sidecar-llm-wiki-claims) · [audit](#11-audit-reviews) · [health](#25-health-check-llm-wiki-health) · [backup](#10-backup--recovery) · [benchmark](#12-performance-benchmarks) · [eval](#24-eval-harness-llm-wiki-eval) · [discover](#13-wiki-structure-discovery) · [ops](#27-operation-manifests-llm-wiki-ops) |
+| **Serve & wire** | [serve](#26-mcp-server-launcher-llm-wiki-serve) |
+
 ## Two Paths to Run Commands
 
 All Python operations have **two invocation paths** — both supported, neither deprecated:

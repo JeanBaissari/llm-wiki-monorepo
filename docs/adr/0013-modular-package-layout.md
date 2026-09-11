@@ -4,7 +4,7 @@
 - **Date:** 2026-07-29
 - **Branches:** deployed on `v0.3.0/modularization`
 - **Deciders:** JeanBaissari (@JeanBaissari)
-- **Phase 6 (remaining gaps):** executed 2026-07-29, see [Gaps Closed](#gaps-closed)
+- **Phase 6 (remaining gaps):** executed 2026-07-29, see [Gaps Closed](#gaps-closed-phase-6)
 
 ## Context
 

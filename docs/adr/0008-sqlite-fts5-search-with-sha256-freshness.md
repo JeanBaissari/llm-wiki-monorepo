@@ -1,4 +1,4 @@
-# ADR 008: SQLite FTS5 Search with SHA256 Freshness Detection
+# ADR 0008: SQLite FTS5 Search with SHA256 Freshness Detection
 
 - **Status:** accepted
 - **Date:** 2026-07-04

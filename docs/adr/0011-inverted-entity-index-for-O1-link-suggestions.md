@@ -1,4 +1,4 @@
-# ADR 011: Inverted Entity Index for O(1) Link Suggestions
+# ADR 0011: Inverted Entity Index for O(1) Link Suggestions
 
 - **Status:** accepted
 - **Date:** 2026-07-04

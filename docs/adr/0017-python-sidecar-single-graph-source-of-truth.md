@@ -9,13 +9,13 @@
 The **Python sidecar owns the canonical graph computation**; the TypeScript side consumes it and never re-derives community logic on a divergent path:
 
 - `graph/louvain.py::detect_communities(nodes, edges, seed=42)` is the canonical engine. The label-propagation `communities()` in `graph/insights.py` was **deleted**; `llm-wiki insights` routes every community assignment through the canonical Louvain (insights.py:85-90, LWM_024 / ADR-0017).
-- The TypeScript graph-engine's own Louvain is kept as a deterministic, seeded implementation (mulberry32 PRNG, default seed 42 — previously non-deterministic via `Math.random`) and is held in lockstep with the Python engine by the ADR-0012 verification suite, whose parity threshold was **raised from NMI/ARI > 0.95 to exact agreement (NMI == 1.0 and ARI == 1.0)** across the 7-topology × 5-seed matrix (ADR-0012 amendment).
+- The TypeScript graph-engine's own Louvain is kept as a deterministic, seeded implementation (mulberry32 PRNG, default seed 42 — previously non-deterministic via `Math.random`) and is held in lockstep with the Python engine by the ADR-0012 verification suite: cross-implementation agreement is gated at **NMI ≥ 0.95 and ARI ≥ 0.95** on the six structured topologies × 5 seeds (`expected_agreement: true`). Exact agreement (NMI/ARI == 1.0) is the observed result on every structured topology; the noise-only `random` fixture has no stable community structure and is excluded from the agreement lane (reported, never gated). Same-seed within-implementation determinism is likewise gated by running each engine twice per seed and requiring identical partitions.
 - The untyped-page node-type default was aligned to `concept` in both languages; `graph-data.json` shape is unchanged.
 - §engine-selection: Louvain is the canonical algorithm; later engines (e.g. the opt-in Leiden sidecar, ADR-0025) implement the identical `detect_communities` contract and never replace the default without a gated switch.
 
 ## Delivered State (defe7e0)
 
-Implemented per commit ffb6b90 (v0.4.0 lane B): label-propagation removed (grep-encoded test), insights route through `graph/louvain.py`, TS `louvain.ts` seeded and deterministic, node-type default `concept` in both languages, `graph-data.json` shape unchanged, Python insights == TS insights on the shared fixture. The ADR-0012 suite (7 topologies × 5 seeds, NMI/ARI == 1.0) is the ongoing parity gate. No remediation batch is outstanding for this ADR.
+Implemented per commit ffb6b90 (v0.4.0 lane B): label-propagation removed (grep-encoded test), insights route through `graph/louvain.py`, TS `louvain.ts` seeded and deterministic, node-type default `concept` in both languages, `graph-data.json` shape unchanged, Python insights == TS insights on the shared fixture. The ADR-0012 suite (7 topologies × 5 seeds; cross-implementation NMI/ARI ≥ 0.95 on the structured graphs — exact 1.0 observed there, noise-only fixture exempt; same-seed determinism re-runs each engine twice) is the ongoing parity gate. No remediation batch is outstanding for this ADR.
 
 ## Consequences
 

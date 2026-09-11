@@ -169,6 +169,35 @@ def test_malformed_overrides_rejected():
         resolve_tuning(cli_overrides=["retrieval.rrfK=notanint"])  # bad int
 
 
+def test_malformed_tuning_file_raises_config_error(tmp_path):
+    """A malformed tuning.toml is a documented config error (exit 2), not an
+    uncaught tomllib.TOMLDecodeError traceback; the message names the file."""
+    bad = tmp_path / "tuning.toml"
+    bad.write_text("[retrieval\nsimFloor = 0.4\n", encoding="utf-8")
+    with pytest.raises(ConfigError) as exc:
+        resolve_tuning(wiki_root=tmp_path)
+    assert str(bad) in str(exc.value)
+
+
+def test_malformed_tuning_file_cli_exits_2(tmp_path, capsys):
+    """`llm-wiki search` on a malformed tuning.toml → exit 2, no traceback."""
+    import sys
+    from llm_wiki.search import query as query_mod
+
+    (tmp_path / "wiki").mkdir()
+    (tmp_path / "wiki" / "a.md").write_text("# A\n", encoding="utf-8")
+    (tmp_path / "tuning.toml").write_text("[retrieval\nsimFloor = 0.4\n",
+                                          encoding="utf-8")
+    argv = sys.argv
+    try:
+        sys.argv = ["llm-wiki search", str(tmp_path), "a"]
+        code = query_mod.main()
+    finally:
+        sys.argv = argv
+    assert code == 2
+    assert "config error" in capsys.readouterr().err
+
+
 def test_graph_engine_json_shape():
     j = resolve_tuning().to_graph_engine_json()
     assert j["relevance"]["weights"]["directLink"] == 3.0

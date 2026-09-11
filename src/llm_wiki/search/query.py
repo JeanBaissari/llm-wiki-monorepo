@@ -292,17 +292,25 @@ def main() -> int:
         print(f"config error: {e}", file=sys.stderr)
         return 2
 
+    over = tuning.overridden()
+
     if args.keyword:
-        over = tuning.overridden()
         results = keyword_search(
             root, args.query, args.top_k,
             k1=tuning.bm25.k1 if "bm25.k1" in over else None,
             b=tuning.bm25.b if "bm25.b" in over else None,
         )
     else:
-        results = hybrid_search(root, args.query, args.top_k,
-                                sim_floor=tuning.retrieval.simFloor,
-                                rrf_k=tuning.retrieval.rrfK)
+        # Forward CLI > env > file bm25 overrides into the default hybrid path
+        # exactly as the --keyword path does; hybrid_search would otherwise
+        # re-resolve tuning.toml/env without the CLI layer (LWM_031).
+        results = hybrid_search(
+            root, args.query, args.top_k,
+            sim_floor=tuning.retrieval.simFloor,
+            rrf_k=tuning.retrieval.rrfK,
+            bm25_k1=tuning.bm25.k1 if "bm25.k1" in over else None,
+            bm25_b=tuning.bm25.b if "bm25.b" in over else None,
+        )
 
     if args.json:
         print(json.dumps(results, indent=2))

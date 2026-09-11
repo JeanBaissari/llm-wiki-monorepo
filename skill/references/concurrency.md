@@ -125,8 +125,12 @@ the page), a conflict is detected.
 ### What Happens on Conflict
 
 Agent A's changes are NOT discarded. Instead:
-1. The new content is written to `PageName (conflict).md` (Obsidian-compatible convention).
-2. A clear stderr message is emitted: `CONFLICT: <page> was modified by another agent. Your changes saved to <page> (conflict).md.`
+1. The new content is written next to the page as `<page> (conflict).md` (Obsidian-compatible convention).
+2. A clear stderr message is emitted (exact format from `src/llm_wiki/ingest/writer.py`):
+   ```
+   ⚠  CONFLICT: concepts/Example.md was modified. Changes saved to Example (conflict).md.
+   ```
+   The first path is the page relative to the wiki pages directory; the second is the conflict file's basename.
 3. The original page (modified by Agent B) is left untouched on disk.
 
 ### Resolving Conflicts Manually
@@ -162,7 +166,9 @@ Use `--force` for:
 
 | Method | Value |
 |--------|-------|
-| Default | 30 seconds (`DEFAULT_LOCK_TIMEOUT` in `llm_wiki.core.locking`) |
+| Default acquire timeout | 30 seconds (`DEFAULT_LOCK_TIMEOUT` in `llm_wiki.core.locking`) |
+| Stale after dead PID | `DEFAULT_LOCK_TIMEOUT × STALE_TIMEOUT_FACTOR` = 90 seconds (`STALE_TIMEOUT_FACTOR = 3`) |
+| Hard stale (liveness unknown) | 300 seconds (`HARD_STALE_LIMIT`) |
 | Programmatic | `WikiLock(page_path, timeout=<seconds>)` / `write_wiki(..., lock_timeout=<seconds>)` |
 
 There is currently **no** `--lock-timeout` CLI flag and no

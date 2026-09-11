@@ -12,9 +12,13 @@ node graph-engine/dist/index.js --wiki <wiki-root> --action insights   # surpris
 node graph-engine/dist/index.js --wiki <wiki-root> --action relevance --node <id>
 ```
 
-- Nodes are wiki pages; edges are resolved `[[wikilinks]]` (plus opted-in
-  derived layers only when `--include-derived` is explicitly requested).
-- Communities come from Louvain (default) or Leiden (`[leiden]` extra).
+- Nodes are wiki pages; edges are resolved `[[wikilinks]]`. graph-engine's node
+  CLI has no `--include-derived` flag — derived edges are a separate, opt-in
+  Python layer: `llm-wiki derive-edges` builds them (NMI-gated), and
+  `llm-wiki insights --include-derived` / `llm-wiki summarize-communities
+  --include-derived` include them in analysis.
+- Communities come from Louvain in graph-engine; the Python side also offers
+  Leiden via the `[leiden]` extra.
 - The pure-Python fallback is `skill/scripts/graph_insights.py <wiki>` when
   Node/graph-engine is unavailable — same conceptual outputs.
 

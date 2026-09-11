@@ -14,10 +14,10 @@ llm-wiki-monorepo/
 ├── src/llm_wiki/          ← CANONICAL Python package (pip install)
 │   ├── __init__.py
 │   ├── cli.py             ← Unified CLI dispatcher (27 commands)
-│   ├── core/              ← Primitives: layout, locking, atomic, hashing, config, tuning
-│   ├── quality/           ← lint (15 checks), claims, audit
+│   ├── core/              ← Primitives: layout, locking, atomic, hashing, config, tuning, logging
+│   ├── quality/           ← lint (16 checks), claims, contradictions, audit
 │   ├── ingest/            ← Pipeline: blocks, writer, cache
-│   ├── providers/         ← LLM adapters (openai, anthropic, opencode)
+│   ├── providers/         ← Provider registry + opencode adapter (registry.py, opencode.py)
 │   ├── graph/             ← louvain, insights, suggestions, entities, ask
 │   ├── search/            ← FTS5 index + hybrid query
 │   ├── semantic/          ← Optional embeddings (no-op without [semantic])
@@ -67,9 +67,9 @@ llm-wiki-monorepo/
 ├── pyproject.toml          ← PyPI: baissarienterprises-llm-wiki
 ├── package.json            ← npm workspace root
 └── .github/workflows/
-    ├── ci.yml              ← On push/PR: syntax, build, test, integration
-    ├── release.yml         ← On tag: build, sign, publish
-    └── nightly.yml         ← Scheduled: publish to TestPyPI
+    ├── ci.yml              ← On push/PR (+ weekly schedule): build, test, integration; model-download lanes are manual/nightly
+    ├── release.yml         ← On tag: build wheel/sdist, attest, publish to PyPI
+    └── verify-communities.yml  ← On push/PR: TS/Python Louvain cross-implementation checks
 ```
 
 ---
@@ -91,7 +91,7 @@ llm-wiki --help             # → usage + all 27 commands
 | Command | Purpose |
 |---------|---------|
 | `llm-wiki scaffold <root> <title>` | Create a new wiki from 20 templates |
-| `llm-wiki lint <root>` | 15-check health check |
+| `llm-wiki lint <root>` | 16-check health check |
 | `llm-wiki ingest <root> <source>` | Two-stage agent loop ingest |
 | `llm-wiki discover <root>` | Auto-detect wiki structure |
 | `llm-wiki insights <root>` | Graph analysis (surprising connections, gaps) |
@@ -245,7 +245,7 @@ llm-wiki backup ~/api-docs --snapshot
 
 # After refactor, detect stale pages
 llm-wiki lint ~/api-docs
-# → "Payment Router: source file has changed since ingest" (Pass 15)
+# → Pages whose raw sources drifted: wiki/concepts/Payment_Router.md
 ```
 
 ### 3.4 AI Agent Orchestration (OpenCode/Claude Code)
@@ -253,7 +253,7 @@ llm-wiki lint ~/api-docs
 Prompt to Claude Code or OpenCode:
 
 ```
-Load the llm-wiki Hermes skill and analyze my project at ~/projects/baissari-vbt-lab.
+Load the LLM Wiki Hermes skill and analyze my project at ~/projects/baissari-vbt-lab.
 Create a complete knowledge base: discover, scaffold, ingest all core strategy
 files, auto-link everything, run quality checks, and produce a graph insights
 report. Then start an MCP server so I can query the wiki from this agent session.
@@ -326,20 +326,20 @@ node mcp-server/dist/main.js --wiki ~/projects/baissari-vbt-lab
 | Tool | Description | Example |
 |------|-------------|---------|
 | `llm_wiki_status` | Health, page count, open reviews | `{ "project": "quant-lab" }` |
-| `llm_wiki_files` | File tree listing | `{ "project": "quant-lab", "scope": "wiki" }` |
+| `llm_wiki_files` | File tree listing | `{ "project": "quant-lab", "root": "wiki" }` |
 | `llm_wiki_read_file` | Read any file (120KB limit) | `{ "project": "quant-lab", "path": "wiki/concepts/xau_swinger.md" }` |
 | `llm_wiki_reviews` | List review items | `{ "project": "quant-lab", "status": "open" }` |
 | `llm_wiki_search` | Hybrid search (BM25 + semantic KNN via RRF; `mode: "keyword"` to force lexical) | `{ "project": "quant-lab", "query": "drawdown protection" }` |
-| `llm_wiki_ask` | Grounded QA with citations (deterministic `no_llm` passages mode) | `{ "project": "quant-lab", "question": "how does failover work?" }` |
+| `llm_wiki_ask` | Grounded QA with citations (deterministic passage retrieval — no LLM call) | `{ "project": "quant-lab", "question": "how does failover work?" }` |
 | `llm_wiki_graph` | Backward-compatible graph wrapper | `{ "project": "quant-lab", "action": "insights" }` |
 | `llm_wiki_graph_build` | Build the knowledge graph | `{ "project": "quant-lab" }` |
 | `llm_wiki_graph_insights` | Surprising connections + knowledge gaps | `{ "project": "quant-lab" }` |
 | `llm_wiki_graph_search` | Search graph nodes | `{ "project": "quant-lab", "query": "risk" }` |
 | `llm_wiki_lint` | Run lint checks | `{ "project": "quant-lab" }` |
-| `llm_wiki_ingest` | Trigger ingest on a source | `{ "project": "quant-lab", "source": "raw/articles/new-paper.md" }` |
+| `llm_wiki_ingest` | Trigger ingest on a source | `{ "project": "quant-lab", "source_path": "raw/articles/new-paper.md" }` |
 | `llm_wiki_suggest_links` | Missing wikilink suggestions with confidence | `{ "project": "quant-lab", "limit": 10 }` |
 | `llm_wiki_backup` | Timestamped snapshot with integrity verification | `{ "project": "quant-lab" }` |
-| `llm_wiki_discover_entities` | List the entity registry | `{ "project": "quant-lab", "type": "tool" }` |
+| `llm_wiki_discover_entities` | List the entity registry | `{ "project": "quant-lab", "entity_type": "tool" }` |
 
 **Example agent prompt with MCP:**
 
@@ -410,7 +410,7 @@ Cron triggers → skill loaded → discover repos → for each repo:
   1. Assess health (page count, graph age, recent log entries)
   2. Build graph (or conditional rebuild if stale)
   3. Run insights (surprising connections + knowledge gaps)
-  4. Run lint (15 checks)
+  4. Run lint (16 checks)
   5. Compile health report
   6. Append to log/
 ```
@@ -420,7 +420,7 @@ Cron triggers → skill loaded → discover repos → for each repo:
 Prompt to an AI agent (OpenCode, Claude Code):
 
 ```
-I'm researching transformer attention mechanisms. Use the llm-wiki tools to:
+I'm researching transformer attention mechanisms. Use the LLM Wiki tools to:
 1. Scaffold a research wiki
 2. Deep-research the topic — search the web, fetch papers, ingest them
 3. Auto-link all concepts
@@ -450,12 +450,13 @@ EOW cron pipeline (from `skill/references/eow-cron-pipeline.md`):
 
 ```bash
 # For each discovered wiki:
-node graph-engine/dist/index.js --wiki <repo> --action build
-node graph-engine/dist/index.js --wiki <repo> --action insights
-llm-wiki lint <repo>
-python3 skill/scripts/graph_insights.py <repo> --format json
-llm-wiki audit <repo> --open
-llm-wiki backup <repo> --auto
+# Conditional rebuild: only when raw/ or wiki/ changed since the last build.
+node graph-engine/dist/index.js --wiki <wiki-root> --action build
+node graph-engine/dist/index.js --wiki <wiki-root> --action insights
+llm-wiki lint <wiki-root>
+python3 skill/scripts/graph_insights.py <wiki-root> --format json
+llm-wiki audit <wiki-root> --open
+llm-wiki backup <wiki-root> --auto
 
 # Compile report:
 # - Page count + graph health
@@ -487,14 +488,14 @@ This is what the system looks like when every component is live, every bridge is
                   │                              │
                   │  ┌─ npm installed ─────────┐ │
                   │  │  MCP Server (15 tools)  │ │
-                  │  │  Graph Engine (merged)  │ │
+                  │  │  Graph Engine (wikilink │ │
+                  │  │    graph)               │ │
                   │  │  Web Viewer (search +   │ │
-                  │  │    graph + derived view) │ │
+                  │  │    graph view)          │ │
                   │  └────────────────────────┘ │
                   │                              │
                   │  ┌─ Browser ───────────────┐ │
-                  │  │  Extension (web clipper │ │
-                  │  │  + experimental ingest) │ │
+                  │  │  Extension (web clipper)│ │
                   │  │  Web Viewer (tab:       │ │
                   │  │  Pages/Search/Graph)    │ │
                   │  └────────────────────────┘ │
@@ -583,7 +584,7 @@ All operations are linear or sub-linear (verified by `llm-wiki benchmark`).
 │   ├── entities/              ← Named entities
 │   ├── summaries/             ← Source summaries
 │   ├── comparisons/           ← A vs B comparisons
-│   ├── graphs/                ← Graph data exports
+│   ├── graphs/                ← Domain-specific graph/report pages (optional)
 │   └── synthesis/             ← Deep research syntheses
 ├── outputs/                   ← Query answers
 │   └── queries/

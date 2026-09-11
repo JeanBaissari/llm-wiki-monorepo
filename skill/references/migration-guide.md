@@ -1,6 +1,6 @@
 # Migration Guide — v1 → v2
 
-This guide walks through migrating an existing wiki from the **v1 format** (the original llm-wiki skill) to the **v2 format** (Lewis's merged format used by the current skill).
+This guide walks through migrating an existing wiki from the **v1 format** (the original single-file layout) to the **v2 format** used by the current LLM Wiki skill.
 
 ## Overview: what changed
 
@@ -134,13 +134,8 @@ After moving, update wikilinks across the wiki to point to the new locations.
 
 ## Post-migration: first `compile`
 
-After all structural changes are complete, run a `compile` operation to restructure the wiki:
+After all structural changes are complete, run the `compile` operation (an agent operation defined by the skill — there is no `compile` CLI subcommand; ask your agent to "compile the wiki at `<wiki-root>`"). It will:
 
-```bash
-compile <wiki-root>
-```
-
-This will:
 1. Rebuild `wiki/index.md` from the current page inventory.
 2. Validate all wikilinks resolve to existing pages.
 3. Check frontmatter consistency.

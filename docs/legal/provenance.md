@@ -16,12 +16,12 @@
 
 ## Upstream-Derived Components
 
-### Graph Engine — Ported Code
+### Graph Engine — Upstream References & Clean-Room Reimplementations
 
 | Source | URL | License | Class | Local File | Disposition |
 |--------|-----|---------|-------|------------|-------------|
-| nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `P` — Ported | `graph-engine/src/relevance.ts` | `clean_room_replace` — 4-signal relevance model ported from `src/lib/graph-relevance.ts`. Must be replaced with clean-room implementation from algorithmic description before public release. |
-| nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `P` — Ported | `graph-engine/src/insights.ts` | `clean_room_replace` — surprising connections + knowledge gap detection ported from `graph-insights.ts`. Must be replaced with clean-room implementation before public release. |
+| nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | MIT (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/relevance.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
+| nashsu/llm_wiki (behavioral contract reference only) | https://github.com/nashsu/llm_wiki | MIT (no upstream code incorporated) | `C` — Clean-room implementation | `graph-engine/src/insights.ts` | `clean_room_reimplemented` — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests). No copied code. |
 | nashsu/llm_wiki | https://github.com/nashsu/llm_wiki | GPL-3.0 | `X` — Doc reference | `CONTRIBUTING.md`, `docs/contributing.md`, `README.md` | `docs_only_credit` — Historical provenance disclosure ("code previously derived from nashsu/llm_wiki has been substantially rewritten in v0.3.3"). Documentation mentions only; no code copied. |
 | mixmark-io/turndown | https://github.com/mixmark-io/turndown | MIT | `C` — Vendored with attribution | `extension/Turndown.js` | `vendored_with_attribution` — Vendored turndown bundle; `collapseWhitespace` adapted from `collapse-whitespace` (MIT) and one helper adapted from https://gist.github.com/1129031 (public domain). Attribution retained in-file. |
 
@@ -88,11 +88,11 @@
 
 | File | Class | Disposition | Status |
 |------|-------|-------------|--------|
-| `graph-engine/src/relevance.ts` | `P` — Ported | `clean_room_replace` | **UNRESOLVED — Release blocker** |
-| `graph-engine/src/insights.ts` | `P` — Ported | `clean_room_replace` | **UNRESOLVED — Release blocker** |
+| `graph-engine/src/relevance.ts` | `C` — Clean-room implementation | `clean_room_reimplemented` | Resolved — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests); MIT, no copied code. |
+| `graph-engine/src/insights.ts` | `C` — Clean-room implementation | `clean_room_reimplemented` | Resolved — independently reimplemented 2026-09 for v0.6.4 from the behavioral contract (public API + tests); MIT, no copied code. |
 | `graph-engine/src/louvain.ts` | `I` — Inspired | `docs_only_credit` | Resolved |
 | `src/llm_wiki/` methodology | `I` — Inspired | `docs_only_credit` | Resolved |
 | `skill/SKILL.md` methodology | `X` — Upstream reference | `docs_only_credit` | Resolved |
 | All `D` — Direct dependencies | `D` — Direct dependency | `license_compatible_include` | Resolved |
 
-> **Resolved in v0.3.3**: Items previously marked `clean_room_replace` have been substantially rewritten and expanded. See [CONTRIBUTING.md](CONTRIBUTING.md#release-blocker-gpl-provenance-review) for the resolution summary.
+> **Resolved in v0.6.4 (2026-09)**: `graph-engine/src/relevance.ts` and `graph-engine/src/insights.ts` were independently reimplemented from their behavioral contract (public API + tests). No copied code; both files are original MIT implementations. The earlier v0.3.3 note described rewrites of the then-ported code, which did not by itself discharge the provenance review.

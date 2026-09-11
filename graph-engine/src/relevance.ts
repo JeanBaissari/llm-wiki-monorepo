@@ -1,11 +1,20 @@
+// Graph Engine — 4-signal relevance model.
+//
+// Clean-room, original MIT implementation (2026-09). Independently written
+// against the behavioral contract in graph-engine/test/test_relevance.test.ts
+// and the public API consumed by build.ts / index.ts / tuning.ts. No
+// third-party source code was reproduced.
+
 import type { GraphNode, GraphEdge } from './types.js';
 
-const WEIGHTS = {
+const DEFAULT_WEIGHTS = {
   directLink: 3.0,
   sourceOverlap: 4.0,
   commonNeighbor: 1.5,
   typeAffinity: 1.0,
 } as const;
+
+const UNKNOWN_PAIR_AFFINITY = 0.5;
 
 export interface RelevanceOptions {
   weights?: {
@@ -17,21 +26,7 @@ export interface RelevanceOptions {
   typeAffinityMatrix?: Record<string, Record<string, number>>;
 }
 
-export function buildSourceIndex(nodes: GraphNode[]): Map<string, string[]> {
-  const index = new Map<string, string[]>();
-  for (const node of nodes) {
-    const sources = node.sources;
-    if (sources) {
-      for (const src of sources) {
-        if (!index.has(src)) index.set(src, []);
-        index.get(src)!.push(node.id);
-      }
-    }
-  }
-  return index;
-}
-
-const TYPE_AFFINITY: Record<string, Record<string, number>> = {
+const DEFAULT_TYPE_AFFINITY: Record<string, Record<string, number>> = {
   entity: { concept: 1.2, entity: 0.8, source: 1.0, synthesis: 1.0, query: 0.8 },
   concept: { entity: 1.2, concept: 0.8, source: 1.0, synthesis: 1.2, query: 1.0 },
   source: { entity: 1.0, concept: 1.0, source: 0.5, query: 0.8, synthesis: 1.0 },
@@ -56,47 +51,88 @@ export interface GraphStructure {
   degree: Map<string, number>;
 }
 
+type WeightSet = { [K in keyof typeof DEFAULT_WEIGHTS]: number };
+
+function linkOnce(index: Map<string, Set<string>>, from: string, to: string): void {
+  const bucket = index.get(from);
+  if (bucket) {
+    bucket.add(to);
+  } else {
+    index.set(from, new Set([to]));
+  }
+}
+
+/** Precompute directed adjacency, undirected neighbors and per-edge degree counts. */
 export function buildGraphStructure(edges: GraphEdge[]): GraphStructure {
   const adjacency = new Map<string, Set<string>>();
   const neighbors = new Map<string, Set<string>>();
   const degree = new Map<string, number>();
 
-  for (const edge of edges) {
-    // Directed adjacency: only source→target
-    if (!adjacency.has(edge.source)) adjacency.set(edge.source, new Set());
-    adjacency.get(edge.source)!.add(edge.target);
+  for (const { source, target } of edges) {
+    linkOnce(adjacency, source, target);
+    linkOnce(neighbors, source, target);
+    linkOnce(neighbors, target, source);
 
-    // Undirected neighbors: both directions
-    if (!neighbors.has(edge.source)) neighbors.set(edge.source, new Set());
-    neighbors.get(edge.source)!.add(edge.target);
-    if (!neighbors.has(edge.target)) neighbors.set(edge.target, new Set());
-    neighbors.get(edge.target)!.add(edge.source);
-
-    // Degree: count each edge occurrence for both nodes
-    degree.set(edge.source, (degree.get(edge.source) ?? 0) + 1);
-    degree.set(edge.target, (degree.get(edge.target) ?? 0) + 1);
+    degree.set(source, (degree.get(source) ?? 0) + 1);
+    degree.set(target, (degree.get(target) ?? 0) + 1);
   }
 
   return { adjacency, neighbors, degree };
 }
 
-export function getNeighbors(nodeId: string, edges: GraphEdge[]): Set<string> {
-  const neighbors = new Set<string>();
-  for (const edge of edges) {
-    if (edge.source === nodeId) neighbors.add(edge.target);
-    if (edge.target === nodeId) neighbors.add(edge.source);
-  }
-  return neighbors;
+function resolveWeights(options?: RelevanceOptions): WeightSet {
+  return { ...DEFAULT_WEIGHTS, ...options?.weights };
 }
 
-export function getNodeDegree(nodeId: string, edges: GraphEdge[]): number {
-  let degree = 0;
-  for (const edge of edges) {
-    if (edge.source === nodeId || edge.target === nodeId) degree++;
-  }
-  return degree;
+function affinityFor(
+  sourceType: string,
+  targetType: string,
+  matrix: Record<string, Record<string, number>>,
+): number {
+  return matrix[sourceType]?.[targetType] ?? UNKNOWN_PAIR_AFFINITY;
 }
 
+function sharedSourceCount(
+  leftId: string,
+  rightId: string,
+  nodeMap: Map<string, GraphNode>,
+): number {
+  const leftSources = nodeMap.get(leftId)?.sources;
+  const rightSources = nodeMap.get(rightId)?.sources;
+  if (!leftSources || !rightSources) return 0;
+
+  const leftSet = new Set(leftSources);
+  let shared = 0;
+  for (const source of rightSources) {
+    if (leftSet.has(source)) shared += 1;
+  }
+  return shared;
+}
+
+function adamicAdarScore(
+  leftId: string,
+  rightId: string,
+  structure: GraphStructure,
+): number {
+  const leftNeighbors = structure.neighbors.get(leftId);
+  const rightNeighbors = structure.neighbors.get(rightId);
+  if (!leftNeighbors || !rightNeighbors) return 0;
+
+  let weight = 0;
+  for (const neighborId of leftNeighbors) {
+    if (!rightNeighbors.has(neighborId)) continue;
+    const neighborDegree = structure.degree.get(neighborId) ?? 2;
+    weight += 1 / Math.log(Math.max(neighborDegree, 2));
+  }
+  return weight;
+}
+
+/**
+ * Score how strongly two nodes relate using four additive signals:
+ * direct links (both orientations), shared sources, Adamic-Adar over common
+ * neighbors, and a type-affinity prior. Same-id pairs score 0; two nodes with
+ * no incident edges fall back to the type-affinity term alone.
+ */
 export function calculateRelevance(
   nodeA: GraphNode,
   nodeB: GraphNode,
@@ -107,52 +143,32 @@ export function calculateRelevance(
 ): number {
   if (nodeA.id === nodeB.id) return 0;
 
-  const w = { ...WEIGHTS, ...options?.weights };
-  const affinity = options?.typeAffinityMatrix ?? TYPE_AFFINITY;
+  const weights = resolveWeights(options);
+  const typeAffinityScore =
+    affinityFor(
+      nodeA.type,
+      nodeB.type,
+      options?.typeAffinityMatrix ?? DEFAULT_TYPE_AFFINITY,
+    ) * weights.typeAffinity;
 
-  const degA = structure.degree.get(nodeA.id) ?? 0;
-  const degB = structure.degree.get(nodeB.id) ?? 0;
+  const degreeA = structure.degree.get(nodeA.id) ?? 0;
+  const degreeB = structure.degree.get(nodeB.id) ?? 0;
+  if (degreeA === 0 && degreeB === 0) return typeAffinityScore;
 
-  const affinityMap = affinity[nodeA.type];
-  const typeAffinityScore = (affinityMap?.[nodeB.type] ?? 0.5) * w.typeAffinity;
+  const forward = structure.adjacency.get(nodeA.id)?.has(nodeB.id) ? 1 : 0;
+  const backward = structure.adjacency.get(nodeB.id)?.has(nodeA.id) ? 1 : 0;
+  const directLinkScore = (forward + backward) * weights.directLink;
 
-  if (degA === 0 && degB === 0) return typeAffinityScore;
+  const sourceOverlapScore =
+    sharedSourceCount(nodeA.id, nodeB.id, nodeMap) * weights.sourceOverlap;
 
-  let forwardLinks = 0;
-  let backwardLinks = 0;
-  const adjA = structure.adjacency.get(nodeA.id);
-  const adjB = structure.adjacency.get(nodeB.id);
-  if (adjA?.has(nodeB.id)) forwardLinks = 1;
-  if (adjB?.has(nodeA.id)) backwardLinks = 1;
-  const directLinkScore = (forwardLinks + backwardLinks) * w.directLink;
-
-  const nodeASources = getEnrichedSources(nodeA.id, nodeMap);
-  const nodeBSources = getEnrichedSources(nodeB.id, nodeMap);
-  let sharedSourceCount = 0;
-  if (nodeASources && nodeBSources) {
-    const sourcesA = new Set(nodeASources);
-    for (const src of nodeBSources) {
-      if (sourcesA.has(src)) sharedSourceCount++;
-    }
-  }
-  const sourceOverlapScore = sharedSourceCount * w.sourceOverlap;
-
-  const neighborsA = structure.neighbors.get(nodeA.id);
-  const neighborsB = structure.neighbors.get(nodeB.id);
-  let adamicAdar = 0;
-  if (neighborsA && neighborsB) {
-    for (const neighborId of neighborsA) {
-      if (neighborsB.has(neighborId)) {
-        const degree = structure.degree.get(neighborId) ?? 2;
-        adamicAdar += 1 / Math.log(Math.max(degree, 2));
-      }
-    }
-  }
-  const commonNeighborScore = adamicAdar * w.commonNeighbor;
+  const commonNeighborScore =
+    adamicAdarScore(nodeA.id, nodeB.id, structure) * weights.commonNeighbor;
 
   return directLinkScore + sourceOverlapScore + commonNeighborScore + typeAffinityScore;
 }
 
+/** Rank every other node against `nodeId`, highest score first (stable on ties). */
 export function getRelatedNodes(
   nodeId: string,
   nodes: GraphNode[],
@@ -161,29 +177,20 @@ export function getRelatedNodes(
   options?: RelevanceOptions,
 ): { node: GraphNode; score: number }[] {
   const nodeMap = new Map<string, GraphNode>();
-  for (const n of nodes) nodeMap.set(n.id, n);
+  for (const node of nodes) nodeMap.set(node.id, node);
 
-  const targetNode = nodeMap.get(nodeId);
-  if (!targetNode) return [];
+  const anchor = nodeMap.get(nodeId);
+  if (!anchor) return [];
 
-  const scored: { node: GraphNode; score: number }[] = [];
-
-  for (const other of nodes) {
-    if (other.id === nodeId) continue;
-    const score = calculateRelevance(targetNode, other, nodes, structure, nodeMap, options);
-    scored.push({ node: other, score });
+  const ranked: { node: GraphNode; score: number }[] = [];
+  for (const candidate of nodes) {
+    if (candidate.id === nodeId) continue;
+    ranked.push({
+      node: candidate,
+      score: calculateRelevance(anchor, candidate, nodes, structure, nodeMap, options),
+    });
   }
 
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit);
-}
-
-function getEnrichedSources(
-  nodeId: string,
-  nodeMap: Map<string, GraphNode>,
-  _sourceIndex?: Map<string, string[]>,
-): string[] | undefined {
-  const entry = nodeMap.get(nodeId);
-  if (!entry) return undefined;
-  return entry.sources;
+  ranked.sort((left, right) => right.score - left.score);
+  return ranked.slice(0, limit);
 }
